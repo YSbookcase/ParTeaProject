@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id">
+  <string name="gcm_defaultSenderId" translatable="false">703419052710</string>
+  <string name="google_storage_bucket" translatable="false">parteaproject.firebasestorage.app</string>
+  <string name="project_id" translatable="false">parteaproject</string>
+  <string name="google_api_key" translatable="false">AIzaSyCp_l-bPgE8HI-6VB3dZPEKjBclfiUC3Vc</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCp_l-bPgE8HI-6VB3dZPEKjBclfiUC3Vc</string>
+  <string name="google_app_id" translatable="false">1:703419052710:android:02270bfb4344487cbd3a67</string>
+</resources>
