@@ -53,10 +53,11 @@ public class GameManager : Singleton<GameManager>
         // 모두가 로딩이 완료되었는지 확인하기 위해 isLoaded를 사용한다.
         foreach(Player player in PhotonNetwork.PlayerList)
         {
-            Hashtable isLoaded = new Hashtable();
-            isLoaded["isLoaded"] = false;
+            Hashtable property = new Hashtable();
+            property["isLoaded"] = false;
+            property["rank"] = 0;
 
-            player.SetCustomProperties(isLoaded);
+            player.SetCustomProperties(property);
         }
 
         PhotonNetwork.LoadLevel(sceneName);
