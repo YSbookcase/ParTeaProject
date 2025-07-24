@@ -8,6 +8,7 @@ create a casual party game inspired by Mario Party and Mario Party: Jamboree.
 
 - 작업은 각자의 이니셜로 작성된 폴더에서 진행한다.
 - Resources 폴더의 경우에 각자의 이니셜 폴더 안에서 생성하여 활용한다.
+  - Resources 하위 파일의 명의 경우 이니셜을 붙여서 구분되게 한다. ex) KYS_Player, KYSPlyaer, PlayerKYS 등.
 - 패키지 파일 구분을 위해서 Imports 폴더 내에 에셋 파일은 각자 이니셜 폴더 안에 위치한다.
 
 ## 깃 컨벤션
