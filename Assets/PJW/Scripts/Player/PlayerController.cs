@@ -64,7 +64,7 @@ namespace RopeGame
             if (isDead) return;
             isDead = true;
 
-            Vector3 bounceDir = (Vector3.up + Random.onUnitSphere).normalized;
+            Vector3 bounceDir = (Vector3.forward + Random.onUnitSphere).normalized;
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse); // 로프에 닿으면 날아감
         }
     }
