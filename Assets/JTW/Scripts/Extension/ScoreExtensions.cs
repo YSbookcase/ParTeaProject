@@ -7,29 +7,31 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public static class ScoreExtensions
 {
-    public static void SetScore(this Player player, int newScore)
+    private const string totalScoreString = "totalGameScore";
+
+    public static void SetTotalGameScore(this Player player, int newScore)
     {
         Hashtable score = new Hashtable();
-        score["score"] = newScore;
+        score[totalScoreString] = newScore;
 
         player.SetCustomProperties(score);
     }
 
-    public static void AddScore(this Player player, int scoreToAddToCurrent)
+    public static void AddTotalGameScore(this Player player, int scoreToAddToCurrent)
     {
-        int current = player.GetScore();
+        int current = player.GetTotalGameScore();
         current = current + scoreToAddToCurrent;
 
         Hashtable score = new Hashtable();
-        score["score"] = current;
+        score[totalScoreString] = current;
 
         player.SetCustomProperties(score);
     }
 
-    public static int GetScore(this Player player)
+    public static int GetTotalGameScore(this Player player)
     {
         object score;
-        if (player.CustomProperties.TryGetValue("score", out score))
+        if (player.CustomProperties.TryGetValue(totalScoreString, out score))
         {
             return (int)score;
         }

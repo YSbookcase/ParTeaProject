@@ -14,7 +14,7 @@ public class GameManager : Singleton<GameManager>
         // 모든 플레이어의 점수를 0으로 초기화
         foreach(Player player in PhotonNetwork.PlayerList)
         {
-            player.SetScore(0);
+            player.SetTotalGameScore(0);
         }
 
         PhotonNetwork.LoadLevel(sceneName);
