@@ -71,4 +71,24 @@ public class GameManager : Singleton<GameManager>
 
         PhotonNetwork.LocalPlayer.SetCustomProperties(isLoaded);
     }
+
+    public bool isAllPlayerLoaded()
+    {
+        foreach (Player player in PhotonNetwork.PlayerList)
+        {
+            if (player.CustomProperties.ContainsKey("isLoaded"))
+            {
+                if (!(bool)player.CustomProperties["isLoaded"])
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
