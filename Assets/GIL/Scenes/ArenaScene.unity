@@ -301,7 +301,7 @@ GameObject:
   - component: {fileID: 864733154}
   - component: {fileID: 864733153}
   m_Layer: 5
-  m_Name: MatchingTest
+  m_Name: Matching&SpawningTest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -321,7 +321,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   panel: {fileID: 1855250547}
   roomNameText: {fileID: 337042984}
-  playerPrefab: {fileID: 6049744517240644787, guid: cabdec49774ccfb4faa1fdb34e05efab,
+  playerPrefab: {fileID: 5539457231747955550, guid: aeac1674b2e4ada4788e342fa66bdc77,
     type: 3}
   spawnRadius: 5
   center: {x: 0, y: 0, z: 0}

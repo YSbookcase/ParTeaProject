@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 5067074703783935331}
   - component: {fileID: 2303853006412216332}
   m_Layer: 0
-  m_Name: ArenaPlayer
+  m_Name: GIL_ArenaPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
