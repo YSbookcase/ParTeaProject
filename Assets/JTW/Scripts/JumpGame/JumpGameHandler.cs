@@ -32,7 +32,7 @@ namespace JTW_JumpGame
 
             playerSpawnPoint.x += 1.5f * (PhotonNetwork.LocalPlayer.ActorNumber - 1);
 
-            PhotonNetwork.Instantiate("JumpPlayer", playerSpawnPoint, Quaternion.identity);
+            PhotonNetwork.Instantiate("JTW_JumpPlayer", playerSpawnPoint, Quaternion.identity);
 
             Debug.Log("점프 게임 시작!");
             // TODO : 점프 게임 로직 구현

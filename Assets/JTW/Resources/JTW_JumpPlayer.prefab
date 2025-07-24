@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 454199759710235573}
   - component: {fileID: 1582173844529761589}
   m_Layer: 0
-  m_Name: JumpPlayer
+  m_Name: JTW_JumpPlayer
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
