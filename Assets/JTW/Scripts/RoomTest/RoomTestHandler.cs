@@ -39,22 +39,6 @@ namespace JTW_Test
         {
             Manager.game.GameStart("JumpGame");
         }
-
-        public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
-        {
-            if (changedProps.ContainsKey("isLoaded"))
-            {
-                Debug.Log($"{targetPlayer.NickName} 준비 상태 : {changedProps["isLoaded"]}");
-            }
-            else
-            {
-            }
-
-            if (changedProps.ContainsKey("totalGameScore"))
-            {
-                Debug.Log($"{targetPlayer.NickName} 점수 : {changedProps["totalGameScore"]}");
-            }
-        }
     }
 }
 
