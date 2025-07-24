@@ -23,8 +23,8 @@ namespace KYS
         public static event Action OnFirebaseInitialized;
         public static bool IsInitialized { get; private set; } = false;
 
-        [Header("Firebase 설정")]
-        [SerializeField] private bool useAuthEmulator = false; // 실제 Firebase 서비스 사용
+        //[Header("Firebase 설정")]
+        //[SerializeField] private bool useAuthEmulator = false; // 실제 Firebase 서비스 사용
 
         protected override void Awake() => base.Awake();
 
