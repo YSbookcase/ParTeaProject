@@ -3,6 +3,7 @@ using Photon.Realtime;
 using ExitGames.Client.Photon;
 using System.Collections.Generic;
 using UnityEngine;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public static class RankExtensions
 {
@@ -11,7 +12,7 @@ public static class RankExtensions
         Hashtable rank = new Hashtable();  
         rank["rank"] = newRank;
 
-        player.SetCustomProperties(rank);  
+        player.SetCustomProperties(rank);
     }
 
     public static int GetRank(this Player player)
