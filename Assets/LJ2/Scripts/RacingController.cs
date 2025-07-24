@@ -19,6 +19,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private float currentSpeed;
 
     private Vector3 networkPosition;
+    private Vector3 networkVelocity;
     private Quaternion networkRotation;
 
     private void Awake()
@@ -29,18 +30,33 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
     }
 
+    //private void Start()
+    //{
+    //    moveDirection = transform.forward; // 초기 이동 방향은 차량의 전방
+    //}
+
+    private void OnEnable()
+    {
+        moveAction.action.Enable();
+    }
+    private void OnDisable()
+    {
+        moveAction.action.Disable();
+    }
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
         if (stream.IsWriting)
         {
             // 다른 플레이어에게 위치와 회전을 전송
-            stream.SendNext(transform.position);
-            stream.SendNext(transform.rotation);
+            stream.SendNext(rigid.position);
+            stream.SendNext(rigid.velocity);
+            stream.SendNext(rigid.rotation);
         }
         else if (stream.IsReading)
         {
             // 다른 플레이어로부터 위치와 회전을 수신
             networkPosition = (Vector3)stream.ReceiveNext();
+            networkVelocity = (Vector3)stream.ReceiveNext();
             networkRotation = (Quaternion)stream.ReceiveNext();
         }
     }
@@ -49,20 +65,30 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     {
         if (photonView.IsMine)
         {
-            Move();
+            SetRotation();
+        }
+        
+    }
+
+    private void FixedUpdate()
+    {
+        if (photonView.IsMine)
+        {
+            rigid.velocity = moveDirection * currentSpeed;
         }
         else
         {
             transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10);
-            transform.rotation = Quaternion.Lerp(transform.rotation,networkRotation,Time.deltaTime * 10);
+            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
         }
     }
 
-    private void Move()
+
+    private void SetRotation()
     {
         Vector2 input = moveAction.action.ReadValue<Vector2>();
         Vector3 inputDirection = new Vector3(input.x, 0, input.y).normalized;
-        Vector3 forward = transform.forward;
+       
 
         // 차량 방향 전환
         if (inputDirection != Vector3.zero)
@@ -82,10 +108,52 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            moveDirection = forward;
+            moveDirection = transform.forward;
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(!photonView.IsMine) return;
+
+        float impactForce = collision.relativeVelocity.magnitude;
+
+        if (impactForce < 5f)
+        {
+            rigid.velocity *= 0.8f; // 약한 충돌은 속도 감소
+        }
+        else
+        {
+            // 중간 충돌은 약간의 반동
+            rigid.AddForce(-collision.relativeVelocity.normalized * impactForce * 0.5f, ForceMode.Impulse);
         }
 
-        rigid.velocity = moveDirection * currentSpeed;
+        Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
+        float strength = Mathf.Clamp(impactForce * 0.5f , 5f, 20f); // 충돌 강도에 따라 힘 조절
+
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            PhotonView targetView = collision.gameObject.GetComponent<PhotonView>();
+            if (targetView != null && targetView.IsMine == false)
+            {
+                targetView.RPC("RacingCrash", targetView.Owner, pushDirection * strength);
+            }
+        }
+    }
+
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if(!photonView.IsMine) return;
+        rigid.velocity *= 0.9f; // 충돌 후 속도 감소
+        rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
+
+    }
+
+    [PunRPC]
+    void RacingCrash(Vector3 direction)
+    {
+        rigid.AddForce(direction, ForceMode.Impulse);
     }
 
     private void OnDrawGizmos()
