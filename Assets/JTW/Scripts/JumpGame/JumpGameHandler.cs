@@ -25,8 +25,8 @@ namespace JTW_JumpGame
 
 
         [PunRPC]
-        private void GameStart()
-        {
+        private void JumpGameStart()
+        { 
             if (isGameStarted) return;
             isGameStarted = true;
 
@@ -60,7 +60,7 @@ namespace JTW_JumpGame
             {
                 if (Manager.game.isAllPlayerLoaded())
                 {
-                    photonView.RPC("GameStart", RpcTarget.AllViaServer);
+                    photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
                 }
             }
         }
