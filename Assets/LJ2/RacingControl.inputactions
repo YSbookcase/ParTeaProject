@@ -1,0 +1,41 @@
+{
+    "version": 1,
+    "name": "RacingControl",
+    "maps": [
+        {
+            "name": "RacingControl",
+            "id": "f25326a6-c5e8-4e43-a630-08f2780ea701",
+            "actions": [
+                {
+                    "name": "Move",
+                    "type": "Value",
+                    "id": "3512d706-e397-4b53-a67d-9666f2a422c8",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "ca72b73c-86c9-4d4d-92cf-c486c1f828a2",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Racing",
+            "bindingGroup": "Racing",
+            "devices": []
+        }
+    ]
+}
