@@ -1,0 +1,61 @@
+{
+    "version": 1,
+    "name": "ArenaPlayerActions",
+    "maps": [
+        {
+            "name": "Player",
+            "id": "98a5a792-5973-4c9a-8c05-38ffb7095d40",
+            "actions": [
+                {
+                    "name": "JoystickTouch",
+                    "type": "Value",
+                    "id": "c2409c6a-af99-4a2d-805b-74e7572320e2",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "JoystickTouchPhase",
+                    "type": "Button",
+                    "id": "dfb77029-9e6a-4dcd-9b2a-cda7a86d65bb",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "c5dcd0fc-f7c8-46d8-b33c-13f3d333ff83",
+                    "path": "<Touchscreen>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "JoystickTouch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "594d4678-f9ce-4c37-8257-7856ce6657f9",
+                    "path": "<Touchscreen>/Press",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "JoystickTouchPhase",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "New Control Scheme",
+            "bindingGroup": "New Control Scheme",
+            "devices": []
+        }
+    ]
+}
