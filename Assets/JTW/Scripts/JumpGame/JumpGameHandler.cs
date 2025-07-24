@@ -1,0 +1,69 @@
+﻿using Photon.Pun;
+using Photon.Realtime;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace JTW_JumpGame
+{
+    public class JumpGameHandler : MonoBehaviourPunCallbacks
+    {
+        [SerializeField] private GameObject playerPrefab;
+        [SerializeField] private Vector3 obstacleSpawnPoint;
+
+        [Header("테스트 용")]
+        [SerializeField] private Button gameEndButton;
+
+        private Vector3 playerSpawnPoint = new Vector3(-2.25f, 0, 0);
+        private bool isGameStarted;
+
+        private void Awake()
+        {
+            gameEndButton.onClick.AddListener(GameEnd);
+        }
+
+
+        [PunRPC]
+        private void JumpGameStart()
+        { 
+            if (isGameStarted) return;
+            isGameStarted = true;
+
+            playerSpawnPoint.x += 1.5f * (PhotonNetwork.LocalPlayer.ActorNumber - 1);
+
+            PhotonNetwork.Instantiate("JTW_JumpPlayer", playerSpawnPoint, Quaternion.identity);
+
+            Debug.Log("점프 게임 시작!");
+            // TODO : 점프 게임 로직 구현
+        }
+
+        private void GameEnd()
+        {
+            // TODO : 점수에 따른 순위 확정 로직 작성
+
+            int rank = 1;
+            foreach(Player player in PhotonNetwork.PlayerList)
+            {
+                player.SetRank(rank);
+                rank++;
+            }
+
+            Manager.game.GoScoerScene();
+        }
+
+        public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+        {
+            if (!PhotonNetwork.IsMasterClient) return;
+
+            if (changedProps.ContainsKey("isLoaded"))
+            {
+                if (Manager.game.isAllPlayerLoaded())
+                {
+                    photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
+                }
+            }
+        }
+    }
+}
+
