@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 2964663422811475034}
   - component: {fileID: 1939117965948349080}
   m_Layer: 0
-  m_Name: Car
+  m_Name: RacingPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
