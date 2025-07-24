@@ -7,8 +7,8 @@ namespace PJW
 {
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] private float jumpForce = 5f;
-        [SerializeField] private float bounceForce = 25f;
+        [SerializeField] private float jumpForce;
+        [SerializeField] private float bounceForce;
 
         private Rigidbody playerRigidbody;
         private bool isGrounded;

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace PJW
 {
-    public class PlayerSpawner : MonoBehaviour
+    public class PlayerSpawner : MonoBehaviour// MonoBehaviourPunCallbacks
     {
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private Transform[] spawnPoints;
@@ -23,4 +23,19 @@ namespace PJW
             }
         }
     }
-}
+     /*
+    public override void OnJoinedRoom()
+     {
+        int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+
+        if (playerIndex >= spawnPoints.Length)
+        {
+          playerINdex = 0;
+        }
+
+        Transform spawnPoiont = spawnPoints[playerIndex];
+
+        PhotonNetwork.Instantiate();
+     }
+     */
+    }

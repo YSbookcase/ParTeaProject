@@ -134,7 +134,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 72
   m_CollisionDetection: 0
 --- !u!114 &6069353883665965680
 MonoBehaviour:
@@ -150,5 +150,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jumpForce: 5
   bounceForce: 50
-  ropeObject: {fileID: 2055300351295703685, guid: 79783112ffe34c743a0f3d46ec486fab,
-    type: 3}
