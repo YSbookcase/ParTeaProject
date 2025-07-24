@@ -8,6 +8,10 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class GameManager : Singleton<GameManager>
 {
+    // 몇개의 게임을 연속으로 할 것인지에 대한 카운트.
+    private int maxGameCount;
+    private int curGameCount;
+
     private void OnEnable()
     {
         // 각 플레이어들이 로컬에서 이벤트 등록을 할 수 있도록 OnEnable에서 진행.
@@ -19,7 +23,7 @@ public class GameManager : Singleton<GameManager>
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    public void GameStart(string sceneName)
+    public void GameStart(string sceneName, int maxGameCount = 1)
     {
         PhotonNetwork.CurrentRoom.IsOpen = false;
         PhotonNetwork.CurrentRoom.IsVisible = false;
@@ -30,6 +34,9 @@ public class GameManager : Singleton<GameManager>
             player.SetTotalGameScore(0);
         }
 
+        this.maxGameCount = maxGameCount;
+        curGameCount = 0;
+
         GoNextMiniGame(sceneName);
     }
 
@@ -39,7 +46,7 @@ public class GameManager : Singleton<GameManager>
         PhotonNetwork.CurrentRoom.IsVisible = true;
 
         // TODO : Room 씬으로 돌아간다.
-        PhotonNetwork.LoadLevel("Main");
+        PhotonNetwork.LoadLevel("JTW_RoomTest");
     }
 
     public void GoScoerScene()
@@ -49,6 +56,15 @@ public class GameManager : Singleton<GameManager>
 
     public void GoNextMiniGame(string sceneName)
     {
+        // 지정된만큼 미니게임을 하였다면, 게임 종료.
+        if(curGameCount == maxGameCount)
+        {
+            GameEnd();
+            return;
+        }
+
+        curGameCount++;
+
         // 플레이어들이 미니게임 씬으로 넘어갈 때,
         // 모두가 로딩이 완료되었는지 확인하기 위해 isLoaded를 사용한다.
         foreach(Player player in PhotonNetwork.PlayerList)
