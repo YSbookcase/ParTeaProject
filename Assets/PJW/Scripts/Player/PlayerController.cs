@@ -3,13 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RopeGame
+namespace PJW
 {
     public class PlayerController : MonoBehaviour
     {
         [SerializeField] private float jumpForce = 5f;
         [SerializeField] private float bounceForce = 25f;
-        [SerializeField] private GameObject ropeObject;
 
         private Rigidbody playerRigidbody;
         private bool isGrounded;
@@ -23,7 +22,7 @@ namespace RopeGame
 
         private void Update()
         {
-            if (isDead) return;
+            if (isDead) return; // if (!photonView.IsMine || isDead) return;
 
             if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
             {
@@ -45,7 +44,7 @@ namespace RopeGame
             {
                 isGrounded = true;
             }
-            else if (!isDead && collision.gameObject == ropeObject)
+            else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {
                 Die();
             }
