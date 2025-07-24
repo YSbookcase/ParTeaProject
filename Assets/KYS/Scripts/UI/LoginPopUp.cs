@@ -69,37 +69,37 @@ namespace KYS
                 }
 
                 Debug.Log("로그인 성공");
-                //
-                //// 1. 이미 이메일 인증이 완료된 경우
-                //FirebaseUser user = task.Result.User;
-                //if (user.IsEmailVerified == true)
-                //{
-                //    // 1-1. 닉네임이 설정되지 않은 경우
-                //    if (string.IsNullOrEmpty(user.DisplayName))
-                //    {
-                //        UIManager.Instance.ShowPopUp<NicknamePopUp>();
-                //    }
-                //    // 1-2. 닉네임이 설정된 경우
-                //    else
-                //    {
-                //        UIManager.Instance.ShowPopUp<LobbyPopUp>();
-                //    }
-                //}
-                //// 2. 이메일 인증이 완료되지 않은 경우
-                //else
-                //{
-                //    UIManager.Instance.ShowPopUp<EmailPopUp>();
-                //}
+
+                // 1. 이미 이메일 인증이 완료된 경우
+                FirebaseUser user = task.Result.User;
+                if (user.IsEmailVerified == true)
+                {
+                    // 1-1. 닉네임이 설정되지 않은 경우
+                    if (string.IsNullOrEmpty(user.DisplayName))
+                    {
+                        UIManager.Instance.ShowPopUp<NicknamePopUp>();
+                    }
+                    // 1-2. 닉네임이 설정된 경우
+                    else
+                    {
+                        UIManager.Instance.ShowPopUp<LobbyPopUp>();
+                    }
+                }
+                // 2. 이메일 인증이 완료되지 않은 경우
+                else
+                {
+                    UIManager.Instance.ShowPopUp<EmailPopUp>();
+                }
             });
         }
 
         private void ShowLoginFailMessage(string message)
         {
-            //MessagePopUp messagePopUp = UIManager.Instance.ShowPopUp<MessagePopUp>();
-            //if (messagePopUp != null)
-            //{
-            //    messagePopUp.SetMessage(message, "확인");
-            //}
+            MessagePopUp messagePopUp = UIManager.Instance.ShowPopUp<MessagePopUp>();
+            if (messagePopUp != null)
+            {
+                messagePopUp.SetMessage(message, "확인");
+            }
         }
 
         // 입력 필드 초기화

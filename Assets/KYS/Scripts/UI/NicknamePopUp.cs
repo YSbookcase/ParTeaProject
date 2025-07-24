@@ -55,7 +55,7 @@ namespace KYS
                     UIManager.Instance.ClosePopUp();
 
                     // 로비 팝업으로 이동
-                    //UIManager.Instance.ShowPopUp<LobbyPopUp>();
+                    UIManager.Instance.ShowPopUp<LobbyPopUp>();
                 });
         }
 
@@ -68,7 +68,7 @@ namespace KYS
             UIManager.Instance.ClosePopUp();
 
             // 로그인 패널로 이동
-            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPanel");
+            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
             if (loginPanel != null)
             {
                 // 로그인 패널을 비활성화했다가 다시 활성화하여 OnEnable 호출 보장
