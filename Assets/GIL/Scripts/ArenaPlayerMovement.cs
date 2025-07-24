@@ -9,7 +9,6 @@ namespace GIL.Scripts
         [SerializeField] private float movePower = 50f;
         [SerializeField] private float maxSpeed = 15f;
         [SerializeField] private float drag = 0.9f;
-        [SerializeField] private GameObject touchActiveTest;
         
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
@@ -73,7 +72,7 @@ namespace GIL.Scripts
 
                     if (_rigidbody.velocity.magnitude < maxSpeed)
                     {
-                        _rigidbody.AddForce(dir * movePower);
+                        _rigidbody.AddForce(dir * movePower, ForceMode.Force);
                     }
                 }
             }
@@ -85,7 +84,6 @@ namespace GIL.Scripts
             }
 #endif
             _rigidbody.velocity *= drag;
-            touchActiveTest.SetActive(_isTouching);
         }
     }
 }
