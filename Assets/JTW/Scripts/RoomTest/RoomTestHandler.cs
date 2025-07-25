@@ -20,7 +20,7 @@ namespace JTW_Test
 
         public override void OnConnectedToMaster()
         {
-            PhotonNetwork.JoinRandomOrCreateRoom();
+            PhotonNetwork.JoinOrCreateRoom("JumpGame", new RoomOptions(), TypedLobby.Default);
         }
 
         public override void OnJoinedRoom()
