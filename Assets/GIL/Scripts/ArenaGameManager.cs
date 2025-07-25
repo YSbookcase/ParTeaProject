@@ -48,7 +48,7 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
                 if (alivePlayers.Count == 1)
                     rankList.Insert(0, alivePlayers[0]);
 
-                photonView.RPC(nameof(RPC_EndGame), RpcTarget.All, GetNickNameArray());
+                photonView.RPC(nameof(ArenaEndGame), RpcTarget.All, GetNickNameArray());
             }
         }
     }
@@ -64,7 +64,7 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    private void RPC_EndGame(string[] nicknames)
+    private void ArenaEndGame(string[] nicknames)
     {
         Debug.Log("게임 종료! 최종 순위:");
         for (int i = 0; i < nicknames.Length; i++)

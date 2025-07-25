@@ -21,11 +21,11 @@ public class ArenaShrink : MonoBehaviourPun
         Debug.Log("Photon 호출 성공");
         yield return new WaitForSeconds(shrinkStartTime);
         Debug.Log("RPC 호출 시작");
-        photonView.RPC(nameof(RPC_StartShrink), RpcTarget.All);
+        photonView.RPC(nameof(ArenaStartShrink), RpcTarget.All);
     }
     
     [PunRPC]
-    private void RPC_StartShrink()
+    private void ArenaStartShrink()
     {
         StartCoroutine(ShrinkArena());
     }
