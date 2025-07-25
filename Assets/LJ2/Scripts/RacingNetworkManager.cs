@@ -13,7 +13,7 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
-        PhotonNetwork.JoinRandomOrCreateRoom();
+        PhotonNetwork.JoinOrCreateRoom("RacingTest", new RoomOptions { MaxPlayers = 4 }, new TypedLobbyInfo());
     }
 
     public override void OnCreatedRoom()
