@@ -5,22 +5,27 @@ using UnityEngine;
 
 namespace PJW
 {
-    public class PlayerSpawner : MonoBehaviour// MonoBehaviourPunCallbacks
+    public class PlayerSpawner : MonoBehaviourPunCallbacks
     {
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private Transform[] spawnPoints;
-
-        private void Start()
+                        
+        public override void OnJoinedRoom()
         {
-            SpawnAllPlayers();
+            Debug.Log("방에 입장 완료");
+            SpawnMyPlayer();
         }
 
-        private void SpawnAllPlayers()
+        private void SpawnMyPlayer()
         {
-            for (int i = 0; i < spawnPoints.Length; i++)
-            {
-                Instantiate(playerPrefab, spawnPoints[i].position, spawnPoints[i].rotation);
-            }
+            int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+
+            playerIndex = playerIndex % spawnPoints.Length;
+
+            Transform spawnPoint = spawnPoints[playerIndex];
+
+            PhotonNetwork.Instantiate("Player", spawnPoint.position, spawnPoint.rotation);
+
         }
     }
      /*

@@ -9,8 +9,9 @@ namespace PJW
     {
         [SerializeField] private Text countdownText;
 
-        private void Start()
+        public void BeginCountdown()
         {
+            StopAllCoroutines();
             StartCoroutine(StartCountdownRoutine());
         }
 
