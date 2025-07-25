@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 using Photon.Realtime;
+using Cinemachine;
 
 public class RacingController : MonoBehaviourPun, IPunObservable
 {
@@ -22,6 +23,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private Vector3 networkVelocity;
     private Quaternion networkRotation;
 
+    private CinemachineVirtualCamera virtualCamera;
+
     private void Awake()
     {
         if (rigid == null)
@@ -30,10 +33,18 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
     }
 
-    //private void Start()
-    //{
-    //    moveDirection = transform.forward; // 초기 이동 방향은 차량의 전방
-    //}
+    private void Start()
+    {
+        if (photonView.IsMine)
+        {
+            virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+            if (virtualCamera != null)
+            {
+                virtualCamera.Follow = transform;
+                virtualCamera.LookAt = transform;
+            }
+        }
+    }
 
     private void OnEnable()
     {
