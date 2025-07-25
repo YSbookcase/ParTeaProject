@@ -1,6 +1,4 @@
 using Photon.Pun;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace PJW
@@ -9,38 +7,24 @@ namespace PJW
     {
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private Transform[] spawnPoints;
-                        
+
+        [PunRPC]
+        private void RopeGameSpawnPlayer(int actorNumber)
+        {
+            if (PhotonNetwork.LocalPlayer.ActorNumber != actorNumber) return;
+
+            int index = actorNumber - 1;
+            Vector3 spawnPos = spawnPoints[index].position;
+            PhotonNetwork.Instantiate(playerPrefab.name, spawnPos, Quaternion.identity);
+        }
+
         public override void OnJoinedRoom()
         {
-            Debug.Log("방에 입장 완료");
-            SpawnMyPlayer();
-        }
-
-        private void SpawnMyPlayer()
-        {
-            int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
-
-            playerIndex = playerIndex % spawnPoints.Length;
-
-            Transform spawnPoint = spawnPoints[playerIndex];
-
-            PhotonNetwork.Instantiate("Player", spawnPoint.position, spawnPoint.rotation);
-
+            photonView.RPC(
+                nameof(RopeGameSpawnPlayer),
+                RpcTarget.AllBuffered,
+                PhotonNetwork.LocalPlayer.ActorNumber
+            );
         }
     }
-     /*
-    public override void OnJoinedRoom()
-     {
-        int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
-
-        if (playerIndex >= spawnPoints.Length)
-        {
-          playerINdex = 0;
-        }
-
-        Transform spawnPoiont = spawnPoints[playerIndex];
-
-        PhotonNetwork.Instantiate();
-     }
-     */
-    }
+}

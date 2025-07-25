@@ -10,7 +10,6 @@ namespace PJW
         [SerializeField] private float jumpForce;
         [SerializeField] private float bounceForce;
 
-        [SerializeField] private float lerpSpeed = 20f; // 원격 플레이어 위치 보간 속도
 
         private Rigidbody playerRigidbody;
         private bool isGrounded;
@@ -45,12 +44,15 @@ namespace PJW
                 if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
                     Jump();
             }
-            else
+            /*else
             {
                 // 원격 플레이어 보간 적용
-                transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
+                // transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
+                float x = Mathf.Lerp(transform.position.x, networkPosition.x, Time.deltaTime);
+                float z = Mathf.Lerp(transform.position.z, networkPosition.z, Time.deltaTime);
+                transform.position = new Vector3(x, networkPosition.y, z);
                 transform.rotation = Quaternion.Slerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
-            }
+            }*/
         }
 
         private void Jump()
