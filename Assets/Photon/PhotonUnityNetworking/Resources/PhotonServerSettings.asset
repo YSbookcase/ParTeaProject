@@ -38,13 +38,11 @@ MonoBehaviour:
   - DestroyRpc
   - DestroySpaceship
   - Fire
-  - RespawnSpaceship
   - JumpGameStart
-  - SendMessage
   - RacingCrash
-  - RPC_SpawnPlayer
-  - RopeSpawnPlayer
-  - RPCSpawnPlayer
+  - RespawnSpaceship
+  - RopeGameSpawnPlayer
+  - SendMessage
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
