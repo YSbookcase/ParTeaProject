@@ -80,6 +80,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         {
             transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10);
             rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
+            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
     }
 
@@ -136,7 +137,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             PhotonView targetView = collision.gameObject.GetComponent<PhotonView>();
             if (targetView != null && targetView.IsMine == false)
             {
-                targetView.RPC("RacingCrash", targetView.Owner, pushDirection * strength);
+                photonView.RPC("RacingCrash", RpcTarget.All, pushDirection * strength, targetView.ViewID);
             }
         }
     }
@@ -151,9 +152,12 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    public void RacingCrash(Vector3 direction)
+    public void RacingCrash(Vector3 direction, int targetViewID)
     {
+        if(photonView.ViewID != targetViewID) return; // 자신의 뷰 ID가 아니면 무시
+
         rigid.AddForce(direction, ForceMode.Impulse);
+        rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
     }
 
     private void OnDrawGizmos()
