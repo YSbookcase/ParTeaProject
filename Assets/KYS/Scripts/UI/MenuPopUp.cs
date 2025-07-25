@@ -91,34 +91,16 @@ namespace KYS
             // Firebase 로그아웃
             FirebaseManager.Auth.SignOut();
 
-            // Photon 연결 해제
-            if (PhotonNetwork.IsConnected)
-            {
-                PhotonNetwork.Disconnect();
-            }
+            //// Photon 연결 해제
+            //if (PhotonNetwork.IsConnected)
+            //{
+            //    PhotonNetwork.Disconnect();
+            //}
 
             // 모든 팝업 정리 (로비에서 나가기 전에 모든 팝업 정리)
             UIManager.Instance.CleanPopUp();
+            UIManager.Instance.ShowPopUp<LoginPopUp>();
 
-            // UIManager에서 등록된 LoginPanel을 찾아서 활성화
-            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
-            if (loginPanel != null)
-            {
-                // 로그인 패널을 비활성화했다가 다시 활성화해서 OnEnable 호출 보장
-                loginPanel.SetActive(false);
-                loginPanel.SetActive(true);
-
-                // 추가로 LoginPanel의 ResetInputs 메서드를 직접 호출
-                LoginPopUp loginPanelScript = loginPanel.GetComponent<LoginPopUp>();
-                if (loginPanelScript != null)
-                {
-                    loginPanelScript.ResetInputs();
-                }
-            }
-            else
-            {
-                Debug.LogError("[LobbyPopUp] LoginPanel을 찾을 수 없습니다.");
-            }
         }
 
         private void EditProfile(PointerEventData eventData)

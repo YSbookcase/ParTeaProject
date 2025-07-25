@@ -18,12 +18,19 @@ namespace KYS
         // Photon 로비 관련 UI
         private TMP_InputField roomNameField => GetUI<TMP_InputField>("RoomNameField");
         private Transform roomListContent => GetUI<Transform>("RoomListContent");
-        private GameObject roomListItemPrefab => GetUI("RoomListItemPrefab");
+        private GameObject roomListItemPrefab;
         private Dictionary<string, GameObject> roomListItems = new Dictionary<string, GameObject>();
 
         private new void Awake()
         {
             base.Awake();
+canCloseWithESC = false; // ESC로 닫을 수 없음
+            // Resources 폴더에서 RoomListItemPrefab 로드
+            roomListItemPrefab = Resources.Load<GameObject>("UI/RoomListItemPrefab");
+            if (roomListItemPrefab == null)
+            {
+                Debug.LogError("[LobbyPopUp] Resources/UI/RoomListItemPrefab을 찾을 수 없습니다.");
+            }
 
             // Photon 이벤트 연결 (null 체크 추가)
             var createRoomButton = GetEvent("CreateRoomButton");
@@ -36,15 +43,7 @@ namespace KYS
                 Debug.LogError("[LobbyPopUp] CreateRoomButton을 찾을 수 없습니다.");
             }
 
-            var deleteUserButton = GetEvent("DeleteUserButton");
-            if (deleteUserButton != null)
-            {
-                deleteUserButton.Click += DeleteUser;
-            }
-            else
-            {
-                Debug.LogError("[LobbyPopUp] DeleteUserButton을 찾을 수 없습니다.");
-            }
+
         }
 
         private void Start()
@@ -93,23 +92,11 @@ namespace KYS
 
         private void InitializePanel()
         {
-            RegisterEvents();
+           
             // 패널이 활성화될 때 로그인 정보 업데이트
             LoginInfo();
         }
 
-        private void RegisterEvents()
-        {
-            // 기존 이벤트 해제 후 다시 등록 (중복 방지)
-            var deleteUserButton = GetEvent("DeleteUserButton");
-
-
-            if (deleteUserButton != null)
-            {
-                deleteUserButton.Click -= DeleteUser;
-                deleteUserButton.Click += DeleteUser;
-            }
-        }
 
         private void ConnectEventsIfNeeded()
         {
@@ -121,13 +108,6 @@ namespace KYS
                 createRoomButton.Click += OnCreateRoomClicked;
             }
 
-            // DeleteUserButton 이벤트가 연결되지 않았다면 다시 시도
-            var deleteUserButton = GetEvent("DeleteUserButton");
-            if (deleteUserButton != null)
-            {
-                deleteUserButton.Click -= DeleteUser; // 중복 방지
-                deleteUserButton.Click += DeleteUser;
-            }
             var menuButton = GetEvent("MenuButton");
             if (menuButton != null)
             {
@@ -206,12 +186,7 @@ namespace KYS
             //UIuserIdText.text = user.UserId;
         }
 
-        // 방 삭제 버튼 클릭 시
-        private void DeleteUser(PointerEventData eventData)
-        {
-            // DeletePopUp 생성
-            //UIManager.Instance.ShowPopUp<DeletePopUp>();
-        }
+       
 
         // 에러 메시지 표시
         private void ShowErrorMessage(string message)

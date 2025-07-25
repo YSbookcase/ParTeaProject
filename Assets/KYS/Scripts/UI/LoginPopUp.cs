@@ -24,6 +24,7 @@ namespace KYS
         {
 
             base.Awake();
+            canCloseWithESC = false; // ESC로 닫을 수 없음
 
             GetEvent("SignUpButton").Click += SignUp;
             GetEvent("LoginButton").Click += Login;

@@ -16,7 +16,7 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
-
+canCloseWithESC = false; // ESC로 닫을 수 없음
             // 버튼 이벤트 등록
             GetEvent("ConfirmButton").Click += Confirm;
             GetEvent("BackButton").Click += Back;

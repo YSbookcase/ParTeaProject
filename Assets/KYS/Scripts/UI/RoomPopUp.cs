@@ -11,7 +11,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KYS
 {
-    public class RoomPopUp : BaseUI, IPunObservable
+    public class RoomPopUp : BaseUI
     {
         // 방 관련 UI
         private Button startButton => GetUI<Button>("StartButton");
@@ -19,13 +19,13 @@ namespace KYS
         private Button mapLeftButton => GetUI<Button>("MapLeftButton");
         private Button mapRightButton => GetUI<Button>("MapRightButton");
         private Image mapImage => GetUI<Image>("MapImage");
-        private GameObject playerPanelItemPrefab => GetUI("PlayerPanelItemPrefab");
+        private GameObject playerPanelItemPrefab;
         private Transform playerPanelContent => GetUI<Transform>("PlayerPanelContent");
 
         // 채팅 관련 UI
         private TMP_InputField chatField => GetUI<TMP_InputField>("ChatField");
-        private ScrollRect scrollRect => GetUI<ScrollRect>("ScrollRect");
-        private GameObject chatTextPrefab => GetUI("ChatTextPrefab");
+        private ScrollRect scrollRect => GetUI<ScrollRect>("ChatView");
+        private GameObject chatTextPrefab;
         private Transform chatContent => GetUI<Transform>("ChatContent");
 
         // 방 상태
@@ -33,27 +33,84 @@ namespace KYS
         public Dictionary<int, PlayerPanelItem> playerPanels = new Dictionary<int, PlayerPanelItem>();
         
         // PhotonView 컴포넌트
-        private PhotonView photonView;
+        // private PhotonView photonView; // 삭제
 
         private new void Awake()
         {
             base.Awake();
-
-            // PhotonView 설정
-            photonView = GetComponent<PhotonView>();
-            if (photonView == null)
+canCloseWithESC = false; // ESC로 닫을 수 없음
+            // Resources 폴더에서 프리팹 로드
+            playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
+            if (playerPanelItemPrefab == null)
             {
-                photonView = gameObject.AddComponent<PhotonView>();
+                Debug.LogError("[RoomPopUp] Resources/UI/PlayerPanelItemPrefab을 찾을 수 없습니다.");
             }
 
-            // 방 관련 이벤트 연결
-            GetEvent("StartButton").Click += GameStart;
-            GetEvent("LeaveButton").Click += LeaveRoom;
-            GetEvent("MapLeftButton").Click += ClickLeftMapButton;
-            GetEvent("MapRightButton").Click += ClickRightMapButton;
+            // 채팅 텍스트 프리팹도 Resources에서 로드
+            chatTextPrefab = Resources.Load<GameObject>("UI/ChatTextPrefab");
+            if (chatTextPrefab == null)
+            {
+                Debug.LogError("[RoomPopUp] Resources/UI/ChatTextPrefab을 찾을 수 없습니다.");
+            }
+
+            // PhotonView 설정 제거
+            // photonView = GetComponent<PhotonView>();
+            // if (photonView == null)
+            // {
+            //     photonView = gameObject.AddComponent<PhotonView>();
+            // }
+
+            // 방 관련 이벤트 연결 (null 체크 추가)
+            var startButton = GetEvent("StartButton");
+            if (startButton != null)
+            {
+                startButton.Click += GameStart;
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] StartButton을 찾을 수 없습니다.");
+            }
+
+            var leaveButton = GetEvent("LeaveButton");
+            if (leaveButton != null)
+            {
+                leaveButton.Click += LeaveRoom;
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] LeaveButton을 찾을 수 없습니다.");
+            }
+
+            var mapLeftButton = GetEvent("MapLeftButton");
+            if (mapLeftButton != null)
+            {
+                mapLeftButton.Click += ClickLeftMapButton;
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] MapLeftButton을 찾을 수 없습니다.");
+            }
+
+            var mapRightButton = GetEvent("MapRightButton");
+            if (mapRightButton != null)
+            {
+                mapRightButton.Click += ClickRightMapButton;
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] MapRightButton을 찾을 수 없습니다.");
+            }
 
             // 채팅 이벤트 연결
-            GetEvent("SendChatButton").Click += SendChatMessage;
+            var sendChatButton = GetEvent("SendChatButton");
+            if (sendChatButton != null)
+            {
+                sendChatButton.Click += SendChatMessage;
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] SendChatButton을 찾을 수 없습니다.");
+            }
         }
 
         private void OnEnable()
@@ -167,7 +224,8 @@ namespace KYS
         {
             if (PhotonNetwork.IsMasterClient && AllPlayerReadyCheck())
             {
-                PhotonNetwork.LoadLevel("GameScene");
+                Manager.game.GameStart("GameScene");
+                UIManager.Instance.CleanAllUI();
             }
         }
 
@@ -195,6 +253,8 @@ namespace KYS
 
             playerPanels.Clear();
             PhotonManager.Instance.LeaveRoom();
+            UIManager.Instance.CleanPopUp();
+            UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
 
         // 맵 변경 버튼들
@@ -234,13 +294,14 @@ namespace KYS
             {
                 mapIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["Map"];
                 Debug.Log($"맵 인덱스: {mapIndex}");
-                // mapImage.sprite = mapSprites[mapIndex]; // 맵 스프라이트 배열 필요
+                 //mapImage.sprite = mapSprites[mapIndex]; // 맵 스프라이트 배열 필요
             }
         }
 
         // 채팅 관련 메서드들
         private void HandleChatInput(string text)
         {
+            // onEndEdit는 포커스가 벗어날 때 호출되므로 Enter 키가 아닌 경우 무시
             if (!Input.GetKeyDown(KeyCode.Return))
                 return;
 
@@ -255,20 +316,26 @@ namespace KYS
             string message = chatField.text.Trim();
             if (!string.IsNullOrEmpty(message))
             {
-                // RPC를 통해 채팅 메시지 전송
-                photonView.RPC("SendMessage", RpcTarget.All, PhotonNetwork.NickName, message);
+                // PhotonManager의 PhotonView 사용
+                PhotonManager.Instance.GetComponent<PhotonView>().RPC("SendChatMessage", RpcTarget.All, PhotonNetwork.NickName, message);
                 chatField.text = "";
                 chatField.ActivateInputField();
             }
         }
 
-        [PunRPC]
-        private void SendMessage(string sender, string message)
+        // RPC 메서드 제거하고 일반 메서드로 변경
+        public void DisplayChatMessage(string sender, string message)
         {
-            GameObject item = Instantiate(chatTextPrefab, chatContent);
-            item.GetComponent<TextMeshProUGUI>().text = $"{sender} : {message}";
-            Canvas.ForceUpdateCanvases();
-            scrollRect.verticalNormalizedPosition = 0f;
+            if (chatTextPrefab != null && chatContent != null)
+            {
+                GameObject item = Instantiate(chatTextPrefab, chatContent);
+                item.GetComponent<TextMeshProUGUI>().text = $"{sender} : {message}";
+                Canvas.ForceUpdateCanvases();
+                if (scrollRect != null)
+                {
+                    scrollRect.verticalNormalizedPosition = 0f;
+                }
+            }
         }
 
         public void ClearChat()
@@ -309,11 +376,11 @@ namespace KYS
             UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
 
-        // IPunObservable 구현 (필수)
-        public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-        {
-            // 동기화가 필요한 데이터가 있다면 여기에 구현
-        }
+        // IPunObservable 제거 (PhotonView가 없으므로 불필요)
+        // public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        // {
+        //     // 동기화가 필요한 데이터가 있다면 여기에 구현
+        // }
 
 
 

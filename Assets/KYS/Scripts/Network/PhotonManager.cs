@@ -187,5 +187,17 @@ namespace KYS
         {
             Debug.Log($"플레이어 속성 업데이트: {targetPlayer.NickName}");
         }
+
+        // PhotonManager에 채팅 RPC 메서드 추가
+        [PunRPC]
+        private void SendChatMessage(string sender, string message)
+        {
+            // RoomPopUp이 활성화되어 있다면 채팅 메시지 표시
+            RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
+            if (roomPopUp != null)
+            {
+                roomPopUp.DisplayChatMessage(sender, message);
+            }
+        }
     }
 }

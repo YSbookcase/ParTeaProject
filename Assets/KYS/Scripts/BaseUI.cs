@@ -3,6 +3,10 @@ using UnityEngine;
 
 public class BaseUI : MonoBehaviour
 {
+    [SerializeField] protected bool canCloseWithESC = true; // ESC로 닫을 수 있는지
+
+    public bool CanCloseWithESC => canCloseWithESC;
+
     private Dictionary<string, GameObject> goDict;
     private Dictionary<string, Component> compDict;
     protected void Awake()
