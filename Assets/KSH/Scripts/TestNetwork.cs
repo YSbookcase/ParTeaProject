@@ -7,6 +7,10 @@ namespace KSH
 {
     public class TestNetwork : MonoBehaviourPunCallbacks
     {
+        void Awake()
+        {
+            PlayerSpawn();
+        }
         void Start()
         {
             if (!PhotonNetwork.IsConnected)
@@ -31,7 +35,6 @@ namespace KSH
         {
             Debug.Log("Joined Room");
             PhotonNetwork.LocalPlayer.NickName = $"Player_{PhotonNetwork.LocalPlayer.ActorNumber}";
-            PlayerSpawn();
         }
 
         private void PlayerSpawn()

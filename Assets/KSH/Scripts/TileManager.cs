@@ -44,7 +44,7 @@ namespace KSH
             PhotonView photonView = GetComponent<PhotonView>();
             
             if (PhotonNetwork.IsMasterClient)
-                photonView.RPC("PunRPC_CountTile", RpcTarget.All, redTileCount, blueTileCount);
+                photonView.RPC("PunRPC_CountTile", RpcTarget.All, redTileCount, blueTileCount); //타일 개수 동기화
         }
         
         [PunRPC]
