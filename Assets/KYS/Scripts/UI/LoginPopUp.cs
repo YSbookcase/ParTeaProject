@@ -34,7 +34,7 @@ namespace KYS
 
         private void OnEnable()
         {
-            Debug.Log("[LoginPanel] OnEnable 호출됨 - 입력 필드 초기화 시작");
+            //Debug.Log("[LoginPanel] OnEnable 호출됨 - 입력 필드 초기화 시작");
             // 패널이 활성화될 때마다 입력 필드 초기화
             ResetInputs();
         }
@@ -105,11 +105,11 @@ namespace KYS
         // 입력 필드 초기화
         public void ResetInputs()
         {
-            Debug.Log("[LoginPanel] ResetInputs 호출됨");
+            //Debug.Log("[LoginPanel] ResetInputs 호출됨");
             if (idInput != null)
             {
                 idInput.text = "";
-                Debug.Log("[LoginPanel] ID 필드 초기화 완료");
+                //Debug.Log("[LoginPanel] ID 필드 초기화 완료");
             }
             else
             {
@@ -119,7 +119,7 @@ namespace KYS
             if (passInput != null)
             {
                 passInput.text = "";
-                Debug.Log("[LoginPanel] 비밀번호 필드 초기화 완료");
+                //Debug.Log("[LoginPanel] 비밀번호 필드 초기화 완료");
             }
             else
             {

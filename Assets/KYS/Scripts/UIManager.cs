@@ -62,7 +62,7 @@ namespace KYS
             else
             {
                 mainPanels.Add(panelName, panel);
-                Debug.Log($"[UIManager] 메인 패널 등록 완료: {panelName}");
+                //Debug.Log($"[UIManager] 메인 패널 등록 완료: {panelName}");
             }
         }
 

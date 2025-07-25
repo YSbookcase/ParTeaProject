@@ -73,7 +73,8 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"인증 이메일 전송 실패: {task.Exception}");
+                        ShowErrorMessage($"인증 이메일 전송 실패, 인증 이메일 전송 후 얼마 되지 않았습니다.");
+                        Debug.Log($"인즌 이메일 전송 실패 로그 : {task.Exception}");
                         return;
                     }
 

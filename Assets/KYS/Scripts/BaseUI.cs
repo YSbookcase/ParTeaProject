@@ -23,6 +23,7 @@ public class BaseUI : MonoBehaviour
     }
 
     // string으로 특정 UI 게임오브젝트 찾기
+    
     public GameObject GetUI(in string name)
     {
         if (goDict == null)
@@ -64,6 +65,7 @@ public class BaseUI : MonoBehaviour
         return outObject;
     }
     // string으로 특정 UI 컴포넌트 찾기
+    // private TMP_InputField roomNameField => GetUI<TMP_InputField>("RoomNameField");
     public T GetUI<T>(in string name) where T : Component
     {
         compDict.TryGetValue(name, out Component comp);

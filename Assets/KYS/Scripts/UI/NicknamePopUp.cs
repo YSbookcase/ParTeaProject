@@ -44,7 +44,8 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"닉네임 설정 실패: {task.Exception}");
+                        ShowErrorMessage($"닉네임 설정 실패");
+                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
                         return;
                     }
 
