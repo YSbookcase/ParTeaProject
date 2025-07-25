@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 
 public class ArenaKillZone : MonoBehaviour
@@ -20,6 +21,12 @@ public class ArenaKillZone : MonoBehaviour
             Random.Range(-1f, 1f)
         ).normalized;
         rb.AddTorque(rotateVector,  ForceMode.Impulse);
+        
+        if (PhotonNetwork.IsMasterClient)
+        {
+            Photon.Realtime.Player hitPlayer = other.gameObject.GetComponent<PhotonView>().Owner;
+            ArenaGameManager.Instance.PlayerDied(hitPlayer);
+        }
         
         Destroy(other.gameObject, 2f);
     }
