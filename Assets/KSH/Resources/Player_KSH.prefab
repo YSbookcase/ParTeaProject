@@ -258,7 +258,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   rotateSpeed: 5
-  enableMoblie: 0
+  enableMoblie: 1
   body: {fileID: 2100000, guid: b8ce552313d53ca4caa9b05fc9413fe3, type: 2}
   bodyRenderer: {fileID: 6289601143902527465}
   color: {r: 0, g: 0, b: 0, a: 0}
