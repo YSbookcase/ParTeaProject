@@ -16,7 +16,7 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
-
+canCloseWithESC = false; // ESC로 닫을 수 없음
             // 버튼 이벤트 등록
             GetEvent("ConfirmButton").Click += Confirm;
             GetEvent("BackButton").Click += Back;
@@ -44,7 +44,8 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"닉네임 설정 실패: {task.Exception}");
+                        ShowErrorMessage($"닉네임 설정 실패");
+                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
                         return;
                     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections; // 추가 필요
 using UnityEngine;
 using System.Reflection;
 
@@ -62,7 +63,7 @@ namespace KYS
             else
             {
                 mainPanels.Add(panelName, panel);
-                Debug.Log($"[UIManager] 메인 패널 등록 완료: {panelName}");
+                //Debug.Log($"[UIManager] 메인 패널 등록 완료: {panelName}");
             }
         }
 
@@ -101,14 +102,36 @@ namespace KYS
         // 팝업 UI 인덱스
         public static int selectIndexUI { get; set; } = 0;
         public static bool canClosePopUp = true;
-        bool canClose => PopUpUI.IsPopUpActive && !Util.escPressed && canClosePopUp;
+        bool canClose => PopUpUI.IsPopUpActive && !Util.escPressed && canClosePopUp && !IsCurrentPopUpNonClosable();
 
-        protected override void Awake() => base.Awake();
+        protected override void Awake()
+        {
+            base.Awake();
+            
+            // 초기화 플래그 설정
+            isInitialized = true;
+        }
+
+        private void Start()
+        {
+            // Start에서 첫 화면 설정 (더 안전)
+            if (isInitialized)
+            {
+                ShowFirstScreen();
+            }
+        }
 
         private void LateUpdate()
         {
             if (Input.GetKeyDown(KeyCode.Escape) && canClose)
             {
+                // 현재 활성화된 팝업이 ESC로 닫을 수 없는지 확인
+                if (IsCurrentPopUpNonClosable())
+                {
+                    Debug.Log("[UIManager] 이 팝업은 ESC로 닫을 수 없습니다.");
+                    return;
+                }
+
                 ClosePopUp();
                 Util.ConsumeESC();
             }
@@ -205,6 +228,66 @@ namespace KYS
                 }
             }
         }
-    }
 
+        private bool isInitialized = false;
+
+        private IEnumerator InitializeFirstScreen() // IEnumerator로 수정
+        {
+            // 모든 초기화가 완료될 때까지 대기
+            yield return new WaitForEndOfFrame();
+            
+            // 첫 화면으로 LoginPopUp 표시
+            ShowFirstScreen();
+        }
+
+        private void ShowFirstScreen()
+        {
+            // 이미 LoginPopUp이 표시되어 있다면 중복 방지
+            if (FindActivePopUp<LoginPopUp>() != null)
+            {
+                return;
+            }
+
+            CleanPopUp();
+            ShowPopUp<LoginPopUp>();
+            
+            Debug.Log("[UIManager] 첫 화면 LoginPopUp 표시 완료");
+        }
+
+        // 게임 시작 시 호출할 메서드
+        public void StartGame()
+        {
+            ShowFirstScreen();
+        }
+
+        // 현재 활성화된 팝업이 ESC로 닫을 수 없는지 확인
+        private bool IsCurrentPopUpNonClosable()
+        {
+            if (PopUp == null || PopUp.StackCount() == 0)
+                return false;
+
+            // 스택의 최상단 팝업 확인
+            BaseUI topPopUp = PopUp.GetComponentInChildren<BaseUI>();
+            if (topPopUp == null)
+                return false;
+
+            // ESC로 닫을 수 없는 팝업인지 확인
+            return !topPopUp.CanCloseWithESC;
+        }
+
+        // 현재 활성화된 팝업이 ESC로 닫을 수 있는지 확인 (추가)
+        private bool IsCurrentPopUpClosable()
+        {
+            if (PopUp == null || PopUp.StackCount() == 0)
+                return true; // 팝업이 없으면 ESC 가능
+
+            // 스택의 최상단 팝업 확인
+            BaseUI topPopUp = PopUp.GetComponentInChildren<BaseUI>();
+            if (topPopUp == null)
+                return true;
+
+            // ESC로 닫을 수 있는 팝업인지 확인
+            return topPopUp.CanCloseWithESC;
+        }
+    }
 }

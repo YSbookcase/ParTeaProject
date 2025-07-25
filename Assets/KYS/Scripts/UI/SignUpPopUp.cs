@@ -41,7 +41,7 @@ namespace KYS
             string email = idInput.text;
             Debug.Log($"이메일 중복 확인 시작: {email}");
 
-            // 일반 FirebaseManager 사용 (YSK 네임스페이스 제거)
+            // Firebase Auth를 사용하여 이메일 중복 확인
             FirebaseManager.Auth.FetchProvidersForEmailAsync(email)
                 .ContinueWithOnMainThread(task =>
                 {
@@ -69,16 +69,19 @@ namespace KYS
                         Debug.Log($"[SignUpPopUp] Providers 개수: {providers.Count()}");
                         Debug.Log($"[SignUpPopUp] Providers 내용: [{string.Join(", ", providers)}]");
 
-                        if (providers.Count() > 0)
+                        // Email/Password로 가입한 경우 "password"가 포함됨
+                        bool hasPasswordProvider = providers.Any(p => p == "password");
+                        
+                        if (hasPasswordProvider)
                         {
-                            // 이미 등록된 이메일
+                            // 이미 Email/Password로 등록된 이메일
                             isEmailAvailable = false;
-                            Debug.Log($"이미 사용 중인 이메일: {email}, 제공자: {string.Join(", ", providers)}");
+                            Debug.Log($"이미 사용 중인 이메일 (Email/Password): {email}");
                             ShowErrorMessage("이미 사용 중인 이메일입니다.");
                         }
                         else
                         {
-                            // 사용 가능한 이메일
+                            // 다른 제공자로만 가입했거나 사용 가능한 이메일
                             isEmailAvailable = true;
                             Debug.Log($"사용 가능한 이메일: {email}");
                             ShowSuccessMessage("사용 가능한 이메일입니다.");
@@ -163,12 +166,22 @@ namespace KYS
                 return;
             }
 
+            // 비밀번호 유효성 검사
+            if (string.IsNullOrEmpty(passInput.text) || passInput.text.Length < 6)
+            {
+                ShowErrorMessage("비밀번호는 최소 6자 이상이어야 합니다.");
+                return;
+            }
+
             if (passInput.text != passConfirmInput.text)
             {
                 ShowErrorMessage("비밀번호가 일치하지 않습니다.");
                 return;
             }
 
+            // 디버깅을 위한 로그
+            Debug.Log($"회원가입 시도 - 이메일: {idInput.text}, 비밀번호 길이: {passInput.text?.Length ?? 0}");
+            
             // 회원가입 시도 (Firebase가 자동으로 중복 확인)
             FirebaseManager.Auth.CreateUserWithEmailAndPasswordAsync(idInput.text, passInput.text)
                 .ContinueWithOnMainThread(task =>
@@ -208,7 +221,8 @@ namespace KYS
                         }
                         else
                         {
-                            ShowErrorMessage($"오류로 인한 회원가입 실패: {task.Exception}");
+                            ShowErrorMessage($"오류로 인한 회원가입 실패");
+                            Debug.Log($"에이터 상에서 확인하는 Log {task.Exception}");
                         }
                         return;
                     }

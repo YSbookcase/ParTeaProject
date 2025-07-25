@@ -1,166 +1,209 @@
-using System.Collections;
+using Firebase.Auth;
+using Photon.Realtime;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-using Firebase.Auth;
 using UnityEngine.EventSystems;
-using Firebase.Extensions;
+using Photon.Pun;
 
 namespace KYS
 {
     public class LobbyPopUp : BaseUI
     {
-        //[SerializeField] GameObject loginPanel; // UIManager를 통해 접근하므로 제거
+        // 기존 Firebase 관련 UI
+        private TMP_Text uiEmailText => GetUI<TMP_Text>("E-MailTextContent");
+        private TMP_Text uiNameText => GetUI<TMP_Text>("NameTextContent");
 
-        //[Header("표시 정보")]
-        //[SerializeField] TMP_Text emailText;
-        //[SerializeField] TMP_Text nameText;
-        //[SerializeField] TMP_Text userIdText;
-
-        //[Header("버튼")]
-        //[SerializeField] Button logoutButton;
-        //[SerializeField] Button editProfileButton;
-
-        private TMP_Text UIemailText => GetUI<TMP_Text>("E-MailTextContent");
-        private TMP_Text UInameText => GetUI<TMP_Text>("NameTextContent");
-        //private TMP_Text UIuserIdText => GetUI<TMP_Text>("UserIDTextContent");
-
-
-
-
+        private TMP_Text stateText => GetUI<TMP_Text>("CurrentState");
+        // Photon 로비 관련 UI
+        private TMP_InputField roomNameField => GetUI<TMP_InputField>("RoomNameField");
+        private Transform roomListContent => GetUI<Transform>("RoomListContent");
+        private GameObject roomListItemPrefab;
+        private Dictionary<string, GameObject> roomListItems = new Dictionary<string, GameObject>();
 
         private new void Awake()
         {
-            // BaseUI의 Awake 호출
             base.Awake();
+canCloseWithESC = false; // ESC로 닫을 수 없음
+            // Resources 폴더에서 RoomListItemPrefab 로드
+            roomListItemPrefab = Resources.Load<GameObject>("UI/RoomListItemPrefab");
+            if (roomListItemPrefab == null)
+            {
+                Debug.LogError("[LobbyPopUp] Resources/UI/RoomListItemPrefab을 찾을 수 없습니다.");
+            }
 
-            // UIManager에 자신을 등록
-            //UIManager.Instance.RegisterMainPanel("LobbyPanel", gameObject);
-
+            // Photon 이벤트 연결 (null 체크 추가)
+            var createRoomButton = GetEvent("CreateRoomButton");
+            if (createRoomButton != null)
+            {
+                createRoomButton.Click += OnCreateRoomClicked;
+            }
+            else
+            {
+                Debug.LogError("[LobbyPopUp] CreateRoomButton을 찾을 수 없습니다.");
+            }
 
 
         }
 
         private void Start()
         {
-            // BaseUI의 Awake가 완료된 후 초기화
+            // Firebase 사용자 정보 초기화
             InitializePanel();
+
+            // UI 요소가 준비된 후 이벤트 연결 (Awake에서 실패한 경우)
+            ConnectEventsIfNeeded();
+        }
+
+        private void Update()
+        {
+            stateText.text = $"Current State : {PhotonNetwork.NetworkClientState}";
         }
 
         private void OnEnable()
         {
-            // 이미 초기화되었다면 이벤트만 다시 등록
-            if (gameObject.activeInHierarchy)
+            // PhotonManager 이벤트 구독
+            if (PhotonManager.Instance != null)
             {
-                RegisterEvents();
+                PhotonManager.Instance.OnJoinedLobbyEvent += OnJoinedLobby;
+                PhotonManager.Instance.OnRoomListUpdateEvent += OnRoomListUpdate;
+                PhotonManager.Instance.OnJoinedRoomEvent += OnJoinedRoom;
+
+                // 닉네임 동기화
+                PhotonManager.Instance.SyncNicknameWithFirebase();
+
             }
 
+
+        }
+
+        private void OnDisable()
+        {
+            // PhotonManager 이벤트 구독 해제
+            if (PhotonManager.Instance != null)
+            {
+                PhotonManager.Instance.OnJoinedLobbyEvent -= OnJoinedLobby;
+                PhotonManager.Instance.OnRoomListUpdateEvent -= OnRoomListUpdate;
+                PhotonManager.Instance.OnJoinedRoomEvent -= OnJoinedRoom;
+            }
 
 
         }
 
         private void InitializePanel()
         {
-            RegisterEvents();
-            // 패널이 활성화될 때 자동으로 로그인 정보 업데이트
+           
+            // 패널이 활성화될 때 로그인 정보 업데이트
             LoginInfo();
         }
 
-        private void RegisterEvents()
+
+        private void ConnectEventsIfNeeded()
         {
-            // 기존 이벤트 제거 후 다시 등록 (중복 방지)
-            var logoutButton = GetEvent("LogOutButton");
-            var editProfileButton = GetEvent("EditProfileButton");
-            var deleteUserButton = GetEvent("DeleteUserButton");
-
-            if (logoutButton != null)
+            // CreateRoomButton 이벤트가 연결되지 않았다면 다시 시도
+            var createRoomButton = GetEvent("CreateRoomButton");
+            if (createRoomButton != null)
             {
-                logoutButton.Click -= LogOut; // 기존 이벤트 제거
-                logoutButton.Click += LogOut;
+                createRoomButton.Click -= OnCreateRoomClicked; // 중복 방지
+                createRoomButton.Click += OnCreateRoomClicked;
             }
 
-            if (editProfileButton != null)
+            var menuButton = GetEvent("MenuButton");
+            if (menuButton != null)
             {
-                editProfileButton.Click -= EditProfile; // 기존 이벤트 제거
-                editProfileButton.Click += EditProfile;
+                menuButton.Click -= OnMenu;
+                menuButton.Click += OnMenu;
             }
-            if (deleteUserButton != null)
-            {
-                deleteUserButton.Click -= DeleteUser;
-                deleteUserButton.Click += DeleteUser;
-            }
+
         }
 
-        private void OnDisable()
+        // Photon 로비 관련 메서드들
+        private void OnCreateRoomClicked(PointerEventData eventData)
         {
-            // 이벤트 정리
-            var logoutButton = GetEvent("LogOutButton");
-            var editProfileButton = GetEvent("EditProfileButton");
-
-            if (logoutButton != null)
+            string roomName = roomNameField.text.Trim();
+            if (string.IsNullOrEmpty(roomName))
             {
-                logoutButton.Click -= LogOut;
+                ShowErrorMessage("방 이름을 입력해주세요.");
+                return;
             }
 
-            if (editProfileButton != null)
-            {
-                editProfileButton.Click -= EditProfile;
-            }
+            PhotonManager.Instance.CreateRoom(roomName);
+            roomNameField.text = "";
         }
 
-        private void LogOut(PointerEventData eventData)
+        private void OnJoinedLobby()
         {
-            // YSK 네임스페이스의 FirebaseManager 사용
-            FirebaseManager.Auth.SignOut();
+            Debug.Log("로비 UI 활성화");
+            // 로비 UI 표시 로직 (필요시 추가)
+        }
 
-            // 모든 팝업 정리 (닉네임 설정 화면 등 모든 팝업 제거)
-            UIManager.Instance.CleanPopUp();
-
-            // UIManager를 통해 LoginPanel에 접근하여 활성화
-            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
-            if (loginPanel != null)
+        private void OnRoomListUpdate(List<RoomInfo> roomList)
+        {
+            // 방 목록 UI 업데이트 로직
+            foreach (RoomInfo info in roomList)
             {
-                // 로그인 패널을 비활성화했다가 다시 활성화하여 OnEnable 호출 보장
-                loginPanel.SetActive(false);
-                loginPanel.SetActive(true);
-
-                // 추가로 LoginPanel의 ResetInputs 메서드를 직접 호출
-                LoginPopUp loginPanelScript = loginPanel.GetComponent<LoginPopUp>();
-                if (loginPanelScript != null)
+                if (info.RemovedFromList)
                 {
-                    loginPanelScript.ResetInputs();
+                    if (roomListItems.TryGetValue(info.Name, out GameObject obj))
+                    {
+                        Destroy(obj);
+                        roomListItems.Remove(info.Name);
+                    }
+                    continue;
+                }
+
+                if (roomListItems.ContainsKey(info.Name))
+                {
+                    roomListItems[info.Name].GetComponent<RoomListItem>().Init(info);
+                }
+                else
+                {
+                    GameObject roomListItem = Instantiate(roomListItemPrefab);
+                    roomListItem.transform.SetParent(roomListContent, false);
+                    roomListItem.GetComponent<RoomListItem>().Init(info);
+                    roomListItems.Add(info.Name, roomListItem);
                 }
             }
-            else
-            {
-                Debug.LogError("[LobbyPopUp] LoginPanel을 찾을 수 없습니다.");
-            }
         }
-        private void EditProfile(PointerEventData eventData)
+
+        private void OnJoinedRoom()
         {
-            //UIManager.Instance.ShowPopUp<EditPopUp>();
+            Debug.Log("방에 입장했습니다. 방 UI로 전환합니다.");
+            // 방 UI로 전환
+            UIManager.Instance.ClosePopUp();
+            UIManager.Instance.ShowPopUp<RoomPopUp>();
         }
+
+
 
         public void LoginInfo()
         {
             // FirebaseManager 사용
             FirebaseUser user = FirebaseManager.Auth.CurrentUser;
 
-            UIemailText.text = user.Email;
-            UInameText.text = user.DisplayName;
+            uiEmailText.text = user.Email;
+            uiNameText.text = user.DisplayName;
             //UIuserIdText.text = user.UserId;
         }
 
-        // 계정 삭제 버튼 클릭 시
-        private void DeleteUser(PointerEventData eventData)
+       
+
+        // 에러 메시지 표시
+        private void ShowErrorMessage(string message)
         {
-            // DeletePopUp 띄우기
-            //UIManager.Instance.ShowPopUp<DeletePopUp>();
+            MessagePopUp messagePopUp = UIManager.Instance.ShowPopUp<MessagePopUp>();
+            if (messagePopUp != null)
+            {
+                messagePopUp.SetMessage(message, "확인");
+            }
+        }
+
+
+        private void OnMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
         }
 
 
     }
-
-
 }
