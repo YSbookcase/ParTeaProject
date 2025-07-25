@@ -2,6 +2,7 @@ using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace PJW
 {
@@ -18,6 +19,8 @@ namespace PJW
         private Vector3 networkPosition;
         private Quaternion networkRotation;
 
+        private PlayerInputActions inputActions;
+
         private void Awake()
         {
             playerRigidbody = GetComponent<Rigidbody>();
@@ -27,6 +30,19 @@ namespace PJW
             {
                 playerRigidbody.isKinematic = true;
             }
+
+            inputActions = new PlayerInputActions();
+            inputActions.Player_PJW.Jump.performed += ctx => Jump();
+        }
+
+        private void OnEnable()
+        {
+            inputActions.Enable();
+        }
+
+        private void OnDisable()
+        {
+            inputActions.Disable();
         }
 
         private void Start()
@@ -40,9 +56,6 @@ namespace PJW
             if (photonView.IsMine)
             {
                 if (isDead) return;
-
-                if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-                    Jump();
             }
             /*else
             {
@@ -57,6 +70,8 @@ namespace PJW
 
         private void Jump()
         {
+            if (!isGrounded || isDead || !photonView.IsMine) return;
+
             Vector3 velocity = playerRigidbody.velocity;
             velocity.y = jumpForce;
             playerRigidbody.velocity = velocity;
@@ -98,18 +113,18 @@ namespace PJW
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse); // 로프에 닿으면 날아감
         }
 
-        public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-        {
-            if (stream.IsWriting)
-            {
-                stream.SendNext(transform.position);
-                stream.SendNext(transform.rotation);
-            }
-            else
-            {
-                networkPosition = (Vector3)stream.ReceiveNext();
-                networkRotation = (Quaternion)stream.ReceiveNext();
-            }
-        }
+        // public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        // {
+        //     if (stream.IsWriting)
+        //     {
+        //         stream.SendNext(transform.position);
+        //         stream.SendNext(transform.rotation);
+        //     }
+        //     else
+        //     {
+        //         networkPosition = (Vector3)stream.ReceiveNext();
+        //         networkRotation = (Quaternion)stream.ReceiveNext();
+        //     }
+        // }
     }
 }

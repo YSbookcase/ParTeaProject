@@ -20,11 +20,7 @@ namespace PJW
 
         public override void OnJoinedRoom()
         {
-            photonView.RPC(
-                nameof(RopeGameSpawnPlayer),
-                RpcTarget.AllBuffered,
-                PhotonNetwork.LocalPlayer.ActorNumber
-            );
+            photonView.RPC(nameof(RopeGameSpawnPlayer), RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
         }
     }
 }
