@@ -41,6 +41,7 @@ MonoBehaviour:
   - RespawnSpaceship
   - JumpGameStart
   - SendMessage
+  - RacingCrash
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
