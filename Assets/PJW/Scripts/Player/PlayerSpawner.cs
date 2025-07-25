@@ -1,41 +1,26 @@
 using Photon.Pun;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace PJW
 {
-    public class PlayerSpawner : MonoBehaviour// MonoBehaviourPunCallbacks
+    public class PlayerSpawner : MonoBehaviourPunCallbacks
     {
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private Transform[] spawnPoints;
 
-        private void Start()
+        [PunRPC]
+        private void RopeGameSpawnPlayer(int actorNumber)
         {
-            SpawnAllPlayers();
+            if (PhotonNetwork.LocalPlayer.ActorNumber != actorNumber) return;
+
+            int index = actorNumber - 1;
+            Vector3 spawnPos = spawnPoints[index].position;
+            PhotonNetwork.Instantiate(playerPrefab.name, spawnPos, Quaternion.identity);
         }
 
-        private void SpawnAllPlayers()
+        public override void OnJoinedRoom()
         {
-            for (int i = 0; i < spawnPoints.Length; i++)
-            {
-                Instantiate(playerPrefab, spawnPoints[i].position, spawnPoints[i].rotation);
-            }
+            photonView.RPC(nameof(RopeGameSpawnPlayer), RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
         }
     }
-     /*
-    public override void OnJoinedRoom()
-     {
-        int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
-
-        if (playerIndex >= spawnPoints.Length)
-        {
-          playerINdex = 0;
-        }
-
-        Transform spawnPoiont = spawnPoints[playerIndex];
-
-        PhotonNetwork.Instantiate();
-     }
-     */
-    }
+}
