@@ -12,7 +12,7 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
 
     private int _playerCount;
     
-    private void Start()
+    private void OnEnable()
     {
         SpawnPlayer();
     }

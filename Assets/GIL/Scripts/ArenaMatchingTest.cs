@@ -17,6 +17,7 @@ public class ArenaMatchingTest : MonoBehaviourPunCallbacks
     [Header("Spawn Settings")]
     [SerializeField] private float spawnRadius = 5f;
     [SerializeField] private Vector3 center = Vector3.zero;
+    [SerializeField] private GameObject manager;
     private bool _hasSpawnedPlayer;
 
     private void Awake()
@@ -50,6 +51,7 @@ public class ArenaMatchingTest : MonoBehaviourPunCallbacks
         if (PhotonNetwork.CurrentRoom.PlayerCount >= 2 && !_hasSpawnedPlayer)
         {
             SpawnPlayer();
+            manager.SetActive(true);
             _hasSpawnedPlayer = true;
         }
     }
