@@ -886,7 +886,7 @@ GameObject:
   - component: {fileID: 2031896828}
   - component: {fileID: 2031896831}
   m_Layer: 0
-  m_Name: Plane
+  m_Name: Arena
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
