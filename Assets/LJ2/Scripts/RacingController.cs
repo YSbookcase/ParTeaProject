@@ -151,7 +151,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    void RacingCrash(Vector3 direction)
+    public void RacingCrash(Vector3 direction)
     {
         rigid.AddForce(direction, ForceMode.Impulse);
     }
