@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 6689512300490848}
   - component: {fileID: 771729986154943288}
-  - component: {fileID: 6467508395446630646}
   - component: {fileID: 2887499827973074501}
   - component: {fileID: 3135536927612595682}
   - component: {fileID: 6828105157694564880}
@@ -52,22 +51,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   jumpPower: 7
---- !u!114 &6467508395446630646
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7116687505103148613}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 0
-  m_UseLocal: 1
 --- !u!114 &2887499827973074501
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86,8 +69,7 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 2
-  ObservedComponents:
-  - {fileID: 6467508395446630646}
+  ObservedComponents: []
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
@@ -119,7 +101,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: New Control Scheme
-  m_DefaultActionMap: 
+  m_DefaultActionMap: JumpGame
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!33 &6828105157694564880
