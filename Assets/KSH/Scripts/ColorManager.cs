@@ -27,14 +27,18 @@ namespace KSH
 
         private void Start()
         {
-            SetColor();
+            if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("Team"))
+            {
+                int team = (int)PhotonNetwork.LocalPlayer.CustomProperties["Team"];
+                SetColor(team);
+            }
         }
         
-        public void SetColor()
+        public void SetColor(int team)
         {
-            Color randomColor = (Random.Range(0,2) == 0)?(Color.red):(Color.blue);
+            Color teamColor = (team == 0) ? Color.red : Color.blue;
 
-            string colorHex = ColorUtility.ToHtmlStringRGB(randomColor); //Color 타입을 문자열로 변환(커스텀 프로퍼티는 Color 구조체 저장 못함)
+            string colorHex = ColorUtility.ToHtmlStringRGB(teamColor); //Color 타입을 문자열로 변환(커스텀 프로퍼티는 Color 구조체 저장 못함)
         
             //커스텀프로퍼티 해시테이블 생성
             ExitGames.Client.Photon.Hashtable colorProperty = new ExitGames.Client.Photon.Hashtable();
@@ -51,6 +55,16 @@ namespace KSH
         //플레이어의 속성이 바뀔 때 업데이트 되는 기능
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
         {
+            if (changedProps.ContainsKey("Team"))
+            {
+                int team = (int)changedProps["Team"];
+                
+                if (playerControllers.TryGetValue(targetPlayer.ActorNumber, out PlayerController pc))
+                {
+                    SetColor(team);
+                }
+            }
+            
             if (changedProps.ContainsKey("Color")) //만약 Color 키가 변경되었으면
             {
                 string colorHex = (string)changedProps["Color"];  //Color 키를 문자열로 저장

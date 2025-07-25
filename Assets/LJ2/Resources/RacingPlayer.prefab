@@ -15,10 +15,9 @@ GameObject:
   - component: {fileID: 7814714124846666652}
   - component: {fileID: 2964663422811475034}
   - component: {fileID: 1939117965948349080}
-  - component: {fileID: 939366179931922237}
   m_Layer: 0
   m_Name: RacingPlayer
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -156,7 +155,7 @@ MonoBehaviour:
   observableSearch: 0
   ObservedComponents:
   - {fileID: 1939117965948349080}
-  - {fileID: 939366179931922237}
+  - {fileID: 0}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
@@ -179,19 +178,3 @@ MonoBehaviour:
   rigid: {fileID: 0}
   moveAction: {fileID: 7023373264746046838, guid: ecfcb4f0f59c83644be4cddaeab0fd17,
     type: 3}
---- !u!114 &939366179931922237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6374494240092704456}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 0
-  m_UseLocal: 1

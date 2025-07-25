@@ -25,9 +25,9 @@ public class ObstacleHandler : MonoBehaviour
         this.speed = speed;
     }
 
-    private void OnCollisionEnter(Collision other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Finish"))
+        if (other.gameObject.CompareTag("Respawn"))
         {
             Destroy(gameObject);
         }
