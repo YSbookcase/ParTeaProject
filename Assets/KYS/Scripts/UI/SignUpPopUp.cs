@@ -17,8 +17,7 @@ namespace KYS
         private TMP_InputField passConfirmInput => GetUI<TMP_InputField>("PasswordCheckField");
 
         // 이메일 유효성 상태
-
-        private bool isEmailAvailable = false;
+        //private bool isEmailAvailable = false;
 
         private new void Awake()
         {

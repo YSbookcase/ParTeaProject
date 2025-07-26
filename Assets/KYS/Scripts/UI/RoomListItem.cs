@@ -5,9 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public enum MapType
+public enum GameType
 {
-    City, Natural, Game
+    Tetris, Snake, Quiz, Racing, Jump, Arena
 }
 
 namespace KYS
@@ -17,7 +17,7 @@ namespace KYS
         // SerializeField 대신 BaseUI 방식 사용
         private TextMeshProUGUI roomNameText => GetUI<TextMeshProUGUI>("RoomNameText");
         private TextMeshProUGUI playerCountText => GetUI<TextMeshProUGUI>("PlayerCountText");
-        private TextMeshProUGUI mapText => GetUI<TextMeshProUGUI>("MapText");
+        private TextMeshProUGUI gameText => GetUI<TextMeshProUGUI>("GameText");
 
         private string roomName;
 
@@ -54,7 +54,17 @@ namespace KYS
             roomName = info.Name;
             roomNameText.text = $"Room Name : {roomName}";
             playerCountText.text = $"{info.PlayerCount} / {info.MaxPlayers}";
-            mapText.text = $"Map : {(MapType)info.CustomProperties["Map"]}";
+            
+            // 게임 정보 표시
+            if (info.CustomProperties.TryGetValue("SelectedGame", out object gameValue))
+            {
+                int gameIndex = (int)gameValue;
+                gameText.text = $"Game : {(GameType)gameIndex}";
+            }
+            else
+            {
+                gameText.text = "Game : Tetris"; // 기본값
+            }
         }
 
         private void JoinRoom(PointerEventData eventData)

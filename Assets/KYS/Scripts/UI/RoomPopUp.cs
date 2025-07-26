@@ -14,9 +14,10 @@ namespace KYS
         // 방 관련 UI
         private Button startButton => GetUI<Button>("StartButton");
         private Button leaveButton => GetUI<Button>("LeaveButton");
-        private Button mapLeftButton => GetUI<Button>("MapLeftButton");
-        private Button mapRightButton => GetUI<Button>("MapRightButton");
-        private Image mapImage => GetUI<Image>("MapImage");
+        private Button gameLeftButton => GetUI<Button>("GameLeftButton");
+        private Button gameRightButton => GetUI<Button>("GameRightButton");
+        private Image gameImage => GetUI<Image>("GameImage");
+        private TMP_Text gameNameText => GetUI<TMP_Text>("GameNameText");
         private GameObject playerPanelItemPrefab;
         private Transform playerPanelContent => GetUI<Transform>("PlayerPanelContent");
 
@@ -27,8 +28,19 @@ namespace KYS
         private Transform chatContent => GetUI<Transform>("ChatContent");
 
         // 방 상태
-        public int mapIndex;
+        public int selectedGameIndex = 0;
         public Dictionary<int, PlayerPanelItem> playerPanels = new Dictionary<int, PlayerPanelItem>();
+        
+        // 게임 정보 (6개 게임)
+        private GameInfo[] availableGames = new GameInfo[]
+        {
+            new GameInfo("테트리스", "TetrisScene", "테트리스 게임"),
+            new GameInfo("스네이크", "SnakeScene", "스네이크 게임"),
+            new GameInfo("퀴즈", "QuizScene", "퀴즈 게임"),
+            new GameInfo("레이싱", "RacingScene", "레이싱 게임"),
+            new GameInfo("점프", "JumpScene", "점프 게임"),
+            new GameInfo("아레나", "ArenaScene", "아레나 게임")
+        };
 
         // PhotonView 컴포넌트
         // private PhotonView photonView; // 삭제
@@ -79,24 +91,24 @@ namespace KYS
                 Debug.LogError("[RoomPopUp] LeaveButton을 찾을 수 없습니다.");
             }
 
-            var mapLeftButton = GetEvent("MapLeftButton");
-            if (mapLeftButton != null)
+            var gameLeftButton = GetEvent("GameLeftButton");
+            if (gameLeftButton != null)
             {
-                mapLeftButton.Click += ClickLeftMapButton;
+                gameLeftButton.Click += ClickLeftGameButton;
             }
             else
             {
-                Debug.LogError("[RoomPopUp] MapLeftButton을 찾을 수 없습니다.");
+                Debug.LogError("[RoomPopUp] GameLeftButton을 찾을 수 없습니다.");
             }
 
-            var mapRightButton = GetEvent("MapRightButton");
-            if (mapRightButton != null)
+            var gameRightButton = GetEvent("GameRightButton");
+            if (gameRightButton != null)
             {
-                mapRightButton.Click += ClickRightMapButton;
+                gameRightButton.Click += ClickRightGameButton;
             }
             else
             {
-                Debug.LogError("[RoomPopUp] MapRightButton을 찾을 수 없습니다.");
+                Debug.LogError("[RoomPopUp] GameRightButton을 찾을 수 없습니다.");
             }
 
             // 채팅 이벤트 연결
@@ -120,6 +132,7 @@ namespace KYS
                 PhotonManager.Instance.OnPlayerLeftRoomEvent += OnPlayerLeftRoom;
                 PhotonManager.Instance.OnLeftRoomEvent += OnLeftRoom;
                 PhotonManager.Instance.OnPlayerPropertiesUpdateEvent += OnPlayerPropertiesUpdate; // 플레이어 속성 업데이트 이벤트 구독
+                PhotonManager.Instance.OnMasterClientSwitchedEvent += OnMasterClientSwitched; // 마스터 클라이언트 변경 이벤트 구독
             }
 
             // 방 입장 시 초기화
@@ -135,6 +148,7 @@ namespace KYS
                 PhotonManager.Instance.OnPlayerLeftRoomEvent -= OnPlayerLeftRoom;
                 PhotonManager.Instance.OnLeftRoomEvent -= OnLeftRoom;
                 PhotonManager.Instance.OnPlayerPropertiesUpdateEvent -= OnPlayerPropertiesUpdate; // 이벤트 구독 해제
+                PhotonManager.Instance.OnMasterClientSwitchedEvent -= OnMasterClientSwitched; // 마스터 클라이언트 변경 이벤트 구독 해제
             }
         }
 
@@ -150,16 +164,11 @@ namespace KYS
         // 방 초기화
         private void InitializeRoom()
         {
-            // 마스터 클라이언트가 아니면 일부 버튼 비활성화
-            if (!PhotonNetwork.IsMasterClient)
-            {
-                startButton.interactable = false;
-                mapLeftButton.interactable = false;
-                mapRightButton.interactable = false;
-            }
+            // 게임 선택 버튼들의 상태 설정
+            UpdateGameSelectionButtonStates();
 
-            // 맵 변경
-            MapChange();
+            // 게임 선택 UI 초기화
+            InitializeGameSelection();
 
             // 플레이어 패널 생성
             PlayerPanelSpawn();
@@ -170,9 +179,8 @@ namespace KYS
         {
             if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
             {
-                startButton.interactable = true;
-                mapLeftButton.interactable = true;
-                mapRightButton.interactable = true;
+                // 게임 선택 버튼들의 상태 업데이트
+                UpdateGameSelectionButtonStates();
                 panel.Init(player);
                 return;
             }
@@ -195,13 +203,10 @@ namespace KYS
         {
             PhotonNetwork.AutomaticallySyncScene = true;
 
-            if (!PhotonNetwork.IsMasterClient)
-            {
-                startButton.interactable = false;
-                mapLeftButton.interactable = false;
-                mapRightButton.interactable = false;
-                MapChange();
-            }
+            // 게임 선택 버튼들의 상태 설정
+            UpdateGameSelectionButtonStates();
+
+            InitializeGameSelection();
 
             foreach (Player player in PhotonNetwork.PlayerList)
             {
@@ -238,7 +243,28 @@ namespace KYS
         {
             if (PhotonNetwork.IsMasterClient && AllPlayerReadyCheck())
             {
-                Manager.game.GameStart("GameScene");
+                // 선택된 게임에 따라 씬 이동
+                string sceneName = GetSelectedGameScene();
+                Debug.Log($"[RoomPopUp] 게임 시작: {sceneName}");
+                
+                // 방 속성에 선택된 게임 저장
+                Hashtable roomProperty = new Hashtable();
+                roomProperty["SelectedGame"] = selectedGameIndex;
+                PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+                
+                // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
+                if (JTW.Manager.game != null)
+                {
+                    JTW.Manager.game.GameStart(sceneName);
+                    Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
+                }
+                else
+                {
+                    Debug.LogWarning("[RoomPopUp] JTW.Manager.game이 null입니다. 기본 씬 이동을 사용합니다.");
+                    // 씬 이동
+                    PhotonNetwork.LoadLevel(sceneName);
+                }
+                
                 UIManager.Instance.CleanAllUI();
             }
         }
@@ -271,45 +297,107 @@ namespace KYS
             UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
 
-        // 맵 변경 버튼들
-        private void ClickLeftMapButton(PointerEventData eventData)
+        // 게임 선택 버튼들
+        private void ClickLeftGameButton(PointerEventData eventData)
         {
-            mapIndex--;
-            if (mapIndex == -1)
+            // 마스터 클라이언트만 게임 변경 가능
+            if (!PhotonNetwork.IsMasterClient)
             {
-                mapIndex = 2; // 맵 개수에 따라 조정
+                Debug.LogWarning("[RoomPopUp] 마스터 클라이언트만 게임을 변경할 수 있습니다.");
+                return;
+            }
+
+            selectedGameIndex--;
+            if (selectedGameIndex == -1)
+            {
+                selectedGameIndex = availableGames.Length - 1;
             }
 
             Hashtable roomProperty = new Hashtable();
-            roomProperty["Map"] = mapIndex;
+            roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
 
-            MapChange();
+            UpdateGameSelectionUI();
         }
 
-        private void ClickRightMapButton(PointerEventData eventData)
+        private void ClickRightGameButton(PointerEventData eventData)
         {
-            mapIndex++;
-            if (mapIndex == 3) // 맵 개수에 따라 조정
+            // 마스터 클라이언트만 게임 변경 가능
+            if (!PhotonNetwork.IsMasterClient)
             {
-                mapIndex = 0;
+                Debug.LogWarning("[RoomPopUp] 마스터 클라이언트만 게임을 변경할 수 있습니다.");
+                return;
+            }
+
+            selectedGameIndex++;
+            if (selectedGameIndex >= availableGames.Length)
+            {
+                selectedGameIndex = 0;
             }
 
             Hashtable roomProperty = new Hashtable();
-            roomProperty["Map"] = mapIndex;
+            roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
 
-            MapChange();
+            UpdateGameSelectionUI();
         }
 
-        public void MapChange()
+        // 게임 선택 UI 초기화
+        private void InitializeGameSelection()
         {
-            if (PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("Map"))
+            // 방 속성에서 선택된 게임 가져오기
+            if (PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("SelectedGame"))
             {
-                mapIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["Map"];
-                Debug.Log($"맵 인덱스: {mapIndex}");
-                //mapImage.sprite = mapSprites[mapIndex]; // 맵 스프라이트 배열 필요
+                selectedGameIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["SelectedGame"];
             }
+            else
+            {
+                selectedGameIndex = 0; // 기본값
+            }
+
+            UpdateGameSelectionUI();
+        }
+
+        // 게임 선택 UI 업데이트
+        public void UpdateGameSelectionUI()
+        {
+            // 방 속성에서 현재 선택된 게임 가져오기
+            if (PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("SelectedGame"))
+            {
+                selectedGameIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["SelectedGame"];
+            }
+            
+            if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
+            {
+                GameInfo selectedGame = availableGames[selectedGameIndex];
+                
+                if (gameNameText != null)
+                {
+                    gameNameText.text = selectedGame.gameName;
+                }
+                
+                if (gameImage != null)
+                {
+                    // 게임 이미지가 있다면 설정 (Resources에서 로드)
+                    Sprite gameSprite = Resources.Load<Sprite>($"GameImages/{selectedGame.sceneName}");
+                    if (gameSprite != null)
+                    {
+                        gameImage.sprite = gameSprite;
+                    }
+                }
+                
+                Debug.Log($"[RoomPopUp] 선택된 게임: {selectedGame.gameName} ({selectedGame.sceneName})");
+            }
+        }
+
+        // 선택된 게임의 씬 이름 반환
+        private string GetSelectedGameScene()
+        {
+            if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
+            {
+                return availableGames[selectedGameIndex].sceneName;
+            }
+            return "TetrisScene"; // 기본값
         }
 
         // 채팅 관련 메서드들
@@ -331,7 +419,7 @@ namespace KYS
             if (!string.IsNullOrEmpty(message))
             {
                 // PhotonManager의 PhotonView 사용
-                PhotonManager.Instance.GetComponent<PhotonView>().RPC("SendChatMessage", RpcTarget.All, PhotonNetwork.NickName, message);
+                PhotonManager.Instance.GetComponent<PhotonView>().RPC(nameof(PhotonManager.SendChatMessage), RpcTarget.All, PhotonNetwork.NickName, message);
                 chatField.text = "";
                 chatField.ActivateInputField();
             }
@@ -405,6 +493,36 @@ namespace KYS
             }
         }
 
+        // 마스터 클라이언트 변경 이벤트 핸들러
+        private void OnMasterClientSwitched(Player newMasterClient)
+        {
+            Debug.Log($"[RoomPopUp] 마스터 클라이언트 변경: {newMasterClient.NickName}");
+            
+            // 게임 선택 버튼들의 상태 업데이트
+            UpdateGameSelectionButtonStates();
+        }
+
+        // 게임 선택 버튼들의 상태 업데이트
+        private void UpdateGameSelectionButtonStates()
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // 현재 플레이어가 마스터 클라이언트가 된 경우
+                if (startButton != null) startButton.interactable = true;
+                if (gameLeftButton != null) gameLeftButton.interactable = true;
+                if (gameRightButton != null) gameRightButton.interactable = true;
+                Debug.Log("[RoomPopUp] 마스터 클라이언트가 되어 게임 선택 버튼 활성화");
+            }
+            else
+            {
+                // 현재 플레이어가 마스터 클라이언트가 아닌 경우
+                if (startButton != null) startButton.interactable = false;
+                if (gameLeftButton != null) gameLeftButton.interactable = false;
+                if (gameRightButton != null) gameRightButton.interactable = false;
+                Debug.Log("[RoomPopUp] 클라이언트가 되어 게임 선택 버튼 비활성화");
+            }
+        }
+
 
         // 에러 메시지 표시
         private void ShowErrorMessage(string message)
@@ -416,21 +534,21 @@ namespace KYS
             }
         }
 
-        // 색상 선택 메서드 (예시)
+        // 플레이어 색상 선택 메서드
         public void SelectColor(int colorIndex)
         {
             // PhotonManager를 통해 색상 변경
             PhotonManager.Instance.SetPlayerColor(colorIndex);
         }
 
-        // 게임 선택 메서드 (예시)
-        public void SelectGame(int gameIndex)
+        // 플레이어 개인 게임 선택 메서드 (개인 설정용)
+        public void SelectPlayerGame(int gameIndex)
         {
-            // PhotonManager를 통해 게임 선택
+            // PhotonManager를 통해 개인 게임 선택
             PhotonManager.Instance.SetPlayerSelectedGame(gameIndex);
         }
 
-        // 색상 선택 UI 초기화 (예시)
+        // 색상 선택 UI 초기화
         private void InitializeColorSelection()
         {
             // 색상 선택 버튼들 초기화
@@ -441,21 +559,6 @@ namespace KYS
                 {
                     int colorIndex = i;
                     colorButton.onClick.AddListener(() => SelectColor(colorIndex));
-                }
-            }
-        }
-
-        // 게임 선택 UI 초기화 (예시)
-        private void InitializeGameSelection()
-        {
-            // 게임 선택 버튼들 초기화
-            for (int i = 0; i < 3; i++)
-            {
-                var gameButton = GetUI<Button>($"GameButton_{i}");
-                if (gameButton != null)
-                {
-                    int gameIndex = i;
-                    gameButton.onClick.AddListener(() => SelectGame(gameIndex));
                 }
             }
         }

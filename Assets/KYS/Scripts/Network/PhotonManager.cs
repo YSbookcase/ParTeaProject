@@ -23,6 +23,7 @@ namespace KYS
         public event Action<Player> OnPlayerLeftRoomEvent;
         public event Action<List<RoomInfo>> OnRoomListUpdateEvent;
         public event Action<Player, Hashtable> OnPlayerPropertiesUpdateEvent; // 플레이어 속성 업데이트 이벤트 추가
+        public event Action<Player> OnMasterClientSwitchedEvent; // 마스터 클라이언트 변경 이벤트 추가
 
         private PhotonView _photonView;
 
@@ -86,7 +87,7 @@ namespace KYS
                 IsVisible = true,
                 IsOpen = true
             };
-            options.CustomRoomPropertiesForLobby = new string[] { "Map" };
+            options.CustomRoomPropertiesForLobby = new string[] { "SelectedGame" };
             PhotonNetwork.CreateRoom(roomName, options);
         }
 
@@ -174,9 +175,9 @@ namespace KYS
         {
             Debug.Log($"방 생성 완료: {PhotonNetwork.CurrentRoom.Name}");
             
-            // 방 속성 설정
+            // 방 속성 설정 (기본 게임: 테트리스)
             Hashtable roomProperty = new Hashtable();
-            roomProperty["Map"] = 0;
+            roomProperty["SelectedGame"] = 0; // 0: 테트리스
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
             
             // 방 생성 후 자동으로 방에 입장 (LeaveRoom 제거)
@@ -243,7 +244,7 @@ namespace KYS
             Debug.Log($"마스터 클라이언트 변경: {newMasterClient.NickName}");
             
             // 마스터 클라이언트 변경 이벤트 발생
-            OnPlayerEnteredRoomEvent?.Invoke(newMasterClient);
+            OnMasterClientSwitchedEvent?.Invoke(newMasterClient);
         }
 
         public override void OnRoomListUpdate(List<RoomInfo> roomList)
@@ -268,6 +269,25 @@ namespace KYS
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
             Debug.Log("방 속성 업데이트");
+            
+            // RoomPopUp이 활성화되어 있다면 게임 선택 UI 업데이트
+            RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
+            if (roomPopUp != null)
+            {
+                // 선택된 게임이 변경된 경우 UI 업데이트
+                if (propertiesThatChanged.ContainsKey("SelectedGame"))
+                {
+                    roomPopUp.Invoke("UpdateGameSelectionUI", 0.1f);
+                }
+            }
+            
+            // LobbyPopUp이 활성화되어 있다면 방 목록 업데이트
+            LobbyPopUp lobbyPopUp = FindObjectOfType<LobbyPopUp>();
+            if (lobbyPopUp != null)
+            {
+                // 방 속성이 변경되면 방 목록 새로고침
+                lobbyPopUp.Invoke("RefreshRoomList", 0.1f);
+            }
         }
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
@@ -278,7 +298,7 @@ namespace KYS
 
         // PhotonManager에 채팅 RPC 메서드 추가
         [PunRPC]
-        private void SendChatMessage(string sender, string message)
+        public void SendChatMessage(string sender, string message)
         {
             // RoomPopUp이 활성화되어 있다면 채팅 메시지 표시
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
