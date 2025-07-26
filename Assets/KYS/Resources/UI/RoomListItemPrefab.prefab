@@ -414,6 +414,7 @@ GameObject:
   - component: {fileID: 1352913526272973264}
   - component: {fileID: 9020934607111628635}
   - component: {fileID: 8180791507743468131}
+  - component: {fileID: 7358538485784538594}
   m_Layer: 5
   m_Name: RoomListItemPrefab
   m_TagString: Untagged
@@ -440,7 +441,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.8833275}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.0000038146973}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: -0.0000076293945}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1352913526272973264
@@ -525,3 +526,16 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7358538485784538594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7363706270892850561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a4d6d7fee63505428723ba7c7292473, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  canCloseWithESC: 0

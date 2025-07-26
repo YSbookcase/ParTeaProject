@@ -1,12 +1,10 @@
-using System.Collections;
+using Photon.Pun;
+using Photon.Realtime;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using Photon.Pun;
-using Photon.Realtime;
-using ExitGames.Client.Photon;
+using UnityEngine.UI;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KYS
@@ -31,14 +29,14 @@ namespace KYS
         // 방 상태
         public int mapIndex;
         public Dictionary<int, PlayerPanelItem> playerPanels = new Dictionary<int, PlayerPanelItem>();
-        
+
         // PhotonView 컴포넌트
         // private PhotonView photonView; // 삭제
 
         private new void Awake()
         {
             base.Awake();
-canCloseWithESC = false; // ESC로 닫을 수 없음
+            canCloseWithESC = false; // ESC로 닫을 수 없음
             // Resources 폴더에서 프리팹 로드
             playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
             if (playerPanelItemPrefab == null)
@@ -121,6 +119,7 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
                 PhotonManager.Instance.OnPlayerEnteredRoomEvent += OnPlayerEnteredRoom;
                 PhotonManager.Instance.OnPlayerLeftRoomEvent += OnPlayerLeftRoom;
                 PhotonManager.Instance.OnLeftRoomEvent += OnLeftRoom;
+                PhotonManager.Instance.OnPlayerPropertiesUpdateEvent += OnPlayerPropertiesUpdate; // 플레이어 속성 업데이트 이벤트 구독
             }
 
             // 방 입장 시 초기화
@@ -135,6 +134,7 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
                 PhotonManager.Instance.OnPlayerEnteredRoomEvent -= OnPlayerEnteredRoom;
                 PhotonManager.Instance.OnPlayerLeftRoomEvent -= OnPlayerLeftRoom;
                 PhotonManager.Instance.OnLeftRoomEvent -= OnLeftRoom;
+                PhotonManager.Instance.OnPlayerPropertiesUpdateEvent -= OnPlayerPropertiesUpdate; // 이벤트 구독 해제
             }
         }
 
@@ -178,10 +178,17 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
             }
 
             GameObject obj = Instantiate(playerPanelItemPrefab);
-            obj.transform.SetParent(playerPanelContent);
+            obj.transform.SetParent(playerPanelContent, false); // false로 설정하여 로컬 위치 유지
             PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
             item.Init(player);
             playerPanels.Add(player.ActorNumber, item);
+
+            // UI 레이아웃 강제 업데이트
+            Canvas.ForceUpdateCanvases();
+            if (playerPanelContent is RectTransform rectTransform)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+            }
         }
 
         public void PlayerPanelSpawn()
@@ -199,10 +206,17 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
             foreach (Player player in PhotonNetwork.PlayerList)
             {
                 GameObject obj = Instantiate(playerPanelItemPrefab);
-                obj.transform.SetParent(playerPanelContent);
+                obj.transform.SetParent(playerPanelContent, false); // false로 설정하여 로컬 위치 유지
                 PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
                 item.Init(player);
                 playerPanels.Add(player.ActorNumber, item);
+            }
+
+            // UI 레이아웃 강제 업데이트
+            Canvas.ForceUpdateCanvases();
+            if (playerPanelContent is RectTransform rectTransform)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
             }
         }
 
@@ -294,7 +308,7 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
             {
                 mapIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["Map"];
                 Debug.Log($"맵 인덱스: {mapIndex}");
-                 //mapImage.sprite = mapSprites[mapIndex]; // 맵 스프라이트 배열 필요
+                //mapImage.sprite = mapSprites[mapIndex]; // 맵 스프라이트 배열 필요
             }
         }
 
@@ -370,7 +384,7 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
         {
             Debug.Log("방을 나갔습니다. 로비로 돌아갑니다.");
             ClearChat();
-            
+
             // 로비로 돌아가기
             UIManager.Instance.ClosePopUp();
             UIManager.Instance.ShowPopUp<LobbyPopUp>();
@@ -382,6 +396,14 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
         //     // 동기화가 필요한 데이터가 있다면 여기에 구현
         // }
 
+        // 플레이어 속성 업데이트 이벤트 핸들러
+        private void OnPlayerPropertiesUpdate(Player player, Hashtable changedProps)
+        {
+            if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
+            {
+                panel.UpdatePlayerProperties(player);
+            }
+        }
 
 
         // 에러 메시지 표시
@@ -393,5 +415,49 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
                 messagePopUp.SetMessage(message, "확인");
             }
         }
+
+        // 색상 선택 메서드 (예시)
+        public void SelectColor(int colorIndex)
+        {
+            // PhotonManager를 통해 색상 변경
+            PhotonManager.Instance.SetPlayerColor(colorIndex);
+        }
+
+        // 게임 선택 메서드 (예시)
+        public void SelectGame(int gameIndex)
+        {
+            // PhotonManager를 통해 게임 선택
+            PhotonManager.Instance.SetPlayerSelectedGame(gameIndex);
+        }
+
+        // 색상 선택 UI 초기화 (예시)
+        private void InitializeColorSelection()
+        {
+            // 색상 선택 버튼들 초기화
+            for (int i = 0; i < 4; i++)
+            {
+                var colorButton = GetUI<Button>($"ColorButton_{i}");
+                if (colorButton != null)
+                {
+                    int colorIndex = i;
+                    colorButton.onClick.AddListener(() => SelectColor(colorIndex));
+                }
+            }
+        }
+
+        // 게임 선택 UI 초기화 (예시)
+        private void InitializeGameSelection()
+        {
+            // 게임 선택 버튼들 초기화
+            for (int i = 0; i < 3; i++)
+            {
+                var gameButton = GetUI<Button>($"GameButton_{i}");
+                if (gameButton != null)
+                {
+                    int gameIndex = i;
+                    gameButton.onClick.AddListener(() => SelectGame(gameIndex));
+                }
+            }
+        }
     }
-} 
+}

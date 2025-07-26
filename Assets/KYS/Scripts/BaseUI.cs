@@ -106,4 +106,16 @@ public class BaseUI : MonoBehaviour
 
         return temp;
     }
+
+    // 자기 자신의 이벤트핸들러를 가져오거나, 없으면
+    public PointerHandler GetSelfEvent()
+    {
+        PointerHandler temp = GetComponent<PointerHandler>();
+        if (temp == null)
+        {
+            temp = gameObject.AddComponent<PointerHandler>();
+        }
+
+        return temp;
+    }
 }

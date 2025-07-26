@@ -28,6 +28,7 @@ namespace KYS
 
             GetEvent("SignUpButton").Click += SignUp;
             GetEvent("LoginButton").Click += Login;
+            GetEvent("FindPasswordButton").Click += FindPassword; // 비밀번호 찾기 버튼 추가
 
             // UIManager에 자신을 등록
             UIManager.Instance.RegisterMainPanel("LoginPopUp", gameObject);
@@ -92,6 +93,12 @@ namespace KYS
                     UIManager.Instance.ShowPopUp<EmailPopUp>();
                 }
             });
+        }
+
+        // 비밀번호 찾기 버튼 클릭 이벤트
+        private void FindPassword(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<PasswordResetPopUp>();
         }
 
         private void ShowLoginFailMessage(string message)

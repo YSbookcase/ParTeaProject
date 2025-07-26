@@ -91,11 +91,12 @@ namespace KYS
             // Firebase 로그아웃
             FirebaseManager.Auth.SignOut();
 
-            //// Photon 연결 해제
-            //if (PhotonNetwork.IsConnected)
-            //{
-            //    PhotonNetwork.Disconnect();
-            //}
+            // Photon 연결 해제
+            if (PhotonNetwork.IsConnected)
+            {
+                PhotonNetwork.Disconnect();
+                Debug.Log("[MenuPopUp] Photon 연결 해제 완료");
+            }
 
             // 모든 팝업 정리 (로비에서 나가기 전에 모든 팝업 정리)
             UIManager.Instance.CleanPopUp();
@@ -105,7 +106,7 @@ namespace KYS
 
         private void EditProfile(PointerEventData eventData)
         {
-            //UIManager.Instance.ShowPopUp<EditPopUp>();
+            UIManager.Instance.ShowPopUp<EditPopUp>();
         }
 
         private void Back(PointerEventData eventData)
