@@ -1,10 +1,11 @@
+using Cinemachine;
+using Photon.Pun;
+using Photon.Pun.Demo.PunBasics;
+using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Photon.Pun;
-using Photon.Realtime;
-using Cinemachine;
 
 public class RacingController : MonoBehaviourPun, IPunObservable
 {
@@ -24,6 +25,10 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private Quaternion networkRotation;
 
     private CinemachineVirtualCamera virtualCamera;
+    private CinemachineDollyCart dollyCart;
+    private Vector3 previousPosition;
+
+    [SerializeField] public float cameraSpeed;
 
     private void Awake()
     {
@@ -31,6 +36,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         {
             rigid = GetComponent<Rigidbody>();
         }
+
+        dollyCart = FindObjectOfType<CinemachineDollyCart>();
     }
 
     private void Start()
@@ -40,9 +47,10 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             if (virtualCamera != null)
             {
-                virtualCamera.Follow = transform;
+                //virtualCamera.Follow = transform;
                 virtualCamera.LookAt = transform;
             }
+            previousPosition = transform.position;
         }
     }
 
@@ -76,7 +84,9 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     {
         if (photonView.IsMine)
         {
-            SetRotation();
+            //SetRotation();
+            SetRotationByCam();
+            DollyCartMove();
         }
         
     }
@@ -96,32 +106,64 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     }
 
 
-    private void SetRotation()
+    private void SetRotationByCam()
     {
         Vector2 input = moveAction.action.ReadValue<Vector2>();
-        Vector3 inputDirection = new Vector3(input.x, 0, input.y).normalized;
-       
 
-        // 차량 방향 전환
-        if (inputDirection != Vector3.zero)
+        if (virtualCamera != null)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
-            transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * turnSpeed);
-        }
+            Transform camTransform = virtualCamera.transform;
 
-        // 차량 속도 조절
-        float targetSpeed = (inputDirection != Vector3.zero) ? maxSpeed : 0f;
-        currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
+            // 카메라 기준 방향 변환
+            Vector3 camForward = camTransform.forward;
+            Vector3 camRight = camTransform.right;
 
-        // 차량이동 방향 전환
-        if (inputDirection != Vector3.zero)
-        {
-            moveDirection = Vector3.Slerp(moveDirection, inputDirection, Time.deltaTime * driftTurnSpeed);
+            // y축 제외한 평면 방향 만들기
+            camForward.y = 0f;
+            camRight.y = 0f;
+
+            camForward.Normalize();
+            camRight.Normalize();
+
+            // 카메라 기준으로 입력 방향 구성
+            Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
+
+            // 차량 회전 처리
+            if (inputDirection != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+                transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * turnSpeed);
+            }
+
+            float targetSpeed = (inputDirection != Vector3.zero) ? maxSpeed : 0f;
+            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
+
+            if (inputDirection != Vector3.zero)
+            {
+                moveDirection = Vector3.Slerp(moveDirection, inputDirection, Time.deltaTime * driftTurnSpeed);
+            }
+            else
+            {
+                moveDirection = transform.forward;
+            }
         }
-        else
-        {
-            moveDirection = transform.forward;
-        }
+    }
+
+    private void DollyCartMove()
+    {
+        if (dollyCart == null) return;
+
+        Vector3 displacement = transform.position - previousPosition;
+        float moveDistance = displacement.magnitude;
+
+        if (moveDistance < 0.1f) return; // 거의 정지 상태면 무시
+
+        Vector3 moveDir = displacement.normalized;
+        float alignment = Vector3.Dot(moveDir, dollyCart.transform.forward);
+        float adjustedSpeed = moveDistance * Mathf.Clamp01(alignment) / Time.deltaTime;
+
+        dollyCart.m_Position += adjustedSpeed * cameraSpeed * Time.deltaTime;
+        previousPosition = transform.position;
     }
 
     private void OnCollisionEnter(Collision collision)
