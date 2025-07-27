@@ -174,8 +174,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position + transform.forward * 6, moveDirection * 10f);
+        Gizmos.DrawRay(transform.position, moveDirection * 10f);
         Gizmos.color = Color.green;
-        Gizmos.DrawRay(transform.position + transform.forward * 6, transform.forward * 10f);
+        Gizmos.DrawRay(transform.position, transform.forward * 10f);
     }
 }
