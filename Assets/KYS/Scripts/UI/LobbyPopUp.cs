@@ -134,6 +134,22 @@ namespace KYS
                 return;
             }
 
+            // Photon 네트워크 상태 확인
+            if (!PhotonNetwork.IsConnected)
+            {
+                ShowErrorMessage("Photon 서버에 연결되지 않았습니다. 잠시 기다려주세요.");
+                Debug.Log("[LobbyPopUp] Photon 연결 대기 중...");
+                return;
+            }
+
+            if (!PhotonNetwork.InLobby)
+            {
+                ShowErrorMessage("로비에 입장하지 않았습니다. 잠시 기다려주세요.");
+                Debug.Log("[LobbyPopUp] 로비 입장 대기 중...");
+                return;
+            }
+
+            Debug.Log($"[LobbyPopUp] 방 생성 요청: {roomName}");
             PhotonManager.Instance.CreateRoom(roomName);
             roomNameField.text = "";
 

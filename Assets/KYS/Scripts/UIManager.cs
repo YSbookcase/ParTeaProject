@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Collections; // 추가 필요
 using UnityEngine;
 using System.Reflection;
-using UnityEngine.SceneManagement;
+using UnityEngine.SceneManagement; // 씬 관리 추가
 
 namespace KYS
 {
@@ -107,10 +107,33 @@ namespace KYS
 
         private void Awake()
         {
-      
+            // 씬 전환 이벤트 리스너 등록
+            SceneManager.sceneLoaded += OnSceneLoaded;
             
             // 초기화 플래그 설정
             isInitialized = true;
+        }
+
+        private void OnDestroy()
+        {
+            // 씬 전환 이벤트 리스너 해제
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        // 씬 전환 시 자동으로 모든 UI 정리
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Debug.Log($"[UIManager] 씬 전환 감지: {scene.name}");
+            
+            // 게임 씬으로 전환되는 경우 모든 UI 정리
+            if (scene.name.Contains("Game") || scene.name.Contains("Arena") || 
+                scene.name.Contains("Jump") || scene.name.Contains("Racing") ||
+                scene.name.Contains("Tile") || scene.name.Contains("Rope") ||
+                scene.name.Contains("Receive"))
+            {
+                Debug.Log("[UIManager] 게임 씬으로 전환 - 모든 UI 정리");
+                CleanAllUI();
+            }
         }
 
         private void Start()
@@ -183,7 +206,10 @@ namespace KYS
         // 모든 UI 정리
         public void CleanAllUI()
         {
-            CleanPopUp();
+            if (PopUp != null)
+            {
+                PopUp.ForceCleanAll(); // 강제 정리 사용
+            }
             mainPanels.Clear();
             Debug.Log("[UIManager] 모든 UI가 정리되었습니다.");
         }
