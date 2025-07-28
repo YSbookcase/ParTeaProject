@@ -48,7 +48,6 @@ namespace KSH
         {
             if (PhotonNetwork.IsMasterClient)
             {
-                TeamManager.Instance.SetTeam();
                 PhotonNetwork.LoadLevel("TileGame");
             }
         }

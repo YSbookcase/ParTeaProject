@@ -35,10 +35,12 @@ namespace KSH
                 Destroy(gameObject); // 하나만 존재해야 하므로 제거
             }
         }
+        
 
         private void Start()
         {
             isGameStart = true;
+            TeamManager.Instance.SetTeam();
         }
 
         private void Update()
