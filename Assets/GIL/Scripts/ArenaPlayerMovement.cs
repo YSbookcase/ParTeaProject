@@ -12,7 +12,6 @@ namespace GIL.Scripts
         
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
-        private Camera _mainCamera;
         
         private PhotonView _photonView;
 
@@ -27,7 +26,6 @@ namespace GIL.Scripts
         {
             _inputActions = new ArenaPlayerActions();
             _rigidbody = GetComponent<Rigidbody>();
-            _mainCamera = Camera.main;
             _photonView = GetComponent<PhotonView>();
             
             _networkPosition = transform.position;
@@ -63,49 +61,31 @@ namespace GIL.Scripts
         
         private void HandleInput()
         {
-#if UNITY_EDITOR
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                _isTouching = true;
-                _startTouchPos = Mouse.current.position.ReadValue();
-            }
-            else if (Mouse.current.leftButton.wasReleasedThisFrame)
-            {
-                _isTouching = false;
-            }
+            Vector2 pointerPos = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
+            bool isPressed = _inputActions.Player.JoystickTouchPhase.IsPressed();
 
-            if (_isTouching)
-            {
-                Vector2 currentTouch = Mouse.current.position.ReadValue();
-#else
-            if (_inputActions.Player.JoystickTouchPhase.IsPressed())
+            if (isPressed)
             {
                 if (!_isTouching)
                 {
                     _isTouching = true;
-                    _startTouchPos = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
+                    _startTouchPos = pointerPos;
                 }
 
-                Vector2 currentTouch = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
-#endif
-                Vector2 delta = currentTouch - _startTouchPos;
+                Vector2 delta = pointerPos - _startTouchPos;
 
                 if (delta.magnitude > 20f)
                 {
                     Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
 
                     if (_rigidbody.velocity.magnitude < maxSpeed)
-                    {
                         _rigidbody.AddForce(dir * movePower, ForceMode.Force);
-                    }
                 }
             }
-#if !UNITY_EDITOR
             else
             {
                 _isTouching = false;
             }
-#endif
             _rigidbody.velocity *= drag;
         }
 
