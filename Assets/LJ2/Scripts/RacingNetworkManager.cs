@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class RacingNetworkManager : MonoBehaviourPunCallbacks
 {
+    [SerializeField] private RacingMap racingMap;
+
     void Start()
     {
         PhotonNetwork.ConnectUsingSettings();
@@ -37,8 +39,10 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
 
     private void PlayerSpawn()
     {
-        Vector3 spawnPos = new Vector3(Random.Range(-2, 2), 1, 0);
-        PhotonNetwork.Instantiate("RacingPlayer", spawnPos, Quaternion.identity);
+        racingMap.SetTrack(1);
+        racingMap.SetDollyCart(racingMap.startLine);
+        Transform spawnPos = racingMap.startLine.spawnPositions[3];
+        PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
     }
     public override void OnPlayerEnteredRoom(Player player)
     {
