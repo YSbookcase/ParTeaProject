@@ -36,27 +36,17 @@ namespace KYS
         {
             base.Awake();
             
-            // 이벤트 연결 (자식 버튼 또는 자기 자신 버튼)
-            var joinButtonEvent = GetEvent("JoinButton");
-            if (joinButtonEvent != null)
+            // 자기 자신에 Button 컴포넌트가 있는지 확인 (프리팹 자체가 버튼)
+            var selfButton = GetComponent<Button>();
+            if (selfButton != null)
             {
-                joinButtonEvent.Click += JoinRoom;
-                Debug.Log("[RoomListItem] JoinButton 자식 오브젝트에 이벤트 연결 완료");
+                // 자기 자신이 버튼인 경우
+                selfButton.onClick.AddListener(() => JoinRoom(null));
+                Debug.Log("[RoomListItem] 자기 자신의 Button 컴포넌트에 이벤트 연결 완료");
             }
             else
             {
-                // 자기 자신에 Button 컴포넌트가 있는지 확인
-                var selfButton = GetComponent<Button>();
-                if (selfButton != null)
-                {
-                    // 자기 자신이 버튼인 경우
-                    selfButton.onClick.AddListener(() => JoinRoom(null));
-                    Debug.Log("[RoomListItem] 자기 자신의 Button 컴포넌트에 이벤트 연결 완료");
-                }
-                else
-                {
-                    Debug.LogError("[RoomListItem] JoinButton 자식 오브젝트도 없고, 자기 자신에도 Button 컴포넌트가 없습니다.");
-                }
+                Debug.LogError("[RoomListItem] 자기 자신에 Button 컴포넌트가 없습니다.");
             }
         }
 
@@ -92,10 +82,10 @@ namespace KYS
             if (PhotonNetwork.InLobby)
             {
                 // 방 참가 버튼 비활성화 (중복 클릭 방지)
-                var joinButton = GetUI<Button>("JoinButton");
-                if (joinButton != null)
+                var selfButton = GetComponent<Button>();
+                if (selfButton != null)
                 {
-                    joinButton.interactable = false;
+                    selfButton.interactable = false;
                 }
                 
                 PhotonManager.Instance.JoinRoom(roomName);
