@@ -11,4 +11,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/KYS/Scene/GameScene.unity
     guid: e363dbbce9b2c7f44b656f2f61a795f1
+  - enabled: 1
+    path: Assets/PJW/Scene/PJWTestScene.unity
+    guid: 68cad8fad6852a3428068a5a8e85760b
+  - enabled: 1
+    path: Assets/PJW/Scene/RopeGame.unity
+    guid: 9e5d4e05a69348f4bb0c52b57ecce423
   m_configObjects: {}

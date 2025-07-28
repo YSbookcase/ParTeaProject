@@ -62,7 +62,7 @@ namespace PJW
         private void OnClickStart()
         {
             if (!PhotonNetwork.IsMasterClient) return;
-            PhotonNetwork.LoadLevel("PJW");
+            PhotonNetwork.LoadLevel("RopeGame");
         }
 
         private void UpdatePlayerList()

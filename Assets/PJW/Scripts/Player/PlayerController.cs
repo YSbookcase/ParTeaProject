@@ -1,8 +1,8 @@
 using Photon.Pun;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Photon.Realtime;
 
 namespace PJW
 {
@@ -10,7 +10,6 @@ namespace PJW
     {
         [SerializeField] private float jumpForce;
         [SerializeField] private float bounceForce;
-
 
         private Rigidbody playerRigidbody;
         private bool isGrounded;
@@ -24,7 +23,7 @@ namespace PJW
         private void Awake()
         {
             playerRigidbody = GetComponent<Rigidbody>();
-            playerRigidbody.sleepThreshold = 0f; // 가만히 있는 상태에서도 리지드 바디를 적용시킴
+            playerRigidbody.sleepThreshold = 0f;
 
             if (!photonView.IsMine)
             {
@@ -35,15 +34,8 @@ namespace PJW
             inputActions.Player_PJW.Jump.performed += ctx => Jump();
         }
 
-        private void OnEnable()
-        {
-            inputActions.Enable();
-        }
-
-        private void OnDisable()
-        {
-            inputActions.Disable();
-        }
+        private void OnEnable() => inputActions.Enable();
+        private void OnDisable() => inputActions.Disable();
 
         private void Start()
         {
@@ -53,19 +45,7 @@ namespace PJW
 
         private void Update()
         {
-            if (photonView.IsMine)
-            {
-                if (isDead) return;
-            }
-            /*else
-            {
-                // 원격 플레이어 보간 적용
-                // transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
-                float x = Mathf.Lerp(transform.position.x, networkPosition.x, Time.deltaTime);
-                float z = Mathf.Lerp(transform.position.z, networkPosition.z, Time.deltaTime);
-                transform.position = new Vector3(x, networkPosition.y, z);
-                transform.rotation = Quaternion.Slerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
-            }*/
+            if (photonView.IsMine && isDead) return;
         }
 
         private void Jump()
@@ -75,13 +55,12 @@ namespace PJW
             Vector3 velocity = playerRigidbody.velocity;
             velocity.y = jumpForce;
             playerRigidbody.velocity = velocity;
-            isGrounded = false; 
+            isGrounded = false;
         }
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (!photonView.IsMine)
-                return;
+            if (!photonView.IsMine) return;
 
             if (collision.gameObject.CompareTag("Ground"))
             {
@@ -95,8 +74,7 @@ namespace PJW
 
         private void OnCollisionExit(Collision collision)
         {
-            if (!photonView.IsMine)
-                return;
+            if (!photonView.IsMine) return;
 
             if (collision.gameObject.CompareTag("Ground"))
             {
@@ -110,21 +88,23 @@ namespace PJW
             isDead = true;
 
             Vector3 bounceDir = (Vector3.forward + Random.onUnitSphere).normalized;
-            playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse); // 로프에 닿으면 날아감
+            playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse);
+
+            // 마스터 클라이언트에게 사망 통지
+            photonView.RPC(nameof(RPC_NotifyDeath), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
         }
 
-        // public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-        // {
-        //     if (stream.IsWriting)
-        //     {
-        //         stream.SendNext(transform.position);
-        //         stream.SendNext(transform.rotation);
-        //     }
-        //     else
-        //     {
-        //         networkPosition = (Vector3)stream.ReceiveNext();
-        //         networkRotation = (Quaternion)stream.ReceiveNext();
-        //     }
-        // }
+        [PunRPC]
+        private void RPC_NotifyDeath(int actorNumber, PhotonMessageInfo info)
+        {
+            if (!PhotonNetwork.IsMasterClient) return;
+
+            RopeGameManager manager = FindObjectOfType<RopeGameManager>();
+            if (manager != null)
+            {
+                Player targetPlayer = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+                manager.OnPlayerDied_RPC(targetPlayer);
+            }
+        }
     }
 }
