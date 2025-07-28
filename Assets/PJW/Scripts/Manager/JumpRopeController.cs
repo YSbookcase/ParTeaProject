@@ -1,10 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Photon.Pun;
 
 namespace PJW
 {
-    public class JumpRopeController : MonoBehaviour
+    public class JumpRopeController : MonoBehaviourPun, IPunObservable
     {
         [Header("회전 대상")]
         public Transform ropeTransform;
@@ -20,18 +19,47 @@ namespace PJW
 
         private float currentSpeed;
 
-        void Start()
+        // 동기화용 값
+        private Vector3 networkPosition;
+        private Quaternion networkRotation;
+
+        private void Start()
         {
             currentSpeed = initialSpeed;
+            if (!PhotonNetwork.IsMasterClient)
+            {
+                networkPosition = ropeTransform.position;
+                networkRotation = ropeTransform.rotation;
+            }
         }
 
-        void Update()
+        private void Update()
         {
-            currentSpeed = Mathf.Min(currentSpeed + acceleration * Time.deltaTime, maxSpeed);
+            if (PhotonNetwork.IsMasterClient)
+            {
+                currentSpeed = Mathf.Min(currentSpeed + acceleration * Time.deltaTime, maxSpeed);
+                ropeTransform.RotateAround(centerPoint.position, rotationAxis, currentSpeed * Time.deltaTime);
+            }
+            else
+            {
+                // 위치와 회전을 함께 보간
+                ropeTransform.position = Vector3.Lerp(ropeTransform.position, networkPosition, Time.deltaTime * 10f);
+                ropeTransform.rotation = Quaternion.Lerp(ropeTransform.rotation, networkRotation, Time.deltaTime * 10f);
+            }
+        }
 
-            // centerPoint기준으로 회전
-            ropeTransform.RotateAround(centerPoint.position, rotationAxis, currentSpeed * Time.deltaTime);
+        public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        {
+            if (stream.IsWriting)
+            {
+                stream.SendNext(ropeTransform.position);
+                stream.SendNext(ropeTransform.rotation);
+            }
+            else
+            {
+                networkPosition = (Vector3)stream.ReceiveNext();
+                networkRotation = (Quaternion)stream.ReceiveNext();
+            }
         }
     }
 }
-

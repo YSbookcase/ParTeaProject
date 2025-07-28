@@ -34,12 +34,12 @@ namespace KYS
         // 게임 정보 (6개 게임)
         private GameInfo[] availableGames = new GameInfo[]
         {
-            new GameInfo("테트리스", "TetrisScene", "테트리스 게임"),
-            new GameInfo("스네이크", "SnakeScene", "스네이크 게임"),
-            new GameInfo("퀴즈", "QuizScene", "퀴즈 게임"),
-            new GameInfo("레이싱", "RacingScene", "레이싱 게임"),
-            new GameInfo("점프", "JumpScene", "점프 게임"),
-            new GameInfo("아레나", "ArenaScene", "아레나 게임")
+            new GameInfo("점프", "JumpGame", "점프 게임"),
+            new GameInfo("아레나", "ArenaGame", "아레나 게임"),
+            new GameInfo("타일", "TileGame", "타일 게임"),
+            new GameInfo("레이싱", "RacingGame", "레이싱 게임"),
+            new GameInfo("로프", "RopeGame", "로프 게임"),
+            new GameInfo("받기", "ReceiveGame", "물건받기 게임")
         };
 
         // PhotonView 컴포넌트
@@ -253,9 +253,9 @@ namespace KYS
                 PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
                 
                 // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
-                if (JTW.Manager.game != null)
+                if (Manager.game != null)
                 {
-                    JTW.Manager.game.GameStart(sceneName);
+                    Manager.game.GameStart(sceneName);
                     Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
                 }
                 else

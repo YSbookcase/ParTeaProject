@@ -9,7 +9,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KYS
 {
-    public class PhotonManager : MonoBehaviourPunCallbacks
+    public class PhotonManager : SingtonPunCallback<PhotonManager>
     {
         // 싱글톤 인스턴스
         public static PhotonManager Instance { get; private set; }
@@ -81,6 +81,31 @@ namespace KYS
                 return;
             }
 
+            // Photon 네트워크 상태 확인
+            if (!PhotonNetwork.IsConnected)
+            {
+                Debug.Log("[PhotonManager] Photon에 연결되지 않음. 연결을 시작합니다.");
+                ConnectToPhoton();
+                return;
+            }
+
+            if (!PhotonNetwork.InLobby)
+            {
+                Debug.Log("[PhotonManager] 로비에 있지 않음. 로비 참가를 시도합니다.");
+                if (PhotonNetwork.IsConnected && PhotonNetwork.Server == ServerConnection.MasterServer)
+                {
+                    PhotonNetwork.JoinLobby();
+                }
+                else
+                {
+                    Debug.LogError("[PhotonManager] 마스터 서버에 연결되지 않음. 연결을 기다려주세요.");
+                    return;
+                }
+                return;
+            }
+
+            Debug.Log($"[PhotonManager] 방 생성 시도: {roomName}");
+            
             RoomOptions options = new RoomOptions
             {
                 MaxPlayers = 4,
@@ -93,6 +118,36 @@ namespace KYS
 
         public void JoinRoom(string roomName)
         {
+            if (string.IsNullOrEmpty(roomName))
+            {
+                Debug.LogError("방 이름이 비어있습니다.");
+                return;
+            }
+
+            // Photon 네트워크 상태 확인
+            if (!PhotonNetwork.IsConnected)
+            {
+                Debug.Log("[PhotonManager] Photon에 연결되지 않음. 연결을 시작합니다.");
+                ConnectToPhoton();
+                return;
+            }
+
+            if (!PhotonNetwork.InLobby)
+            {
+                Debug.Log("[PhotonManager] 로비에 있지 않음. 로비 참가를 시도합니다.");
+                if (PhotonNetwork.IsConnected && PhotonNetwork.Server == ServerConnection.MasterServer)
+                {
+                    PhotonNetwork.JoinLobby();
+                }
+                else
+                {
+                    Debug.LogError("[PhotonManager] 마스터 서버에 연결되지 않음. 연결을 기다려주세요.");
+                    return;
+                }
+                return;
+            }
+
+            Debug.Log($"[PhotonManager] 방 참가 시도: {roomName}");
             PhotonNetwork.JoinRoom(roomName);
         }
 
@@ -382,6 +437,42 @@ namespace KYS
                 return (int)value;
             }
             return 0; // 기본 게임
+        }
+
+        // 권한 이전 (마스터 클라이언트 전환)
+        public void TransferMasterClient(Player newMasterClient)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                Debug.Log($"[PhotonManager] 권한 이전 시도: {newMasterClient.NickName}");
+                PhotonNetwork.SetMasterClient(newMasterClient);
+            }
+            else
+            {
+                Debug.LogWarning("[PhotonManager] 마스터 클라이언트만 권한을 이전할 수 있습니다.");
+            }
+        }
+
+        // 특정 플레이어에게 권한 이전 (ActorNumber로)
+        public void TransferMasterClient(int actorNumber)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                Player targetPlayer = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+                if (targetPlayer != null)
+                {
+                    Debug.Log($"[PhotonManager] 권한 이전 시도: {targetPlayer.NickName} (ActorNumber: {actorNumber})");
+                    PhotonNetwork.SetMasterClient(targetPlayer);
+                }
+                else
+                {
+                    Debug.LogError($"[PhotonManager] ActorNumber {actorNumber}에 해당하는 플레이어를 찾을 수 없습니다.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[PhotonManager] 마스터 클라이언트만 권한을 이전할 수 있습니다.");
+            }
         }
     }
 }

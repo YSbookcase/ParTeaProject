@@ -35,7 +35,7 @@ namespace PJW
         {
             // 룸 입장
             PhotonNetwork.JoinOrCreateRoom(
-                "LobbyTest",
+                "PJWTestRoom",
                 new RoomOptions { MaxPlayers = 4 },
                 TypedLobby.Default
             );
@@ -62,7 +62,7 @@ namespace PJW
         private void OnClickStart()
         {
             if (!PhotonNetwork.IsMasterClient) return;
-            PhotonNetwork.LoadLevel("PJW");
+            PhotonNetwork.LoadLevel("RopeGame");
         }
 
         private void UpdatePlayerList()

@@ -3,9 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using JTW_JumpGame;
 
 public class JumpPlayerController : MonoBehaviourPun
 {
+    [SerializeField] private GameObject nicknamePanel;
     [SerializeField] private float jumpPower = 7f;
     private Rigidbody rigid;
 
@@ -14,6 +16,13 @@ public class JumpPlayerController : MonoBehaviourPun
     private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
+
+        GameObject gameCanvas = GameObject.Find("JumpGameUI");
+
+        GameObject nicknamePanelObj = Instantiate(nicknamePanel, gameCanvas.transform);
+
+        NicknamePanel panel = nicknamePanelObj.GetComponent<NicknamePanel>();
+        panel.SetInfo(photonView.Owner.NickName, transform);
     }
 
     public void OnJump(InputValue value)
