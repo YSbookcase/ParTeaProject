@@ -28,11 +28,15 @@ namespace KYS
 
         private void Start()
         {
-            startButton.onClick.AddListener(GameStart);
-            leaveButton.onClick.AddListener(LeaveRoom);
-            mapLeftButton.onClick.AddListener(ClickLeftMapButton);
-            mapRightButton.onClick.AddListener(ClickRightMapButton);
-
+            // null 체크 추가
+            if (startButton != null)
+                startButton.onClick.AddListener(GameStart);
+            if (leaveButton != null)
+                leaveButton.onClick.AddListener(LeaveRoom);
+            if (mapLeftButton != null)
+                mapLeftButton.onClick.AddListener(ClickLeftMapButton);
+            if (mapRightButton != null)
+                mapRightButton.onClick.AddListener(ClickRightMapButton);
         }
 
         //public void LateUpdate()
@@ -52,10 +56,16 @@ namespace KYS
         {
             if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
             {
-                startButton.interactable = true;
-                mapLeftButton.interactable = true;
-                mapRightButton.interactable = true;
+                if (startButton != null) startButton.interactable = true;
+                if (mapLeftButton != null) mapLeftButton.interactable = true;
+                if (mapRightButton != null) mapRightButton.interactable = true;
                 panel.Init(player);
+                return;
+            }
+
+            if (playerPanelItemPrefabs == null || playerPanelContent == null)
+            {
+                Debug.LogError("[RoomManager] playerPanelItemPrefabs 또는 playerPanelContent가 null입니다.");
                 return;
             }
 
@@ -64,8 +74,6 @@ namespace KYS
             PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
             item.Init(player);
             playerPanels.Add(player.ActorNumber, item);
-
-
         }
 
         public void GameStart()
@@ -93,11 +101,16 @@ namespace KYS
 
             if (!PhotonNetwork.IsMasterClient)
             {
-                startButton.interactable = false;
-                mapLeftButton.interactable = false;
-                mapRightButton.interactable = false;
+                if (startButton != null) startButton.interactable = false;
+                if (mapLeftButton != null) mapLeftButton.interactable = false;
+                if (mapRightButton != null) mapRightButton.interactable = false;
                 MapChange();
+            }
 
+            if (playerPanelItemPrefabs == null || playerPanelContent == null)
+            {
+                Debug.LogError("[RoomManager] playerPanelItemPrefabs 또는 playerPanelContent가 null입니다.");
+                return;
             }
 
             foreach (Player player in PhotonNetwork.PlayerList)
@@ -108,8 +121,6 @@ namespace KYS
                 item.Init(player);
                 playerPanels.Add(player.ActorNumber, item);
             }
-
-
         }
 
         public void PlayerPanelDestory(Player player)
@@ -127,12 +138,17 @@ namespace KYS
 
         public void LeaveRoom()
         {
-            foreach (Player player in PhotonNetwork.PlayerList)
+            if (playerPanels != null)
             {
-                Destroy(playerPanels[player.ActorNumber].gameObject);
+                foreach (Player player in PhotonNetwork.PlayerList)
+                {
+                    if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel) && panel != null)
+                    {
+                        Destroy(panel.gameObject);
+                    }
+                }
+                playerPanels.Clear();
             }
-
-            playerPanels.Clear();
 
             PhotonNetwork.LeaveRoom();
         }
@@ -174,9 +190,16 @@ namespace KYS
 
         public void MapChange()
         {
-            mapIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["Map"];
-            Debug.Log(mapIndex);
-            mapImage.sprite = mapSprites[mapIndex];
+            if (PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("Map"))
+            {
+                mapIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["Map"];
+                Debug.Log(mapIndex);
+                
+                if (mapImage != null && mapSprites != null && mapIndex >= 0 && mapIndex < mapSprites.Length)
+                {
+                    mapImage.sprite = mapSprites[mapIndex];
+                }
+            }
         }
 
     }

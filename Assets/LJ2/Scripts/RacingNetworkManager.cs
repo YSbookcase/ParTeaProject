@@ -37,7 +37,7 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
 
     private void PlayerSpawn()
     {
-        Vector3 spawnPos = new Vector3(Random.Range(-2, 2), 6, 0);
+        Vector3 spawnPos = new Vector3(Random.Range(-2, 2), 1, 0);
         PhotonNetwork.Instantiate("RacingPlayer", spawnPos, Quaternion.identity);
     }
     public override void OnPlayerEnteredRoom(Player player)

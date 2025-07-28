@@ -1,5 +1,7 @@
-using Photon.Pun;
+// Assets/PJW/Scripts/Player/PlayerSpawner.cs
 using UnityEngine;
+using Photon.Pun;
+using UnityEngine.SceneManagement;
 
 namespace PJW
 {
@@ -8,19 +10,39 @@ namespace PJW
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private Transform[] spawnPoints;
 
-        [PunRPC]
-        private void RopeGameSpawnPlayer(int actorNumber)
-        {
-            if (PhotonNetwork.LocalPlayer.ActorNumber != actorNumber) return;
+        private bool hasSpawned = false;
 
-            int index = actorNumber - 1;
-            Vector3 spawnPos = spawnPoints[index].position;
-            PhotonNetwork.Instantiate(playerPrefab.name, spawnPos, Quaternion.identity);
+        private new void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
-        public override void OnJoinedRoom()
+        private new void OnDisable()
         {
-            photonView.RPC(nameof(RopeGameSpawnPlayer), RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            // PJW 씬이 로드됐고, 아직 스폰되지 않았다면
+            if (scene.name == "PJW" && PhotonNetwork.InRoom && !hasSpawned)
+            {
+                SpawnMyPlayer();
+                hasSpawned = true;  // 중복 스폰 방지
+            }
+        }
+
+        private void SpawnMyPlayer()
+        {
+            // ActorNumber 에 따라 스폰 포인트 선택
+            int idx = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+            idx = Mathf.Clamp(idx, 0, spawnPoints.Length - 1);
+
+            PhotonNetwork.Instantiate(
+                playerPrefab.name,
+                spawnPoints[idx].position,
+                spawnPoints[idx].rotation
+            );
         }
     }
 }

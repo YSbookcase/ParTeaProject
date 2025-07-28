@@ -36,7 +36,6 @@ namespace PJW
             countdownText.gameObject.SetActive(false);
 
             Time.timeScale = 1f;
-            Debug.Log("게임 시작!");
         }
     }
 }

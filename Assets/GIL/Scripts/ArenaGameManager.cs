@@ -9,8 +9,8 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
     public static ArenaGameManager Instance;
 
     private List<Player> alivePlayers = new List<Player>();
-    private List<Player> rankList = new List<Player>();
-
+    private int currentRank;
+    
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -25,6 +25,8 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
             {
                 alivePlayers.Add(kvp.Value);
             }
+            
+            currentRank = alivePlayers.Count;
         }
     }
 
@@ -36,40 +38,52 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
         Debug.Log("플레이어 사망!");
         if (!PhotonNetwork.IsMasterClient) return;
 
+        if (player == null)
+        {
+            Debug.LogError("PlayerDied: 전달된 player가 null임!");
+            return;
+        }
+
+        Debug.Log($"PlayerDied: 대상 플레이어 ActorNumber = {player.ActorNumber}, NickName = {player.NickName}");
+
         if (alivePlayers.Contains(player))
         {
             alivePlayers.Remove(player);
-            rankList.Insert(0, player);
 
-            Debug.Log($"{player.NickName} 탈락! 남은 인원: {alivePlayers.Count}");
+            Debug.Log("alivePlayers에서 제거 완료");
+
+            try
+            {
+                player.SetRank(currentRank);
+                Debug.Log($"{player.NickName} 탈락! {currentRank}위 배정");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"SetRank 호출 중 오류: {ex}");
+            }
+
+            currentRank--;
 
             if (alivePlayers.Count <= 1)
             {
-                if (alivePlayers.Count == 1)
-                    rankList.Insert(0, alivePlayers[0]);
-
-                photonView.RPC(nameof(ArenaEndGame), RpcTarget.All, GetNickNameArray());
+                if (alivePlayers.Count == 1) alivePlayers[0].SetRank(1);
+                photonView.RPC(nameof(ArenaEndGame), RpcTarget.All);
             }
         }
-    }
-
-    private string[] GetNickNameArray()
-    {
-        string[] names = new string[rankList.Count];
-        for (int i = 0; i < rankList.Count; i++)
+        else
         {
-            names[i] = rankList[i].NickName;
+            Debug.LogWarning($"alivePlayers 리스트에 없는 플레이어: {player.NickName}");
         }
-        return names;
     }
 
     [PunRPC]
-    private void ArenaEndGame(string[] nicknames)
+    private void ArenaEndGame()
     {
         Debug.Log("게임 종료! 최종 순위:");
-        for (int i = 0; i < nicknames.Length; i++)
+        foreach (var p in PhotonNetwork.PlayerList)
         {
-            Debug.Log($"{i + 1}위: {nicknames[i]}");
+            int rank = p.GetRank();
+            Debug.Log($"{rank}위: {p.NickName}");
         }
 
         SceneManager.LoadScene("Score");
