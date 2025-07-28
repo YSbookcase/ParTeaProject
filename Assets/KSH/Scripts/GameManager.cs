@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using System;
+using Photon.Pun;
+using Photon.Realtime;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KSH
 {
@@ -17,6 +20,8 @@ namespace KSH
         public static GameManager Instance;
         public event Action OnGameStart;
         public event Action OnGameEnd;
+        
+        private Player player;
 
         private void Awake()
         {
@@ -53,9 +58,68 @@ namespace KSH
                 else
                 {
                     timer = 0;
-                    isGameStart = false;
-                    OnGameEnd?.Invoke();
+                    EndGame();
                 }
+            }
+        }
+
+        private void EndGame()
+        {
+            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
+            {
+                if (pc.photonView != null && pc.photonView.ViewID != 0)
+                {
+                    pc.photonView.RPC("RPC_DontMove", RpcTarget.All);
+                }
+            }
+            isGameStart = false;
+            OnGameEnd?.Invoke();
+            PlayerRank();
+            StartCoroutine(ScoreDelay(5f));
+        }
+
+        private IEnumerator ScoreDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.LoadLevel("Score");
+            }
+        }
+
+        private void PlayerRank()
+        {
+            if (!PhotonNetwork.IsMasterClient)
+                return;
+            
+            int redTeam = TileManager.Instance.redTileCount;
+            int blueTeam = TileManager.Instance.blueTileCount;
+
+            int redRank = 0;
+            int blueRank = 0;
+
+            if (redTeam > blueTeam)
+            {
+                redRank = 1;
+                blueRank = 2;
+            }
+            else if (blueTeam > redTeam)
+            {
+                blueRank = 1;
+                redRank = 2;
+            }
+            else
+            {
+                blueRank = 3;
+                redRank = 3;
+            }
+            
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+              int team = (int)player.CustomProperties["Team"];
+              int totalRank = (team == 0) ? redRank : blueRank;
+              int rank = player.GetRank();
+              player.SetRank(totalRank);
             }
         }
     }
