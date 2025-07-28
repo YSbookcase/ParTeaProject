@@ -2,6 +2,7 @@ using KYS;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public static class Manager
 {
@@ -15,7 +16,10 @@ public static class Manager
     {
         GameManager.CreateInstance();
         KYS.UIManager.CreateInstance();
-        PhotonManager.CreateInstance();
+        if (SceneManager.GetActiveScene().name == "NetworkScene")
+        {
+            PhotonManager.CreateInstance();
+        }
         FirebaseManager.CreateInstance();
     }
 }
