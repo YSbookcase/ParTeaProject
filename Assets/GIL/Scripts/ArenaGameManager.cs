@@ -21,6 +21,7 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
+            alivePlayers.Clear();
             foreach (var kvp in PhotonNetwork.CurrentRoom.Players)
             {
                 alivePlayers.Add(kvp.Value);
@@ -32,47 +33,48 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
     /// <summary>
     /// 플레이어가 죽을 때 호출되는 함수
     /// </summary>
-    public void PlayerDied(Player player)
+    [PunRPC]
+    public void ArenaPlayerDied(int actorNumber)
     {
-        Debug.Log("플레이어 사망!");
         if (!PhotonNetwork.IsMasterClient) return;
 
-        if (player == null)
+        Player deadPlayer = GetPlayerByActorNumber(actorNumber);
+        if (deadPlayer == null)
         {
-            Debug.LogError("PlayerDied: 전달된 player가 null임!");
+            Debug.LogWarning($"[ArenaPlayerDied] ActorNumber {actorNumber}에 해당하는 Player를 찾을 수 없음");
             return;
         }
 
-        Debug.Log($"PlayerDied: 대상 플레이어 ActorNumber = {player.ActorNumber}, NickName = {player.NickName}");
-
-        if (alivePlayers.Contains(player))
+        if (alivePlayers.Contains(deadPlayer))
         {
-            alivePlayers.Remove(player);
+            alivePlayers.Remove(deadPlayer);
 
-            Debug.Log("alivePlayers에서 제거 완료");
-
-            try
-            {
-                player.SetRank(currentRank);
-                Debug.Log($"{player.NickName} 탈락! {currentRank}위 배정");
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"SetRank 호출 중 오류: {ex}");
-            }
+            // 랭크 설정
+            deadPlayer.SetRank(currentRank);
+            Debug.Log($"{deadPlayer.NickName} 탈락! {currentRank}위");
 
             currentRank--;
 
+            // 게임 종료 조건 확인
             if (alivePlayers.Count <= 1)
             {
-                if (alivePlayers.Count == 1) alivePlayers[0].SetRank(1);
+                if (alivePlayers.Count == 1)
+                {
+                    alivePlayers[0].SetRank(1);
+                }
+
                 photonView.RPC(nameof(ArenaEndGame), RpcTarget.All);
             }
         }
-        else
+    }
+
+    private Player GetPlayerByActorNumber(int actorNumber)
+    {
+        foreach (var p in PhotonNetwork.PlayerList)
         {
-            Debug.LogWarning($"alivePlayers 리스트에 없는 플레이어: {player.NickName}");
+            if (p.ActorNumber == actorNumber) return p;
         }
+        return null;
     }
 
     [PunRPC]
