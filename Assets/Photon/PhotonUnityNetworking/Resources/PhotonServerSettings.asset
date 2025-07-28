@@ -33,23 +33,7 @@ MonoBehaviour:
   EnableSupportLogger: 0
   RunInBackground: 1
   StartInOfflineMode: 0
-  RpcList:
-  - ArenaEndGame
-  - ArenaStartShrink
-  - ClickRpc
-  - DeleteJumpGamePlayer
-  - DestroyRpc
-  - DestroySpaceship
-  - Fire
-  - JumpGame_Jump
-  - JumpGamePlayerOut
-  - JumpGameStart
-  - PunRPC_CountTile
-  - RacingCrash
-  - RespawnSpaceship
-  - RopeGameSpawnPlayer
-  - SendMessage
-  - SetColor
+  RpcList: []
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
