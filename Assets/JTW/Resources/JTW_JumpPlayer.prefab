@@ -50,6 +50,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af6ce3eafe0a9c14193ae9888285dadd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  nicknamePanel: {fileID: 4283974777373364330, guid: 378468f5e3f66d14f80c84c147f0b523,
+    type: 3}
   jumpPower: 7
 --- !u!114 &2887499827973074501
 MonoBehaviour:
