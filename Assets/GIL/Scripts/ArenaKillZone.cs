@@ -22,19 +22,17 @@ public class ArenaKillZone : MonoBehaviour
             rb.AddTorque(Random.insideUnitSphere.normalized, ForceMode.Impulse);
         }
 
-        if (PhotonNetwork.IsMasterClient)
-        {
-            PhotonView view = other.gameObject.GetComponent<PhotonView>();
-            if (view != null && view.Owner != null)
-            {
-                ArenaGameManager.Instance?.PlayerDied(view.Owner);
-            }
-            else
-            {
-                Debug.LogWarning("PhotonView 또는 Owner가 없음 → PlayerDied 호출 안 함");
-            }
-        }
+        PhotonView view = other.gameObject.GetComponent<PhotonView>();
+        if (view == null) return;
 
-        Destroy(other.gameObject, 2f);
+        if (view.IsMine)
+        {
+            // 네트워크 전체에서 플레이어 오브젝트 삭제
+            PhotonNetwork.Destroy(view.gameObject);
+
+            // 마스터에게 사망 정보 전달
+            PhotonView managerView = ArenaGameManager.Instance.photonView;
+            managerView.RPC(nameof(ArenaGameManager.ArenaPlayerDied), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
+        }
     }
 }
