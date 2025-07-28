@@ -1,4 +1,5 @@
-﻿using Photon.Pun;
+﻿using KYS;
+using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,8 +46,8 @@ public class GameManager : Singleton<GameManager>
         PhotonNetwork.CurrentRoom.IsOpen = true;
         PhotonNetwork.CurrentRoom.IsVisible = true;
 
-        // TODO : Room 씬으로 돌아간다.
-        PhotonNetwork.LoadLevel("JTW_RoomTest");
+        UIManager.Instance.ShowPopUp<RoomPopUp>();
+        PhotonNetwork.LoadLevel("NetworkScene");
     }
 
     public void GoScoerScene()
