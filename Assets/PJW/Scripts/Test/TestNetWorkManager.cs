@@ -26,7 +26,6 @@ namespace PJW
             Debug.Log("Joined Room");
             PhotonNetwork.LocalPlayer.NickName = $"Player_{PhotonNetwork.LocalPlayer.ActorNumber}";
 
-            // 스폰은 PlayerSpawner 쪽에서 PunRPC로 처리
             var ropeManager = FindObjectOfType<RopeGameManager>();
             if (ropeManager != null)
                 ropeManager.BeginCountdown();

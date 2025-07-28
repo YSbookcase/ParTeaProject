@@ -35,7 +35,7 @@ namespace PJW
         {
             // 룸 입장
             PhotonNetwork.JoinOrCreateRoom(
-                "LobbyTest",
+                "PJWTestRoom",
                 new RoomOptions { MaxPlayers = 4 },
                 TypedLobby.Default
             );

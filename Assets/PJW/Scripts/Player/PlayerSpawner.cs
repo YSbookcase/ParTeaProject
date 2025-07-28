@@ -24,7 +24,7 @@ namespace PJW
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            // PJW 씬이 로드됐고, 아직 스폰되지 않았다면
+            // RopeGame 씬이 로드됐고, 아직 스폰되지 않았다면
             if (scene.name == "RopeGame" && PhotonNetwork.InRoom && !hasSpawned)
             {
                 SpawnMyPlayer();

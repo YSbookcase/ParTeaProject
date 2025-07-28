@@ -91,11 +91,11 @@ namespace PJW
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse);
 
             // 마스터 클라이언트에게 사망 통지
-            photonView.RPC(nameof(RPC_NotifyDeath), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
+            photonView.RPC(nameof(RPCNotifyDeath), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
         }
 
         [PunRPC]
-        private void RPC_NotifyDeath(int actorNumber, PhotonMessageInfo info)
+        private void RPCNotifyDeath(int actorNumber, PhotonMessageInfo info)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 
@@ -103,7 +103,7 @@ namespace PJW
             if (manager != null)
             {
                 Player targetPlayer = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-                manager.OnPlayerDied_RPC(targetPlayer);
+                manager.OnPlayerDied(targetPlayer);
             }
         }
     }

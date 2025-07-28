@@ -9,7 +9,6 @@ namespace PJW
     public class RopeGameManager : MonoBehaviour
     {
         [SerializeField] private Text countdownText;
-        [SerializeField] private GameObject gameOverPanel;
         [SerializeField] private RankCalculator rankCalculator;
 
         private int totalPlayers;
@@ -49,7 +48,8 @@ namespace PJW
             Time.timeScale = 1f;
         }
 
-        public void OnPlayerDied_RPC(Player playerWhoDied)
+        // 점수는 임시로 만듦
+        public void OnPlayerDied(Player playerWhoDied)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 
@@ -66,7 +66,6 @@ namespace PJW
             }
 
             playerWhoDied.SetTotalGameScore(score);
-            Debug.Log($"{playerWhoDied.NickName}가 {deathCount}번째로 죽었고, {score}점을 받음");
 
             deadPlayers++;
 
@@ -78,14 +77,14 @@ namespace PJW
 
         private void EndGame()
         {
-            Debug.Log("게임 종료");
-
             if (PhotonNetwork.IsMasterClient && rankCalculator != null)
             {
                 rankCalculator.CalculateRanks();
             }
 
-            gameOverPanel?.SetActive(true);
+            RopeUIManager.Instance?.ShowDeathPanel();
+            // PhotonView photonView = PhotonView.Get(RopeUIManager.Instance);
+            // photonView.RPC("RPC_ShowDeathPanel", RpcTarget.All);
         }
     }
 }
