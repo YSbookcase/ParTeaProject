@@ -1,14 +1,15 @@
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
+public class SingtonPunCallback<T> : MonoBehaviourPunCallbacks where T : MonoBehaviourPunCallbacks
 {
     private static T instance;
     public static T Instance => instance;
     public static void CreateInstance()
     {
-        if(instance == null)
+        if (instance == null)
         {
             T prefab = Resources.Load<T>(typeof(T).Name);
             instance = Instantiate(prefab);
@@ -18,7 +19,7 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 
     public static void ReleaseInstance()
     {
-        if(instance != null)
+        if (instance != null)
         {
             Destroy(instance.gameObject);
             instance = null;

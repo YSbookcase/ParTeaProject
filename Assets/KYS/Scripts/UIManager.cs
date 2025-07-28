@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections; // 추가 필요
 using UnityEngine;
 using System.Reflection;
+using UnityEngine.SceneManagement;
 
 namespace KYS
 {
@@ -104,9 +105,9 @@ namespace KYS
         public static bool canClosePopUp = true;
         bool canClose => PopUpUI.IsPopUpActive && !Util.escPressed && canClosePopUp && !IsCurrentPopUpNonClosable();
 
-        protected override void Awake()
+        private void Awake()
         {
-            base.Awake();
+      
             
             // 초기화 플래그 설정
             isInitialized = true;
@@ -115,7 +116,7 @@ namespace KYS
         private void Start()
         {
             // Start에서 첫 화면 설정 (더 안전)
-            if (isInitialized)
+            if (isInitialized && SceneManager.GetActiveScene().name =="NetworkScene")
             {
                 ShowFirstScreen();
             }

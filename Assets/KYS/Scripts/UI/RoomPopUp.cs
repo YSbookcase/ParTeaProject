@@ -253,9 +253,9 @@ namespace KYS
                 PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
                 
                 // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
-                if (JTW.Manager.game != null)
+                if (Manager.game != null)
                 {
-                    JTW.Manager.game.GameStart(sceneName);
+                    Manager.game.GameStart(sceneName);
                     Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
                 }
                 else

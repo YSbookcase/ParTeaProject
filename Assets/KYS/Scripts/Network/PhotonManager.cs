@@ -9,7 +9,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KYS
 {
-    public class PhotonManager : MonoBehaviourPunCallbacks
+    public class PhotonManager : SingtonPunCallback<PhotonManager>
     {
         // ΩÃ±€≈Ê ¿ŒΩ∫≈œΩ∫
         public static PhotonManager Instance { get; private set; }
