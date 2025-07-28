@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using System;
+using Photon.Pun;
+using Photon.Realtime;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KSH
 {
@@ -53,9 +56,49 @@ namespace KSH
                 else
                 {
                     timer = 0;
-                    isGameStart = false;
-                    OnGameEnd?.Invoke();
+                    EndGame();
                 }
+            }
+        }
+
+        private void EndGame()
+        {
+            isGameStart = false;
+            OnGameEnd?.Invoke();
+            PlayerRank();
+            StartCoroutine(ScoreDelay(5f));
+        }
+
+        private IEnumerator ScoreDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.LoadLevel("Score");
+            }
+        }
+
+        private void PlayerRank()
+        {
+            int redTeam = TileManager.Instance.redTileCount;
+            int blueTeam = TileManager.Instance.blueTileCount;
+
+            int redScore = 0;
+            int blueScore = 0;
+
+            if (redTeam > blueTeam)
+            {
+                redScore = 5;
+                blueScore = 3;
+            }
+            else if (blueTeam > redTeam)
+            {
+                blueScore = 5;
+                redScore = 3;
+            }
+            else
+            {
+                redScore = blueScore = 4;
             }
         }
     }
