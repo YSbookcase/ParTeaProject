@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 2028662890537002284}
   - component: {fileID: 5067074703783935331}
   - component: {fileID: 2303853006412216332}
+  - component: {fileID: -840238200679180440}
   m_Layer: 0
   m_Name: GIL_ArenaPlayer
   m_TagString: Untagged
@@ -191,3 +192,16 @@ MonoBehaviour:
   m_SynchronizeRotation: 1
   m_SynchronizeScale: 0
   m_UseLocal: 1
+--- !u!114 &-840238200679180440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5539457231747955550}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f46d26b63077ca140a7e82af99203fbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerRenderer: {fileID: 6039932358877272497}
