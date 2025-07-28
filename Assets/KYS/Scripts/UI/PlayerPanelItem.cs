@@ -16,7 +16,7 @@ namespace KYS
         private TextMeshProUGUI nicknameText => GetUI<TextMeshProUGUI>("NicknameText");
         private TextMeshProUGUI readyText => GetUI<TextMeshProUGUI>("ReadyText");
         private Image hostImage => GetUI<Image>("HostImage");
-        private Image readyButtonImage => GetUI<Image>("ReadyButtonImage");
+        private Image readyButtonImage => GetUI<Image>("ReadyButton");
         private Button readyButton => GetUI<Button>("ReadyButton");
 
         private bool isReady;
@@ -49,7 +49,7 @@ namespace KYS
             isReady = !isReady;
 
             readyText.text = isReady ? "Ready" : "Click Ready";
-            readyButtonImage.color = isReady ? Color.green : Color.grey;
+            readyButtonImage.color = isReady ? Color.green : Color.white;
             ReadyPropertyUpdate();
         }
 
@@ -65,7 +65,7 @@ namespace KYS
             if (player.CustomProperties.TryGetValue("Ready", out object value))
             {
                 readyText.text = (bool)value ? "Ready" : "Click Ready";
-                readyButtonImage.color = (bool)value ? Color.green : Color.gray;
+                readyButtonImage.color = (bool)value ? Color.green : Color.white;
             }
         }
     }
