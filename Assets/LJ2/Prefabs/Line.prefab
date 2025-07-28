@@ -101,7 +101,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
@@ -116,6 +116,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4756196096658616635}
   - component: {fileID: 1002988345759841497}
+  - component: {fileID: 430951019725060469}
   m_Layer: 0
   m_Name: Line
   m_TagString: Untagged
@@ -161,6 +162,31 @@ MonoBehaviour:
   - {fileID: 8916209276675610728}
   - {fileID: 6994665816090461719}
   - {fileID: 2841503572427530507}
+  pathPosition: 0
+  bottomLine: {fileID: 1488663710723235820}
+  goalQuad: {fileID: 5899753518693887294}
+  isGoal: 0
+--- !u!65 &430951019725060469
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2045186912301944157}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 200, y: 30, z: 1}
+  m_Center: {x: 0, y: 15, z: 0}
 --- !u!1 &2909847775836659392
 GameObject:
   m_ObjectHideFlags: 0
