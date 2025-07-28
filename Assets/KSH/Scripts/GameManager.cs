@@ -20,6 +20,8 @@ namespace KSH
         public static GameManager Instance;
         public event Action OnGameStart;
         public event Action OnGameEnd;
+        
+        private Player player;
 
         private void Awake()
         {
@@ -80,25 +82,37 @@ namespace KSH
 
         private void PlayerRank()
         {
+            if (!PhotonNetwork.IsMasterClient)
+                return;
+            
             int redTeam = TileManager.Instance.redTileCount;
             int blueTeam = TileManager.Instance.blueTileCount;
 
-            int redScore = 0;
-            int blueScore = 0;
+            int redRank = 0;
+            int blueRank = 0;
 
             if (redTeam > blueTeam)
             {
-                redScore = 5;
-                blueScore = 3;
+                redRank = 1;
+                blueRank = 2;
             }
             else if (blueTeam > redTeam)
             {
-                blueScore = 5;
-                redScore = 3;
+                blueRank = 1;
+                redRank = 2;
             }
             else
             {
-                redScore = blueScore = 4;
+                blueRank = 3;
+                redRank = 3;
+            }
+            
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+              int team = (int)player.CustomProperties["Team"];
+              int totalRank = (team == 0) ? redRank : blueRank;
+              int rank = player.GetRank();
+              player.SetRank(totalRank);
             }
         }
     }
