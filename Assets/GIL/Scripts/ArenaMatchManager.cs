@@ -42,12 +42,18 @@ public class ArenaMatchManager : MonoBehaviourPunCallbacks
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
-        Debug.Log($"{newPlayer.NickName}");
+        Debug.Log($"{newPlayer.NickName} 입장");
     }
 
     private void GameStart()
     {
-        Debug.Log("Button 눌림");
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log("방장이 아니므로 게임을 시작할 수 없습니다.");
+            return;
+        }
+        
+        Debug.Log("방장이 게임을 시작합니다.");
         Manager.game.GameStart("ArenaScene");
     }
 }
