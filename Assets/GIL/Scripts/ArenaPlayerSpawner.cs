@@ -1,9 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
-
+using ExitGames.Client.Photon;
 public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
 {
     [SerializeField] private GameObject playerPrefab;
@@ -16,14 +15,30 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
     [SerializeField] private Color circleColor = Color.cyan;
     [SerializeField] private Color centerLineColor = Color.red;
 
-    
+    private Color[] colors = {
+        Color.red,
+        Color.blue,
+        Color.green,
+        Color.yellow
+    };
     private int _playerCount;
     
     private void Start()
     {
+        SetPlayerColor();
+        
         SpawnPlayer();
     }
+    
+    private void SetPlayerColor()
+    {
+        int index = PhotonNetwork.PlayerList.Length - 1;
+        index %= colors.Length;
 
+        Hashtable props = new Hashtable();
+        props["Color"] = index;
+        PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+    }
     private void SpawnPlayer()
     {
         _playerCount = PhotonNetwork.PlayerList.Length;
@@ -38,21 +53,8 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
             center.y,
             center.z + Mathf.Sin(rad) * spawnRadius
         );
-
-        PhotonNetwork.Instantiate(playerPrefab.name, spawnPos, Quaternion.identity);
-    }
-
-    private int GetPlayerIndex()
-    {
-        var players = PhotonNetwork.CurrentRoom.Players;
-        int index = 0;
-        foreach (var kvp in players)
-        {
-            if (kvp.Value == PhotonNetwork.LocalPlayer)
-                return index;
-            index++;
-        }
-        return 0; // fallback
+        
+        GameObject playerObj = PhotonNetwork.Instantiate(playerPrefab.name, spawnPos, Quaternion.identity);
     }
     
     private void OnDrawGizmos()

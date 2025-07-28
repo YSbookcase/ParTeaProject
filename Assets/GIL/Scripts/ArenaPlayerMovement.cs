@@ -12,7 +12,6 @@ namespace GIL.Scripts
         
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
-        private Camera _mainCamera;
         
         private PhotonView _photonView;
 
@@ -23,15 +22,19 @@ namespace GIL.Scripts
         private Quaternion _networkRotation;
         private Vector3 _networkVelocity;
         
+        private float _lastReceivedTime;
+        
         private void Awake()
         {
             _inputActions = new ArenaPlayerActions();
             _rigidbody = GetComponent<Rigidbody>();
-            _mainCamera = Camera.main;
             _photonView = GetComponent<PhotonView>();
             
             _networkPosition = transform.position;
             _networkRotation = transform.rotation;
+            
+            PhotonNetwork.SendRate = 30;
+            PhotonNetwork.SerializationRate = 30;
         }
 
         private void OnEnable()
@@ -52,60 +55,43 @@ namespace GIL.Scripts
             }
             else
             {
+                float lerpFactor = Mathf.Clamp01((Time.time - _lastReceivedTime) * PhotonNetwork.SerializationRate);
                 // 다른 플레이어는 부드럽게 보간
-                transform.position = Vector3.Lerp(transform.position, _networkPosition, Time.fixedDeltaTime * 10f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, _networkRotation, Time.fixedDeltaTime * 10f);
+                transform.position = Vector3.Lerp(transform.position, _networkPosition, lerpFactor);
+                transform.rotation = Quaternion.Lerp(transform.rotation, _networkRotation, lerpFactor);
 
                 // 속도도 보간해서 더 자연스럽게
-                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, _networkVelocity, Time.fixedDeltaTime * 10f);
+                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, _networkVelocity, lerpFactor);
             }
         }
         
         private void HandleInput()
         {
-#if UNITY_EDITOR
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                _isTouching = true;
-                _startTouchPos = Mouse.current.position.ReadValue();
-            }
-            else if (Mouse.current.leftButton.wasReleasedThisFrame)
-            {
-                _isTouching = false;
-            }
+            Vector2 pointerPos = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
+            bool isPressed = _inputActions.Player.JoystickTouchPhase.IsPressed();
 
-            if (_isTouching)
-            {
-                Vector2 currentTouch = Mouse.current.position.ReadValue();
-#else
-            if (_inputActions.Player.JoystickTouchPhase.IsPressed())
+            if (isPressed)
             {
                 if (!_isTouching)
                 {
                     _isTouching = true;
-                    _startTouchPos = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
+                    _startTouchPos = pointerPos;
                 }
 
-                Vector2 currentTouch = _inputActions.Player.JoystickTouch.ReadValue<Vector2>();
-#endif
-                Vector2 delta = currentTouch - _startTouchPos;
+                Vector2 delta = pointerPos - _startTouchPos;
 
                 if (delta.magnitude > 20f)
                 {
                     Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
 
                     if (_rigidbody.velocity.magnitude < maxSpeed)
-                    {
                         _rigidbody.AddForce(dir * movePower, ForceMode.Force);
-                    }
                 }
             }
-#if !UNITY_EDITOR
             else
             {
                 _isTouching = false;
             }
-#endif
             _rigidbody.velocity *= drag;
         }
 
@@ -124,6 +110,7 @@ namespace GIL.Scripts
                 _networkPosition = (Vector3)stream.ReceiveNext();
                 _networkRotation = (Quaternion)stream.ReceiveNext();
                 _networkVelocity = (Vector3)stream.ReceiveNext();
+                _lastReceivedTime = Time.time;
             }
         }
     }
