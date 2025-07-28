@@ -59,6 +59,29 @@ namespace KYS
         {
             return stack.Count;
         }
+
+        // 강제로 모든 팝업 정리 (씬 전환 시 사용)
+        public void ForceCleanAll()
+        {
+            Debug.Log($"[PopUpUI] 강제 정리 시작 - 현재 팝업 개수: {stack.Count}");
+            
+            while (stack.Count > 0)
+            {
+                BaseUI popup = stack.Pop();
+                if (popup != null && popup.gameObject != null)
+                {
+                    DestroyImmediate(popup.gameObject);
+                }
+            }
+            
+            IsPopUpActive = false;
+            if (blocker != null)
+            {
+                blocker.SetActive(false);
+            }
+            
+            Debug.Log("[PopUpUI] 강제 정리 완료");
+        }
     }
 
 

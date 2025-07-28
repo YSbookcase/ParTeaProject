@@ -7,7 +7,12 @@ using UnityEngine.EventSystems;
 
 public enum GameType
 {
-    Tetris, Snake, Quiz, Racing, Jump, Arena
+    Jump,       // 점프 게임
+    Arena,      // 아레나 게임
+    Tile,       // 타일 게임
+    Racing,     // 레이싱 게임
+    Rope,       // 로프 게임
+    Receive     // 받기 게임
 }
 
 namespace KYS
@@ -20,6 +25,12 @@ namespace KYS
         private TextMeshProUGUI gameText => GetUI<TextMeshProUGUI>("GameText");
 
         private string roomName;
+
+        // 게임 이름 매핑 (RoomPopUp과 동일)
+        private string[] gameNames = new string[]
+        {
+            "점프", "아레나", "타일", "레이싱", "로프", "받기"
+        };
 
         private new void Awake()
         {
@@ -55,15 +66,22 @@ namespace KYS
             roomNameText.text = $"Room Name : {roomName}";
             playerCountText.text = $"{info.PlayerCount} / {info.MaxPlayers}";
             
-            // 게임 정보 표시
+            // 게임 정보 표시 (RoomPopUp과 동일한 로직)
             if (info.CustomProperties.TryGetValue("SelectedGame", out object gameValue))
             {
                 int gameIndex = (int)gameValue;
-                gameText.text = $"Game : {(GameType)gameIndex}";
+                if (gameIndex >= 0 && gameIndex < gameNames.Length)
+                {
+                    gameText.text = $"Game : {gameNames[gameIndex]}";
+                }
+                else
+                {
+                    gameText.text = "Game : 점프"; // 기본값
+                }
             }
             else
             {
-                gameText.text = "Game : Tetris"; // 기본값
+                gameText.text = "Game : 점프"; // 기본값
             }
         }
 
