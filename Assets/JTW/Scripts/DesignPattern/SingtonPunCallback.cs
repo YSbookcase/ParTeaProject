@@ -6,6 +6,7 @@ using UnityEngine;
 public class SingtonPunCallback<T> : MonoBehaviourPunCallbacks where T : MonoBehaviourPunCallbacks
 {
     private static T instance;
+    public static T Instance => instance;
     public static void CreateInstance()
     {
         if (instance == null)
