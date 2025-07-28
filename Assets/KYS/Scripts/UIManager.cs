@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections; // 추가 필요
 using UnityEngine;
 using System.Reflection;
+using UnityEngine.SceneManagement;
 
 namespace KYS
 {
@@ -115,7 +116,7 @@ namespace KYS
         private void Start()
         {
             // Start에서 첫 화면 설정 (더 안전)
-            if (isInitialized)
+            if (isInitialized && SceneManager.GetActiveScene().name =="NetworkScene")
             {
                 ShowFirstScreen();
             }
