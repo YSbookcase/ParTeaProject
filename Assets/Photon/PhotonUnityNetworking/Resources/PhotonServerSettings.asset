@@ -52,6 +52,11 @@ MonoBehaviour:
   - RPCNotifyDeath
   - SendChatMessage
   - SetColor
+  - EndGameRPC
+  - SpawnItem
+  - StartGame
+  - UpdatePlayerScore
+  - UpdateTimeUI
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
