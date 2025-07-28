@@ -25,7 +25,6 @@ public class ArenaGameManager : MonoBehaviourPunCallbacks
             {
                 alivePlayers.Add(kvp.Value);
             }
-            
             currentRank = alivePlayers.Count;
         }
     }

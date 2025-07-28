@@ -22,6 +22,8 @@ namespace GIL.Scripts
         private Quaternion _networkRotation;
         private Vector3 _networkVelocity;
         
+        private float _lastReceivedTime;
+        
         private void Awake()
         {
             _inputActions = new ArenaPlayerActions();
@@ -30,6 +32,9 @@ namespace GIL.Scripts
             
             _networkPosition = transform.position;
             _networkRotation = transform.rotation;
+            
+            PhotonNetwork.SendRate = 30;
+            PhotonNetwork.SerializationRate = 30;
         }
 
         private void OnEnable()
@@ -50,12 +55,13 @@ namespace GIL.Scripts
             }
             else
             {
+                float lerpFactor = Mathf.Clamp01((Time.time - _lastReceivedTime) * PhotonNetwork.SerializationRate);
                 // 다른 플레이어는 부드럽게 보간
-                transform.position = Vector3.Lerp(transform.position, _networkPosition, Time.fixedDeltaTime * 10f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, _networkRotation, Time.fixedDeltaTime * 10f);
+                transform.position = Vector3.Lerp(transform.position, _networkPosition, lerpFactor);
+                transform.rotation = Quaternion.Lerp(transform.rotation, _networkRotation, lerpFactor);
 
                 // 속도도 보간해서 더 자연스럽게
-                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, _networkVelocity, Time.fixedDeltaTime * 10f);
+                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, _networkVelocity, lerpFactor);
             }
         }
         
@@ -104,6 +110,7 @@ namespace GIL.Scripts
                 _networkPosition = (Vector3)stream.ReceiveNext();
                 _networkRotation = (Quaternion)stream.ReceiveNext();
                 _networkVelocity = (Vector3)stream.ReceiveNext();
+                _lastReceivedTime = Time.time;
             }
         }
     }
