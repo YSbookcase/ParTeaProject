@@ -65,6 +65,13 @@ namespace KSH
 
         private void EndGame()
         {
+            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
+            {
+                if (pc.photonView != null && pc.photonView.ViewID != 0)
+                {
+                    pc.photonView.RPC("RPC_DontMove", RpcTarget.All);
+                }
+            }
             isGameStart = false;
             OnGameEnd?.Invoke();
             PlayerRank();

@@ -5161,6 +5161,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timer: 10
+  playerController: {fileID: 680588740117167672, guid: ef54cc219943b2f42ab0c78fc09df46d,
+    type: 3}
 --- !u!4 &1311501458
 Transform:
   m_ObjectHideFlags: 0

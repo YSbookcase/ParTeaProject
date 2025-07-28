@@ -20,11 +20,13 @@ namespace KSH
         public Color color;
         private Vector2 inputDir;
         private PlayerAction playerAction;
+        public bool isMove = true;
 
         private void Awake()
         {
             playerAction = new PlayerAction();
             rigid = GetComponent<Rigidbody>();
+            isMove = true;
         }
         
         private void OnEnable()
@@ -49,11 +51,21 @@ namespace KSH
 
         void FixedUpdate()
         {
-            if(photonView.IsMine)
+            if(photonView.IsMine && isMove)
                 Move();
         }
         
-
+        private void DontMove()
+        {
+            moveVec = Vector3.zero;
+            isMove = false;
+        }
+        [PunRPC]
+        public void RPC_DontMove()
+        {
+            DontMove();
+        }
+        
         public void Move()
         {
             moveVec = new Vector3(inputDir.x, 0, inputDir.y) * moveSpeed * Time.fixedDeltaTime; //초당 이동속도만큼 이동하는 벡터

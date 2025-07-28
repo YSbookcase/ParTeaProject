@@ -49,7 +49,7 @@ namespace KSH
             if (PhotonNetwork.IsMasterClient)
             {
                 TeamManager.Instance.SetTeam();
-                PhotonNetwork.LoadLevel("GameTest");
+                PhotonNetwork.LoadLevel("TileGame");
             }
         }
 
