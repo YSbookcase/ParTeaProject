@@ -17,86 +17,134 @@ namespace KYS
         private TMP_InputField passConfirmInput => GetUI<TMP_InputField>("PasswordCheckField");
 
         // 이메일 유효성 상태
-
-        private bool isEmailAvailable = false;
+        //private bool isEmailAvailable = false;
 
         private new void Awake()
         {
             base.Awake();
+            canCloseWithESC = false; // ESC로 닫을 수 없음
 
+            // 버튼 이벤트 등록
+            //GetEvent("CheckAvailabilityButton").Click += CheckEmailAvailability; // 이메일 중복 확인 버튼 비활성화
             GetEvent("SignUpButton").Click += SignUp;
             GetEvent("CancelButton").Click += Cancel;
-            GetEvent("CheckAvailabilityButton").Click += CheckEmailAvailability;
-        }
 
-        // 이메일 사용 가능성 확인
-        private void CheckEmailAvailability(PointerEventData eventData)
-        {
-            if (!ValidateEmailFormat(idInput.text))
+            // 이메일 입력 필드 변경 이벤트 등록
+            if (idInput != null)
             {
-                ShowErrorMessage("올바른 이메일 형식을 입력해주세요.");
-                return;
+                idInput.onValueChanged.AddListener(OnEmailChanged);
             }
-
-            string email = idInput.text;
-            Debug.Log($"이메일 중복 확인 시작: {email}");
-
-            // Firebase Auth를 사용하여 이메일 중복 확인
-            FirebaseManager.Auth.FetchProvidersForEmailAsync(email)
-                .ContinueWithOnMainThread(task =>
-                {
-                    Debug.Log($"[SignUpPopUp] Task 상태 확인 - IsCompleted: {task.IsCompleted}, IsCanceled: {task.IsCanceled}, IsFaulted: {task.IsFaulted}");
-
-                    if (task.IsCanceled)
-                    {
-                        Debug.LogError("이메일 중복 확인이 취소되었습니다.");
-                        ShowErrorMessage("이메일 중복 확인이 취소되었습니다.");
-                        return;
-                    }
-                    if (task.IsFaulted)
-                    {
-                        Debug.LogError($"이메일 중복 확인 실패: {task.Exception}");
-                        ShowErrorMessage("이메일 중복 확인에 실패했습니다.");
-                        return;
-                    }
-
-                    var providers = task.Result;
-                    Debug.Log($"[SignUpPopUp] Task.Result 타입: {providers?.GetType().Name ?? "null"}");
-                    Debug.Log($"[SignUpPopUp] Task.Result 값: {providers}");
-
-                    if (providers != null)
-                    {
-                        Debug.Log($"[SignUpPopUp] Providers 개수: {providers.Count()}");
-                        Debug.Log($"[SignUpPopUp] Providers 내용: [{string.Join(", ", providers)}]");
-
-                        // Email/Password로 가입한 경우 "password"가 포함됨
-                        bool hasPasswordProvider = providers.Any(p => p == "password");
-                        
-                        if (hasPasswordProvider)
-                        {
-                            // 이미 Email/Password로 등록된 이메일
-                            isEmailAvailable = false;
-                            Debug.Log($"이미 사용 중인 이메일 (Email/Password): {email}");
-                            ShowErrorMessage("이미 사용 중인 이메일입니다.");
-                        }
-                        else
-                        {
-                            // 다른 제공자로만 가입했거나 사용 가능한 이메일
-                            isEmailAvailable = true;
-                            Debug.Log($"사용 가능한 이메일: {email}");
-                            ShowSuccessMessage("사용 가능한 이메일입니다.");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[SignUpPopUp] Task.Result가 null입니다.");
-                        // null인 경우 사용 가능한 것으로 처리
-                        isEmailAvailable = true;
-                        Debug.Log($"사용 가능한 이메일 (null 결과): {email}");
-                        ShowSuccessMessage("사용 가능한 이메일입니다.");
-                    }
-                });
         }
+
+        // 이메일 입력 필드 변경 시 중복 확인 상태 초기화
+        private void OnEmailChanged(string newValue)
+        {
+            // 이메일이 변경되면 중복 확인 상태 초기화
+            //isEmailAvailable = false; // 더 이상 사용하지 않음
+        }
+
+        //// 이메일 사용 가능성 확인 (기능 제거)
+        //private void CheckEmailAvailability(PointerEventData eventData)
+        //{
+        //    if (!ValidateEmailFormat(idInput.text))
+        //    {
+        //        ShowErrorMessage("올바른 이메일 형식을 입력해주세요.");
+        //        return;
+        //    }
+
+        //    string email = idInput.text;
+        //    Debug.Log($"이메일 중복 확인 시작: {email}");
+
+        //    // Firebase Auth 상태 확인
+        //    if (FirebaseManager.Auth == null)
+        //    {
+        //        Debug.LogError("[SignUpPopUp] Firebase Auth가 null입니다. Firebase 초기화를 확인해주세요.");
+        //        ShowErrorMessage("Firebase 초기화 중입니다. 잠시 후 다시 시도해주세요.");
+        //        return;
+        //    }
+
+        //    Debug.Log($"[SignUpPopUp] Firebase Auth 상태: {FirebaseManager.Auth != null}");
+        //    Debug.Log($"[SignUpPopUp] Firebase App 상태: {FirebaseManager.App != null}");
+            
+        //    // Firebase 프로젝트 정보 출력
+        //    if (FirebaseManager.App != null)
+        //    {
+        //        Debug.Log($"[SignUpPopUp] Firebase 프로젝트 ID: {FirebaseManager.App.Options.ProjectId}");
+        //        Debug.Log($"[SignUpPopUp] Firebase 앱 이름: {FirebaseManager.App.Name}");
+        //        Debug.Log($"[SignUpPopUp] Firebase 앱 옵션: {FirebaseManager.App.Options}");
+        //    }
+
+        //    // Firebase Auth 설정 확인
+        //    Debug.Log($"[SignUpPopUp] Firebase Auth 설정 확인:");
+        //    Debug.Log($"[SignUpPopUp] - Auth.App: {FirebaseManager.Auth.App?.Name ?? "null"}");
+        //    Debug.Log($"[SignUpPopUp] - Auth.App.Options.ProjectId: {FirebaseManager.Auth.App?.Options.ProjectId ?? "null"}");
+
+        //    // Firebase Auth를 사용하여 이메일 중복 확인
+        //    Debug.Log($"[SignUpPopUp] FetchProvidersForEmailAsync 호출 시작: {email}");
+        //    FirebaseManager.Auth.FetchProvidersForEmailAsync(email)
+        //        .ContinueWithOnMainThread(task =>
+        //        {
+        //            Debug.Log($"[SignUpPopUp] Task 상태 확인 - IsCompleted: {task.IsCompleted}, IsCanceled: {task.IsCanceled}, IsFaulted: {task.IsFaulted}");
+
+        //            if (task.IsCanceled)
+        //            {
+        //                Debug.LogError("이메일 중복 확인이 취소되었습니다.");
+        //                ShowErrorMessage("이메일 중복 확인이 취소되었습니다.");
+        //                return;
+        //            }
+        //            if (task.IsFaulted)
+        //            {
+        //                Debug.LogError($"이메일 중복 확인 실패: {task.Exception}");
+        //                ShowErrorMessage("이메일 중복 확인에 실패했습니다.");
+        //                return;
+        //            }
+
+        //            var providers = task.Result;
+        //            Debug.Log($"[SignUpPopUp] Task.Result 타입: {providers?.GetType().Name ?? "null"}");
+        //            Debug.Log($"[SignUpPopUp] Task.Result 값: {providers}");
+                    
+        //            // 더 자세한 디버깅 추가
+        //            if (providers != null)
+        //            {
+        //                Debug.Log($"[SignUpPopUp] Providers가 null이 아님");
+        //                Debug.Log($"[SignUpPopUp] Providers.Count(): {providers.Count()}");
+                        
+        //                // 각 제공자를 개별적으로 출력
+        //                int index = 0;
+        //                foreach (var provider in providers)
+        //                {
+        //                    Debug.Log($"[SignUpPopUp] Provider[{index}]: '{provider}'");
+        //                    index++;
+        //                }
+                        
+        //                if (providers.Count() > 0)
+        //                {
+        //                    Debug.Log($"[SignUpPopUp] Providers 개수: {providers.Count()}");
+        //                    Debug.Log($"[SignUpPopUp] Providers 내용: [{string.Join(", ", providers)}]");
+
+        //                    // 어떤 제공자든 등록되어 있으면 사용 불가능
+        //                    isEmailAvailable = false;
+        //                    Debug.Log($"이미 사용 중인 이메일 (제공자: {string.Join(", ", providers)}): {email}");
+        //                    ShowErrorMessage("이미 사용 중인 이메일입니다.");
+        //                }
+        //                else
+        //                {
+        //                    // 등록된 제공자가 없으면 사용 가능
+        //                    isEmailAvailable = true;
+        //                    Debug.Log($"사용 가능한 이메일: {email}");
+        //                    ShowSuccessMessage("사용 가능한 이메일입니다.");
+        //                }
+        //            }
+        //            else
+        //            {
+        //                Debug.Log($"[SignUpPopUp] Providers가 null임");
+        //                // providers가 null이면 사용 가능
+        //                isEmailAvailable = true;
+        //                Debug.Log($"사용 가능한 이메일 (providers null): {email}");
+        //                ShowSuccessMessage("사용 가능한 이메일입니다.");
+        //            }
+        //        });
+        //}
 
         // 이메일 형식 검증
         private bool ValidateEmailFormat(string email)
@@ -152,19 +200,19 @@ namespace KYS
 
         private void SignUp(PointerEventData eventData)
         {
-            // 이메일 유효성 최종 검증
+            // 이메일 형식 검증
             if (!ValidateEmailFormat(idInput.text))
             {
                 ShowErrorMessage("올바른 이메일 형식을 입력해주세요.");
                 return;
             }
 
-            // 이메일 사용 가능성 확인
-            if (!isEmailAvailable)
-            {
-                ShowErrorMessage("이메일 중복 확인을 먼저 해주세요.");
-                return;
-            }
+            // 이메일 중복 확인이 완료되지 않은 경우
+            //if (!isEmailAvailable)
+            //{
+            //    ShowErrorMessage("이메일 중복 확인을 먼저 해주세요.");
+            //    return;
+            //}
 
             // 비밀번호 유효성 검사
             if (string.IsNullOrEmpty(passInput.text) || passInput.text.Length < 6)
@@ -198,6 +246,8 @@ namespace KYS
                         if (errorMessage.Contains("already in use") || errorMessage.Contains("already exists"))
                         {
                             ShowErrorMessage("이미 사용 중인 이메일입니다.");
+                            // 중복 확인 상태 초기화
+                            //isEmailAvailable = false;
                         }
                         else if (errorMessage.Contains("weak password"))
                         {
@@ -257,7 +307,7 @@ namespace KYS
 
             // 상태 초기화
 
-            isEmailAvailable = false;
+            //isEmailAvailable = false; // 더 이상 사용하지 않음
         }
 
         private void ShowErrorMessage(string message)

@@ -104,7 +104,7 @@ namespace KYS
                 Debug.LogWarning("[EditPopUp] BackButton을 찾을 수 없습니다.");
             }
 
-            var deleteUserButton = GetEvent("DeleteUserButton");
+            var deleteUserButton = GetEvent("IDDeleteButton");
             if (deleteUserButton != null)
             {
                 deleteUserButton.Click -= DeleteUser;
@@ -112,7 +112,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogError("[LobbyPopUp] DeleteUserButton을 찾을 수 없습니다.");
+                Debug.LogError("[LobbyPopUp] IDDeleteButton을 찾을 수 없습니다.");
             }
 
         }
@@ -248,7 +248,7 @@ namespace KYS
         private void DeleteUser(PointerEventData eventData)
         {
             // DeletePopUp 생성
-            //UIManager.Instance.ShowPopUp<DeletePopUp>();
+            UIManager.Instance.ShowPopUp<DeletePopUp>();
         }
 
 
