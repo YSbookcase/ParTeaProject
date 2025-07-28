@@ -11,7 +11,7 @@ namespace KYS
     public class FirebaseManager : Singleton<FirebaseManager>
     {
         private static FirebaseManager instance;
-        public static FirebaseManager Instacne { get { return instance; } }
+        public static FirebaseManager Instance { get { return instance; } }
 
         private static FirebaseApp app;
         public static FirebaseApp App { get { return app; } }
@@ -26,7 +26,7 @@ namespace KYS
         //[Header("Firebase 설정")]
         //[SerializeField] private bool useAuthEmulator = false; // 실제 Firebase 서비스 사용
 
-        protected override void Awake() => base.Awake();
+
 
         private void Start()
         {

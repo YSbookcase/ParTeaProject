@@ -104,9 +104,9 @@ namespace KYS
         public static bool canClosePopUp = true;
         bool canClose => PopUpUI.IsPopUpActive && !Util.escPressed && canClosePopUp && !IsCurrentPopUpNonClosable();
 
-        protected override void Awake()
+        private void Awake()
         {
-            base.Awake();
+      
             
             // 초기화 플래그 설정
             isInitialized = true;

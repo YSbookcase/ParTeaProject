@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4053990865925457866}
   - component: {fileID: 7204181006391511334}
   m_Layer: 0
-  m_Name: FirbaseManager
+  m_Name: FirebaseManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

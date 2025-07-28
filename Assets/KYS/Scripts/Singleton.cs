@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace KYS
 {
-    public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
+    public class Singletona<T> : MonoBehaviour where T : MonoBehaviour
     {
         private static T _instance;
         private static readonly object _lock = new object();
@@ -26,13 +26,37 @@ namespace KYS
 
                         if (_instance == null)
                         {
-                            GameObject singletonObject = new GameObject();
-                            _instance = singletonObject.AddComponent<T>();
-                            singletonObject.name = typeof(T).ToString();
+                            // Resources 폴더에서 프리팹 로드 시도
+                            GameObject prefab = Resources.Load<GameObject>(typeof(T).Name);
+                            if (prefab != null)
+                            {
+                                GameObject instance = Instantiate(prefab);
+                                _instance = instance.GetComponent<T>();
+                                if (_instance == null)
+                                {
+                                    Debug.LogError($"[Singleton] {typeof(T).Name} 프리팹에 {typeof(T).Name} 컴포넌트가 없습니다!");
+                                    Destroy(instance);
+                                    // 프리팹에 컴포넌트가 없으면 빈 GameObject로 생성
+                                    GameObject singletonObject = new GameObject();
+                                    _instance = singletonObject.AddComponent<T>();
+                                    singletonObject.name = typeof(T).ToString();
+                                }
+                                else
+                                {
+                                    instance.name = typeof(T).ToString();
+                                }
+                                Debug.Log($"[Singleton] {typeof(T)}의 인스턴스가 Resources 프리팹에서 생성되었습니다.");
+                            }
+                            else
+                            {
+                                // 프리팹이 없으면 빈 GameObject에 컴포넌트 추가
+                                GameObject singletonObject = new GameObject();
+                                _instance = singletonObject.AddComponent<T>();
+                                singletonObject.name = typeof(T).ToString();
+                                Debug.Log($"[Singleton] {typeof(T)}의 인스턴스가 새로 생성되었습니다. (프리팹 없음)");
+                            }
 
-                            DontDestroyOnLoad(singletonObject);
-
-                            Debug.Log($"[Singleton] {typeof(T)}의 인스턴스가 DontDestroyOnLoad로 생성되었습니다.");
+                            DontDestroyOnLoad(_instance.gameObject);
                         }
                         else
                         {
