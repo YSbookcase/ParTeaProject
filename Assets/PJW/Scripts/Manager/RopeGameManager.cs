@@ -1,33 +1,67 @@
+using PJW;
 using Photon.Pun;
 using Photon.Realtime;
+using PhotonHashtable = ExitGames.Client.Photon.Hashtable;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 namespace PJW
 {
-    public class RopeGameManager : MonoBehaviour
+    [RequireComponent(typeof(PhotonView))]
+    public class RopeGameManager : MonoBehaviourPunCallbacks
     {
-        [SerializeField] private Text countdownText;
+        [Header("UI")]
+        [SerializeField] private TextMeshProUGUI countdownText;
+
+        [Header("Rank 계산기")]
         [SerializeField] private RankCalculator rankCalculator;
 
         private int totalPlayers;
-        private int deadPlayers = 0;
         private int deathCount = 0;
+
+        private const string IsLoadedKey = "isRopeLoaded";
 
         private void Start()
         {
             totalPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+
+            // 자신의 로딩 완료 상태 설정
+            var props = new PhotonHashtable { { IsLoadedKey, true } };
+            PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+        }
+
+        // 모든 플레이어가 준비되면 호출
+        public override void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
+        {
+            if (!PhotonNetwork.IsMasterClient) return;
+
+            if (changedProps.ContainsKey(IsLoadedKey))
+            {
+                bool allLoaded = PhotonNetwork.PlayerList.All(p => p.CustomProperties.ContainsKey(IsLoadedKey) && (bool)p.CustomProperties[IsLoadedKey]);
+
+                if (allLoaded)
+                {
+                    photonView.RPC(nameof(RPCBeginCountdown), RpcTarget.AllViaServer);
+                }
+            }
+        }
+
+        [PunRPC]
+        private void RPCBeginCountdown()
+        {
             BeginCountdown();
         }
 
         public void BeginCountdown()
         {
+            deathCount = 0;
             StopAllCoroutines();
-            StartCoroutine(StartCountdownRoutine());
+            StartCoroutine(CountdownRoutine());
         }
 
-        private IEnumerator StartCountdownRoutine()
+        private IEnumerator CountdownRoutine()
         {
             Time.timeScale = 0f;
             countdownText.gameObject.SetActive(true);
@@ -48,43 +82,34 @@ namespace PJW
             Time.timeScale = 1f;
         }
 
-        // 점수는 임시로 만듦
-        public void OnPlayerDied(Player playerWhoDied)
+        public void OnPlayerDied(Player player)
         {
-            if (!PhotonNetwork.IsMasterClient) return;
+            if (!PhotonNetwork.IsMasterClient)
+                return;
 
             deathCount++;
-
-            int score = 0;
-            switch (deathCount)
+            if (deathCount >= totalPlayers)
             {
-                case 1: score = 2; break;
-                case 2: score = 3; break;
-                case 3: score = 4; break;
-                case 4: score = 5; break;
-                default: score = 0; break;
-            }
+                rankCalculator?.CalculateRanks();
 
-            playerWhoDied.SetTotalGameScore(score);
-
-            deadPlayers++;
-
-            if (deadPlayers >= totalPlayers)
-            {
-                EndGame();
+                string winnerName = player.NickName;
+                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer, winnerName);
             }
         }
 
-        private void EndGame()
+        [PunRPC]
+        private void RPCRopeShowDeathPanel(string winnerName)
         {
-            if (PhotonNetwork.IsMasterClient && rankCalculator != null)
-            {
-                rankCalculator.CalculateRanks();
-            }
+            if (RopeUIManager.Instance != null)
+                RopeUIManager.Instance.ShowDeathPanel(winnerName);
 
-            RopeUIManager.Instance?.ShowDeathPanel();
-            // PhotonView photonView = PhotonView.Get(RopeUIManager.Instance);
-            // photonView.RPC("RPC_ShowDeathPanel", RpcTarget.All);
+            StartCoroutine(LoadScoreAfterDelay());
+        }
+
+        private IEnumerator LoadScoreAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(3f);
+            PhotonNetwork.LoadLevel("Score");
         }
     }
 }

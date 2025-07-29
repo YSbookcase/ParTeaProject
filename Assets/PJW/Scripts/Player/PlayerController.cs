@@ -90,19 +90,25 @@ namespace PJW
             Vector3 bounceDir = (Vector3.forward + Random.onUnitSphere).normalized;
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse);
 
-            // 마스터 클라이언트에게 사망 통지
-            photonView.RPC(nameof(RPCNotifyDeath), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
+            photonView.RPC(
+                 nameof(RPCRopeNotifyDeath),
+                 RpcTarget.MasterClient,
+                 PhotonNetwork.LocalPlayer.ActorNumber
+             );
         }
 
         [PunRPC]
-        private void RPCNotifyDeath(int actorNumber, PhotonMessageInfo info)
+        private void RPCRopeNotifyDeath(int actorNumber, PhotonMessageInfo info)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 
             RopeGameManager manager = FindObjectOfType<RopeGameManager>();
-            if (manager != null)
+            if (manager == null)
+                return;
+
+            Player targetPlayer = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+            if (targetPlayer != null)
             {
-                Player targetPlayer = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
                 manager.OnPlayerDied(targetPlayer);
             }
         }
