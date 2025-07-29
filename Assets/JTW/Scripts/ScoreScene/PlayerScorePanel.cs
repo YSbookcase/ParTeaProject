@@ -10,13 +10,20 @@ namespace JTW_JumpGame
 {
     public class PlayerScorePanel : MonoBehaviour
     {
+        [SerializeField] private TextMeshProUGUI rankText;
         [SerializeField] private TextMeshProUGUI nameText;
         [SerializeField] private TextMeshProUGUI scoreText;
 
-        public void InitInfo(string name, int score)
+        private string[] rankTexts = new string[]
         {
+            "null", "1st", "2nd", "3rd", "4th"
+        };
+
+        public void InitInfo(int rank, string name, int score, int rankScore)
+        {
+            rankText.text = rankTexts[rank];
             nameText.text = $"{name} :";
-            scoreText.text = score.ToString();
+            scoreText.text = $"{score} + {rankScore}";
         }
     }
 }
