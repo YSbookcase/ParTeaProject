@@ -1,38 +1,39 @@
-using System.Collections;
-using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
 
-public class ArenaKillZone : MonoBehaviour
+namespace GIL.Scripts
 {
-    private BoxCollider _collider;
+    public class ArenaKillZone : MonoBehaviour
+    {
+        private BoxCollider _collider;
 
-    [SerializeField] private float shootSpeed = 100f;
-    // Start is called before the first frame update
-    private void Start()
-    {
-        _collider = GetComponent<BoxCollider>();
-    }
-    private void OnCollisionEnter(Collision other)
-    {
-        Rigidbody rb = other.collider.GetComponent<Rigidbody>();
-        if (rb != null)
+        [SerializeField] private float shootSpeed = 100f;
+        // Start is called before the first frame update
+        private void Start()
         {
-            rb.AddForce(Vector3.up * shootSpeed, ForceMode.Impulse);
-            rb.AddTorque(Random.insideUnitSphere.normalized, ForceMode.Impulse);
+            _collider = GetComponent<BoxCollider>();
         }
-
-        PhotonView view = other.gameObject.GetComponent<PhotonView>();
-        if (view == null) return;
-
-        if (view.IsMine)
+        private void OnCollisionEnter(Collision other)
         {
-            // 네트워크 전체에서 플레이어 오브젝트 삭제
-            PhotonNetwork.Destroy(view.gameObject);
+            Rigidbody rb = other.collider.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.AddForce(Vector3.up * shootSpeed, ForceMode.Impulse);
+                rb.AddTorque(Random.insideUnitSphere.normalized, ForceMode.Impulse);
+            }
 
-            // 마스터에게 사망 정보 전달
-            PhotonView managerView = ArenaGameManager.Instance.photonView;
-            managerView.RPC(nameof(ArenaGameManager.ArenaPlayerDied), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
+            PhotonView view = other.gameObject.GetComponent<PhotonView>();
+            if (view == null) return;
+
+            if (view.IsMine)
+            {
+                // 네트워크 전체에서 플레이어 오브젝트 삭제
+                PhotonNetwork.Destroy(view.gameObject);
+
+                // 마스터에게 사망 정보 전달
+                PhotonView managerView = ArenaGameManager.Instance.photonView;
+                managerView.RPC(nameof(ArenaGameManager.ArenaPlayerDied), RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
+            }
         }
     }
 }

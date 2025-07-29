@@ -1,51 +1,52 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Photon.Pun;
-public class ArenaShrink : MonoBehaviourPun
+using UnityEngine;
+
+namespace GIL.Scripts
 {
-    [SerializeField] private Transform arenaTransform;
-    [SerializeField] private float shrinkStartTime = 5f;
-    [SerializeField] private float minShrinkScale = 1f;
-    [SerializeField] private float shrinkDuration = 10f;
-    
-    private void Start()
+    public class ArenaShrink : MonoBehaviourPun
     {
-        //if(PhotonNetwork.IsMasterClient) StartCoroutine(TriggerShrinkRPC());
-        StartCoroutine(ShrinkArena());
-    }
+        [SerializeField] private Transform arenaTransform;
+        [SerializeField] private float shrinkStartTime = 5f;
+        [SerializeField] private float minShrinkScale = 1f;
+        [SerializeField] private float shrinkDuration = 10f;
     
-    private IEnumerator TriggerShrinkRPC()
-    {
-        Debug.Log("Photon 호출 성공");
-        yield return new WaitForSeconds(shrinkStartTime);
-        Debug.Log("RPC 호출 시작");
-        photonView.RPC(nameof(ArenaStartShrink), RpcTarget.All);
-    }
-    
-    [PunRPC]
-    private void ArenaStartShrink()
-    {
-        StartCoroutine(ShrinkArena());
-    }
-    
-    private IEnumerator ShrinkArena()
-    {
-        yield return new WaitForSeconds(shrinkStartTime);
-        Vector3 initialScale = arenaTransform.localScale;
-        Vector3 targetScale = new Vector3(minShrinkScale, initialScale.y, minShrinkScale);
-
-        float elapsed = 0f;
-
-        while (elapsed < shrinkDuration)
+        private void Start()
         {
-            float t = elapsed / shrinkDuration;
-            arenaTransform.localScale = Vector3.Lerp(initialScale, targetScale, t);
-            elapsed += Time.deltaTime;
-            yield return null;
+            StartCoroutine(ShrinkArena());
         }
+    
+        private IEnumerator TriggerShrinkRPC()
+        {
+            Debug.Log("Photon 호출 성공");
+            yield return new WaitForSeconds(shrinkStartTime);
+            Debug.Log("RPC 호출 시작");
+            photonView.RPC(nameof(ArenaStartShrink), RpcTarget.All);
+        }
+    
+        [PunRPC]
+        private void ArenaStartShrink()
+        {
+            StartCoroutine(ShrinkArena());
+        }
+    
+        private IEnumerator ShrinkArena()
+        {
+            yield return new WaitForSeconds(shrinkStartTime);
+            Vector3 initialScale = arenaTransform.localScale;
+            Vector3 targetScale = new Vector3(minShrinkScale, initialScale.y, minShrinkScale);
 
-        arenaTransform.localScale = targetScale;
+            float elapsed = 0f;
+
+            while (elapsed < shrinkDuration)
+            {
+                float t = elapsed / shrinkDuration;
+                arenaTransform.localScale = Vector3.Lerp(initialScale, targetScale, t);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            arenaTransform.localScale = targetScale;
+        }
     }
 }
