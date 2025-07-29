@@ -3,6 +3,7 @@ using System.Collections; // 추가 필요
 using UnityEngine;
 using System.Reflection;
 using UnityEngine.SceneManagement; // 씬 관리 추가
+using Photon.Pun; // Photon 네트워킹 추가
 
 namespace KYS
 {
@@ -133,6 +134,26 @@ namespace KYS
             {
                 Debug.Log("[UIManager] 게임 씬으로 전환 - 모든 UI 정리");
                 CleanAllUI();
+            }
+            
+            // NetworkScene으로 돌아올 때 RoomPopUp 표시 (게임 종료 후)
+            if (scene.name == "NetworkScene" && PhotonNetwork.InRoom)
+            {
+                Debug.Log("[UIManager] NetworkScene으로 돌아옴 - RoomPopUp 표시");
+                // 약간의 지연을 두어 씬 로딩 완료 후 UI 표시
+                StartCoroutine(ShowRoomPopUpAfterDelay());
+            }
+        }
+
+        private System.Collections.IEnumerator ShowRoomPopUpAfterDelay()
+        {
+            yield return new WaitForSeconds(0.5f);
+            
+            // 이미 RoomPopUp이 표시되어 있는지 확인
+            if (FindActivePopUp<RoomPopUp>() == null)
+            {
+                ShowPopUp<RoomPopUp>();
+                Debug.Log("[UIManager] RoomPopUp 표시 완료");
             }
         }
 

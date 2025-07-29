@@ -10,8 +10,9 @@ namespace KYS
 {
     public class FirebaseManager : Singleton<FirebaseManager>
     {
-        private static FirebaseManager instance;
-        public static FirebaseManager Instance { get { return instance; } }
+        // 상속받은 Instance 속성을 사용하므로 중복 정의 제거
+        // private static FirebaseManager instance;
+        // public static FirebaseManager Instance { get { return instance; } }
 
         private static FirebaseApp app;
         public static FirebaseApp App { get { return app; } }

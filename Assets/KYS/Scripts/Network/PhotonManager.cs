@@ -11,8 +11,8 @@ namespace KYS
 {
     public class PhotonManager : SingtonPunCallback<PhotonManager>
     {
-        // 싱글톤 인스턴스
-        public static PhotonManager Instance { get; private set; }
+        // 상속받은 Instance 속성을 사용하므로 중복 정의 제거
+        // public static PhotonManager Instance { get; private set; }
 
         // 이벤트들 (UI와 분리하기 위해)
         public event Action OnConnectedToMasterEvent;
@@ -29,18 +29,7 @@ namespace KYS
 
         private void Awake()
         {
-            // 싱글톤 패턴 구현
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-                return;
-            }
-            
+            // 상속받은 싱글톤 패턴을 사용하므로 별도 구현 불필요
             // PhotonView 설정
             _photonView = GetComponent<PhotonView>();
             if (_photonView == null)
@@ -323,7 +312,8 @@ namespace KYS
 
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            Debug.Log("방 속성 업데이트");
+            // 방 속성 업데이트 로그는 제거 (너무 자주 호출됨)
+            // Debug.Log("방 속성 업데이트");
             
             // RoomPopUp이 활성화되어 있다면 게임 선택 UI 업데이트
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
@@ -395,6 +385,14 @@ namespace KYS
             PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperty);
             Debug.Log($"플레이어 색상 변경: {colorIndex}");
         }
+        
+        public void ClearPlayerColor()
+        {
+            Hashtable playerProperty = new Hashtable();
+            playerProperty["Color"] = null;
+            PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperty);
+            Debug.Log("플레이어 색상 취소");
+        }
 
         public void SetPlayerSelectedGame(int gameIndex)
         {
@@ -425,9 +423,12 @@ namespace KYS
         {
             if (player.CustomProperties.TryGetValue("Color", out object value))
             {
-                return (int)value;
+                if (value != null)
+                {
+                    return (int)value;
+                }
             }
-            return 0; // 기본 색상
+            return -1; // 색상이 선택되지 않음
         }
 
         public int GetPlayerSelectedGame(Player player)
@@ -445,7 +446,15 @@ namespace KYS
             if (PhotonNetwork.IsMasterClient)
             {
                 Debug.Log($"[PhotonManager] 권한 이전 시도: {newMasterClient.NickName}");
-                PhotonNetwork.SetMasterClient(newMasterClient);
+                bool success = PhotonNetwork.SetMasterClient(newMasterClient);
+                if (success)
+                {
+                    Debug.Log($"[PhotonManager] 권한 이전 성공: {newMasterClient.NickName}");
+                }
+                else
+                {
+                    Debug.LogError($"[PhotonManager] 권한 이전 실패: {newMasterClient.NickName}");
+                }
             }
             else
             {
@@ -462,7 +471,15 @@ namespace KYS
                 if (targetPlayer != null)
                 {
                     Debug.Log($"[PhotonManager] 권한 이전 시도: {targetPlayer.NickName} (ActorNumber: {actorNumber})");
-                    PhotonNetwork.SetMasterClient(targetPlayer);
+                    bool success = PhotonNetwork.SetMasterClient(targetPlayer);
+                    if (success)
+                    {
+                        Debug.Log($"[PhotonManager] 권한 이전 성공: {targetPlayer.NickName}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[PhotonManager] 권한 이전 실패: {targetPlayer.NickName}");
+                    }
                 }
                 else
                 {
@@ -472,6 +489,35 @@ namespace KYS
             else
             {
                 Debug.LogWarning("[PhotonManager] 마스터 클라이언트만 권한을 이전할 수 있습니다.");
+            }
+        }
+
+        // 자동으로 다음 방장 선택 (방장이 나갈 때 호출)
+        public void AutoTransferMasterClient()
+        {
+            if (!PhotonNetwork.IsMasterClient || PhotonNetwork.PlayerList.Length <= 1)
+            {
+                return;
+            }
+
+            // 현재 방장을 제외한 다른 플레이어들 중에서 다음 방장 선택
+            Player nextMasterClient = null;
+            
+            // ActorNumber 순서대로 다음 플레이어 선택
+            for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
+            {
+                Player player = PhotonNetwork.PlayerList[i];
+                if (player.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
+                {
+                    nextMasterClient = player;
+                    break;
+                }
+            }
+
+            if (nextMasterClient != null)
+            {
+                Debug.Log($"[PhotonManager] 자동 권한 이전: {nextMasterClient.NickName}");
+                TransferMasterClient(nextMasterClient);
             }
         }
     }

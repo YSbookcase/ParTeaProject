@@ -7,6 +7,8 @@ TagManager:
   - Ground
   - RopeSegment
   - Rope
+  - Item
+  - Obstacle
   layers:
   - Default
   - TransparentFX
@@ -43,4 +45,7 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: UI
+    uniqueID: 705315733
     locked: 0
