@@ -1,0 +1,36 @@
+using Photon.Pun;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class RacingSpawner : MonoBehaviour
+{
+    [SerializeField] private RacingMap racingMap;
+
+    private bool isSpawned = false;
+
+    private void Update()
+    {
+        if (isSpawned || !Manager.game.isAllPlayerLoaded()) return;
+        PlayerSpawn();
+    }
+
+    private void PlayerSpawn()
+    {
+        isSpawned = true;
+        int trackLength = Random.Range(1, racingMap.racingLines.Count - 1);
+        racingMap.SetTrack(trackLength);
+        racingMap.SetDollyCart(racingMap.startLine);
+        int playerIndex = 0;
+        foreach (var player in PhotonNetwork.PlayerList)
+        {
+            if (player.IsLocal) 
+            {
+                break;
+            }
+            playerIndex++;
+        }
+        Transform spawnPos = racingMap.startLine.spawnPositions[playerIndex];
+        PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
+    }
+}

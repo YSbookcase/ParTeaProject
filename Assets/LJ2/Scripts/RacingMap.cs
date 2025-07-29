@@ -5,7 +5,7 @@ using Cinemachine;
 
 public class RacingMap : MonoBehaviour
 {
-    [SerializeField] List<RacingLine> racingLines = new List<RacingLine>();
+    [SerializeField] public List<RacingLine> racingLines = new List<RacingLine>();
 
     [SerializeField] CinemachineDollyCart dollyCart;
     public RacingLine startLine;

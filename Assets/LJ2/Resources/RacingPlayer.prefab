@@ -104,6 +104,7 @@ MonoBehaviour:
   moveAction: {fileID: 7023373264746046838, guid: ecfcb4f0f59c83644be4cddaeab0fd17,
     type: 3}
   cameraSpeed: 1
+  linePassed: 0
 --- !u!114 &-1325575301692957695
 MonoBehaviour:
   m_ObjectHideFlags: 0
