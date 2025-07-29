@@ -34,10 +34,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
         {
             Destroy(gameObject);
         }
-    }
 
-    private void Start()
-    {
         managerView = GetComponent<PhotonView>();
 
         racingPlayers.Clear();
@@ -54,6 +51,11 @@ public class RacingManager : MonoBehaviourPunCallbacks
         isRacingFinished = false;
     }
 
+    private void Start()
+    {
+
+    }
+
     [PunRPC]
     public void RacingStart()
     {
@@ -66,7 +68,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RetireCount()
     {
-        if(racingCountDown != null)
+        if (racingCountDown != null)
         {
             StopCoroutine(racingCountDown);
         }
@@ -76,14 +78,15 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RacingFinish()
     {
-        if (isRacingFinished) return;
+        if (isRacingFinished || !PhotonNetwork.IsMasterClient) return;
         isRacingFinished = true;
 
         foreach (Player retire in racingPlayers)
         {
             retire.SetRank(retireRank);
+            Debug.Log($"{retire.NickName} has retired with rank {retireRank}");
         }
-        if(PhotonNetwork.IsMasterClient)
+        if (PhotonNetwork.IsMasterClient)
         {
             SceneManager.LoadScene("Score");
         }
@@ -122,9 +125,10 @@ public class RacingManager : MonoBehaviourPunCallbacks
         }
 
         countdownUI.SetActive(false);
-        if (firstArrive && PhotonNetwork.IsMasterClient)
+        if (firstArrive)
         {
             managerView.RPC(nameof(RacingFinish), RpcTarget.All);
+            Debug.Log("Retire Count Finished");
         }
         yield return null;
     }

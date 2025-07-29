@@ -522,6 +522,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f32c7233662480545922c7d86bc2af5d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  managerView: {fileID: 0}
   countdownText: {fileID: 452382691}
   countdownUI: {fileID: 452382688}
 --- !u!4 &460508468
@@ -1501,6 +1502,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 6657270378081990089}
+    - targetCorrespondingSourceObject: {fileID: 6301468544564168020, guid: ab76a4eb21cfee7438e0101a78f03cff,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6657270378081990090}
   m_SourcePrefab: {fileID: 100100000, guid: ab76a4eb21cfee7438e0101a78f03cff, type: 3}
 --- !u!114 &6657270378081990089
 MonoBehaviour:
@@ -1520,6 +1525,28 @@ MonoBehaviour:
   dollyCart: {fileID: 307681832}
   startLine: {fileID: 0}
   goalLine: {fileID: 0}
+--- !u!114 &6657270378081990090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1371308309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 2
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

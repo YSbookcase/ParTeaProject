@@ -22,7 +22,8 @@ public class RacingLine : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         RacingController controller = other.GetComponent<RacingController>();
-        if (controller != null) 
+        PhotonView photonView = other.gameObject.GetComponent<PhotonView>();
+        if (controller != null && photonView.IsMine) 
         {
             if (controller.linePassed < havePassLine) 
             {
@@ -31,9 +32,8 @@ public class RacingLine : MonoBehaviour
             else
             {
                 Debug.Log("플레이어 도착");
-                PhotonView photonView = other.gameObject.GetComponent<PhotonView>();
 
-                if (photonView != null && photonView.IsMine)
+                if (photonView != null)
                 {
                     RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.All, photonView.Owner.ActorNumber);
                 }
