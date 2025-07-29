@@ -22,11 +22,32 @@ namespace KYS
             // 모든 플레이어가 로드될 때까지 대기
             Debug.Log("ReceiveGameSpawner 시작");
             
+            // 플레이어 로드 상태 설정
+            SetPlayerLoaded();
+            
+            // 이미 스폰된 플레이어가 있는지 확인
+            if (spawnedPlayers.Count > 0)
+            {
+                Debug.Log("이미 스폰된 플레이어가 있습니다. 중복 스폰 방지.");
+                return;
+            }
+            
             // 테스트용: 단일 플레이어에서도 스폰
             if (PhotonNetwork.PlayerList.Length == 1 && PhotonNetwork.IsMasterClient)
             {
                 StartCoroutine(InitializeSpawner());
             }
+        }
+        
+        private void SetPlayerLoaded()
+        {
+            // 플레이어 로드 상태를 CustomProperties에 설정
+            ExitGames.Client.Photon.Hashtable props = new ExitGames.Client.Photon.Hashtable
+            {
+                { "isLoaded", true }
+            };
+            PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+            Debug.Log("플레이어 로드 상태 설정 완료");
         }
         
         private IEnumerator InitializeSpawner()
@@ -60,22 +81,21 @@ namespace KYS
 
             if (changedProps.ContainsKey("isLoaded"))
             {
-                try
+                // 모든 플레이어가 로드되었는지 확인
+                bool allPlayersLoaded = true;
+                foreach (Player player in PhotonNetwork.PlayerList)
                 {
-                    if (Manager.game.isAllPlayerLoaded())
+                    if (!player.CustomProperties.ContainsKey("isLoaded") || 
+                        !(bool)player.CustomProperties["isLoaded"])
                     {
-                        StartCoroutine(InitializeSpawner());
+                        allPlayersLoaded = false;
+                        break;
                     }
                 }
-                catch (System.Exception e)
+                
+                if (allPlayersLoaded)
                 {
-                    Debug.LogError($"Manager.game.isAllPlayerLoaded() 호출 중 오류: {e.Message}");
-                    // Manager가 없는 경우 단일 플레이어 모드로 시작
-                    if (PhotonNetwork.PlayerList.Length == 1)
-                    {
-                        Debug.Log("Manager 없음 - 단일 플레이어 스폰 시작");
-                        StartCoroutine(InitializeSpawner());
-                    }
+                    StartCoroutine(InitializeSpawner());
                 }
             }
         }
@@ -86,8 +106,23 @@ namespace KYS
             SpawnPlayer(player);
         }
         
-        private void SpawnPlayer(Player player)
+        public void SpawnPlayer(Player player)
         {
+            Debug.Log($"플레이어 스폰 시도: {player.NickName} (ActorNumber: {player.ActorNumber})");
+            
+            // 이미 스폰된 플레이어인지 확인
+            if (spawnedPlayers.ContainsKey(player.ActorNumber))
+            {
+                Debug.LogWarning($"플레이어 {player.NickName}는 이미 스폰되어 있습니다. 중복 스폰 방지.");
+                return;
+            }
+            
+            if (playerPrefab == null)
+            {
+                Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
+                return;
+            }
+            
             if (spawnPoints.Length == 0)
             {
                 Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
@@ -98,8 +133,17 @@ namespace KYS
             int spawnIndex = (player.ActorNumber - 1) % spawnPoints.Length;
             Vector3 spawnPosition = spawnPoints[spawnIndex].position;
             
+            Debug.Log($"스폰 위치: {spawnPosition} (인덱스: {spawnIndex})");
+            
             // 플레이어 스폰
             GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
+            
+            if (playerObject == null)
+            {
+                Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
+                return;
+            }
+            
             spawnedPlayers[player.ActorNumber] = playerObject;
             
             // 플레이어 설정
@@ -108,6 +152,11 @@ namespace KYS
             {
                 // 플레이어 이름 설정
                 playerObject.name = $"Player_{player.NickName}";
+                Debug.Log($"플레이어 컨트롤러 설정 완료: {playerObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
             }
             
             Debug.Log($"플레이어 {player.NickName} 스폰 완료: {spawnPosition}");

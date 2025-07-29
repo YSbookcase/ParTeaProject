@@ -12,14 +12,26 @@ namespace KYS
     {
         [Header("Game Settings")]
         [SerializeField] private float gameTime = 60f;
-        [SerializeField] private int maxPlayers = 4;
+        [SerializeField] private Vector2 mapSize = new Vector2(30f, 30f); // 맵 크기 (더 크게)
+        [SerializeField] private float wallHeight = 2f; // 벽 높이 (더 낮게)
         
         [Header("UI References")]
         [SerializeField] private ReceiveGameUI gameUI;
         
         [Header("Game Objects")]
         [SerializeField] private GameObject itemPrefab;
-        [SerializeField] private Transform[] spawnPoints;
+        [SerializeField] private GameObject wallPrefab; // 벽 프리팹
+        [SerializeField] private GameObject obstaclePrefab; // 장애물 프리팹
+        [SerializeField] private GameObject powerUpPrefab; // 파워업 프리팹
+        [SerializeField] private Transform[] spawnPoints; // 기존 스폰 포인트 (선택적)
+        
+        [Header("Object Pool")]
+        [SerializeField] private ItemPoolManager itemPoolManager; // 아이템 풀 매니저
+        
+        [Header("Item Spawn Settings")]
+        [SerializeField] private float itemSpawnInterval = 2f; // 아이템 스폰 간격
+        [SerializeField] private float powerUpSpawnInterval = 10f; // 파워업 스폰 간격
+        [SerializeField] private float obstacleSpawnInterval = 5f; // 장애물 스폰 간격
         
         private float currentTime;
         private bool isGameStarted = false;
@@ -27,7 +39,19 @@ namespace KYS
         
         private Dictionary<int, int> playerScores = new Dictionary<int, int>();
         private List<GameObject> spawnedItems = new List<GameObject>();
+        private List<GameObject> spawnedObstacles = new List<GameObject>();
+        private List<GameObject> spawnedPowerUps = new List<GameObject>();
         private List<int> alivePlayers = new List<int>();
+        
+        // 아이템 타입 열거형
+        public enum ItemType
+        {
+            Normal,     // 일반 아이템 (1점)
+            Bonus,      // 보너스 아이템 (3점)
+            Speed,      // 속도 증가
+            Slow,       // 속도 감소
+            Magnet      // 자석 효과 (아이템 끌어오기)
+        }
         
         // Room Properties 키들
         private const string GAME_STARTED_KEY = "gameStarted";
@@ -68,6 +92,12 @@ namespace KYS
         {
             Debug.Log("게임 초기화 시작");
             
+            // 맵 생성 (마스터 클라이언트만)
+            if (PhotonNetwork.IsMasterClient)
+            {
+                CreateMap();
+            }
+            
             // 모든 플레이어의 점수 초기화
             foreach (Player player in PhotonNetwork.PlayerList)
             {
@@ -87,9 +117,11 @@ namespace KYS
             
             // 아이템 스폰 시작
             StartCoroutine(SpawnItemsRoutine());
+            StartCoroutine(SpawnPowerUpsRoutine());
+            StartCoroutine(SpawnObstaclesRoutine());
         }
         
-        private void StartGame()
+        public void StartGame()
         {
             if (PhotonNetwork.IsMasterClient)
             {
@@ -105,25 +137,44 @@ namespace KYS
             Debug.Log("ReceiveGame 시작!");
         }
         
+        private float timeUpdateInterval = 0.1f; // 0.1초마다 시간 업데이트
+        private float timeUpdateTimer = 0f;
+        
         private void UpdateGameTime()
         {
+            // 정확한 시간 계산
             currentTime -= Time.deltaTime;
+            timeUpdateTimer += Time.deltaTime;
             
+            // 시간이 0 이하가 되면 게임 종료
             if (currentTime <= 0)
             {
                 currentTime = 0;
                 EndGame();
+                return;
             }
             
-            // Room Properties로 시간 업데이트
-            if (PhotonNetwork.IsMasterClient)
+            // 0.1초마다 UI와 Room Properties 업데이트 (성능 최적화)
+            if (timeUpdateTimer >= timeUpdateInterval)
             {
-                Hashtable roomProps = new Hashtable();
-                roomProps[GAME_TIME_KEY] = currentTime;
-                PhotonNetwork.CurrentRoom.SetCustomProperties(roomProps);
+                timeUpdateTimer = 0f;
+                
+                // Room Properties로 시간 업데이트
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    Hashtable roomProps = new Hashtable();
+                    roomProps[GAME_TIME_KEY] = currentTime;
+                    PhotonNetwork.CurrentRoom.SetCustomProperties(roomProps);
+                }
+                
+                UpdateUI();
+                
+                // 디버그 로그 (1초마다)
+                if (Mathf.FloorToInt(currentTime) % 10 == 0 && currentTime > 0)
+                {
+                    Debug.Log($"게임 시간: {currentTime:F1}초");
+                }
             }
-            
-            UpdateUI();
         }
         
         private void UpdateUI()
@@ -141,30 +192,87 @@ namespace KYS
             
             while (isGameStarted && !isGameEnded)
             {
-                yield return new WaitForSeconds(Random.Range(1f, 3f));
+                yield return new WaitForSeconds(itemSpawnInterval);
                 
-                if (spawnPoints.Length > 0)
-                {
-                    Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-                    SpawnItem(spawnPoint.position);
-                    Debug.Log($"아이템 스폰: {spawnPoint.position}");
-                }
+                // 맵 전체 영역에서 랜덤하게 아이템 스폰
+                Vector3 randomPosition = GetRandomPositionInMap();
+                Debug.Log($"아이템 스폰 위치 계산: {randomPosition}");
+                SpawnItem(randomPosition);
+            }
+        }
+        
+        private IEnumerator SpawnPowerUpsRoutine()
+        {
+            Debug.Log("파워업 스폰 시작");
+            
+            while (isGameStarted && !isGameEnded)
+            {
+                yield return new WaitForSeconds(powerUpSpawnInterval);
+                
+                Vector3 randomPosition = GetRandomPositionInMap();
+                SpawnPowerUp(randomPosition);
+                Debug.Log($"파워업 스폰: {randomPosition}");
+            }
+        }
+        
+        private IEnumerator SpawnObstaclesRoutine()
+        {
+            Debug.Log("장애물 스폰 시작");
+            
+            while (isGameStarted && !isGameEnded)
+            {
+                yield return new WaitForSeconds(obstacleSpawnInterval);
+                
+                Vector3 randomPosition = GetRandomPositionInMap();
+                SpawnObstacle(randomPosition);
+                Debug.Log($"장애물 스폰: {randomPosition}");
             }
         }
         
         private void SpawnItem(Vector3 position)
         {
-            if (itemPrefab != null)
+            // 오브젝트 풀 사용
+            if (itemPoolManager != null)
+            {
+                CollectibleItem item = itemPoolManager.GetItem(position);
+                if (item != null)
+                {
+                    spawnedItems.Add(item.gameObject);
+                    
+                    // 아이템에 Rigidbody 추가하여 중력으로 떨어지도록 설정
+                    Rigidbody rb = item.GetComponent<Rigidbody>();
+                    if (rb == null)
+                    {
+                        rb = item.gameObject.AddComponent<Rigidbody>();
+                    }
+                    rb.useGravity = true;
+                    rb.drag = 0.5f; // 공기 저항
+                    
+                    // 15초 후 아이템 제거 (떨어지는 시간 고려)
+                    StartCoroutine(DestroyItemAfterTime(item.gameObject, 15f));
+                }
+            }
+            // 기존 방식 (폴백)
+            else if (itemPrefab != null)
             {
                 GameObject item = Instantiate(itemPrefab, position, Quaternion.identity);
                 spawnedItems.Add(item);
                 
-                // 10초 후 아이템 제거
-                StartCoroutine(DestroyItemAfterTime(item, 10f));
+                // 아이템에 Rigidbody 추가하여 중력으로 떨어지도록 설정
+                Rigidbody rb = item.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    rb = item.AddComponent<Rigidbody>();
+                }
+                rb.useGravity = true;
+                rb.drag = 0.5f; // 공기 저항
+                
+                // 15초 후 아이템 제거 (떨어지는 시간 고려)
+                StartCoroutine(DestroyItemAfterTime(item, 15f));
             }
             else
             {
-                Debug.LogWarning("ItemPrefab이 할당되지 않았습니다!");
+                Debug.LogWarning("ItemPrefab과 ItemPoolManager가 모두 할당되지 않았습니다!");
             }
         }
         
@@ -175,7 +283,129 @@ namespace KYS
             if (item != null)
             {
                 spawnedItems.Remove(item);
-                Destroy(item);
+                
+                // 오브젝트 풀 사용 시 풀로 반환, 아니면 Destroy
+                CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                if (collectibleItem != null && itemPoolManager != null)
+                {
+                    itemPoolManager.ReturnItem(collectibleItem);
+                }
+                else
+                {
+                    Destroy(item);
+                }
+            }
+        }
+        
+        // 맵 생성 메서드
+        private void CreateMap()
+        {
+            if (wallPrefab == null)
+            {
+                Debug.LogWarning("WallPrefab이 할당되지 않았습니다!");
+                return;
+            }
+            
+            // 바닥 생성
+            CreateGround();
+            
+            // 맵 경계에 벽 생성
+            float halfWidth = mapSize.x / 2f;
+            float halfHeight = mapSize.y / 2f;
+            
+            // 위쪽 벽
+            CreateWall(new Vector3(0, wallHeight/2, halfHeight), new Vector3(mapSize.x, wallHeight, 1));
+            // 아래쪽 벽
+            CreateWall(new Vector3(0, wallHeight/2, -halfHeight), new Vector3(mapSize.x, wallHeight, 1));
+            // 왼쪽 벽
+            CreateWall(new Vector3(-halfWidth, wallHeight/2, 0), new Vector3(1, wallHeight, mapSize.y));
+            // 오른쪽 벽
+            CreateWall(new Vector3(halfWidth, wallHeight/2, 0), new Vector3(1, wallHeight, mapSize.y));
+            
+            Debug.Log("맵 생성 완료");
+        }
+        
+        private void CreateGround()
+        {
+            // 바닥 생성
+            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            ground.transform.position = Vector3.zero;
+            ground.transform.localScale = new Vector3(mapSize.x / 10f, 1, mapSize.y / 10f); // Plane은 기본 10x10 크기
+            
+            // 바닥 머티리얼 설정
+            Renderer groundRenderer = ground.GetComponent<Renderer>();
+            if (groundRenderer != null)
+            {
+                Material groundMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                groundMaterial.color = new Color(0.3f, 0.3f, 0.3f); // 어두운 회색
+                groundRenderer.material = groundMaterial;
+            }
+            
+            // 바닥에 Physic Material 추가
+            BoxCollider groundCollider = ground.GetComponent<BoxCollider>();
+            if (groundCollider != null)
+            {
+                PhysicMaterial groundPhysicMaterial = new PhysicMaterial("GroundPhysicMaterial");
+                groundPhysicMaterial.dynamicFriction = 0.8f;
+                groundPhysicMaterial.staticFriction = 0.8f;
+                groundPhysicMaterial.bounciness = 0.0f;
+                groundCollider.material = groundPhysicMaterial;
+            }
+            
+            Debug.Log("바닥 생성 완료");
+        }
+        
+        private void CreateWall(Vector3 position, Vector3 scale)
+        {
+            GameObject wall = Instantiate(wallPrefab, position, Quaternion.identity);
+            wall.transform.localScale = scale;
+        }
+        
+        // 맵 내 랜덤 위치 생성 (하늘에서 떨어지는 위치)
+        private Vector3 GetRandomPositionInMap()
+        {
+            float halfWidth = mapSize.x / 2f - 2f; // 벽에서 더 안쪽
+            float halfHeight = mapSize.y / 2f - 2f;
+            
+            float x = Random.Range(-halfWidth, halfWidth);
+            float z = Random.Range(-halfHeight, halfHeight);
+            
+            return new Vector3(x, 20f, z); // 더 높은 위치에서 떨어짐
+        }
+        
+        private void SpawnPowerUp(Vector3 position)
+        {
+            if (powerUpPrefab != null)
+            {
+                GameObject powerUp = Instantiate(powerUpPrefab, position, Quaternion.identity);
+                spawnedPowerUps.Add(powerUp);
+                
+                // 파워업 타입 설정
+                ItemType powerUpType = (ItemType)Random.Range(2, 5); // Speed, Slow, Magnet
+                powerUp.GetComponent<ItemController>()?.SetItemType(powerUpType);
+                
+                // 파워업에도 Rigidbody 추가
+                Rigidbody rb = powerUp.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    rb = powerUp.AddComponent<Rigidbody>();
+                }
+                rb.useGravity = true;
+                rb.drag = 0.5f;
+                
+                StartCoroutine(DestroyItemAfterTime(powerUp, 20f));
+            }
+        }
+        
+        private void SpawnObstacle(Vector3 position)
+        {
+            if (obstaclePrefab != null)
+            {
+                GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
+                spawnedObstacles.Add(obstacle);
+                
+                StartCoroutine(DestroyItemAfterTime(obstacle, 8f));
             }
         }
         
@@ -203,6 +433,16 @@ namespace KYS
             if (isGameEnded) return;
             
             isGameEnded = true;
+            Debug.Log("ReceiveGame 종료 시작!");
+            
+            // 모든 아이템을 풀로 반환
+            ClearAllItems();
+            
+            // UI에 게임 종료 표시
+            if (gameUI != null)
+            {
+                gameUI.ShowGameEnd();
+            }
             
             if (PhotonNetwork.IsMasterClient)
             {
@@ -211,16 +451,54 @@ namespace KYS
                 roomProps[GAME_ENDED_KEY] = true;
                 PhotonNetwork.CurrentRoom.SetCustomProperties(roomProps);
                 
+                Debug.Log("랭크 계산 및 JTW Score 씬 전환 준비 중...");
                 CalculateAndSetRanks();
             }
-            
-            Debug.Log("ReceiveGame 종료!");
-            
-            // UI에 게임 종료 표시
-            if (gameUI != null)
+            else
             {
-                gameUI.ShowGameEnd();
+                Debug.Log("마스터 클라이언트가 랭크 계산을 처리합니다...");
             }
+        }
+        
+        private void ClearAllItems()
+        {
+            // 모든 아이템 제거 (오브젝트 풀 사용)
+            foreach (GameObject item in spawnedItems)
+            {
+                if (item != null)
+                {
+                    CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                    if (collectibleItem != null && itemPoolManager != null)
+                    {
+                        itemPoolManager.ReturnItem(collectibleItem);
+                    }
+                    else
+                    {
+                        Destroy(item);
+                    }
+                }
+            }
+            spawnedItems.Clear();
+            
+            // 모든 장애물 제거
+            foreach (GameObject obstacle in spawnedObstacles)
+            {
+                if (obstacle != null)
+                {
+                    Destroy(obstacle);
+                }
+            }
+            spawnedObstacles.Clear();
+            
+            // 모든 파워업 제거
+            foreach (GameObject powerUp in spawnedPowerUps)
+            {
+                if (powerUp != null)
+                {
+                    Destroy(powerUp);
+                }
+            }
+            spawnedPowerUps.Clear();
         }
         
         private void CalculateAndSetRanks()
@@ -251,10 +529,30 @@ namespace KYS
         
         private IEnumerator LoadScoreScene()
         {
+            Debug.Log("게임 결과 표시 중...");
             yield return new WaitForSeconds(3f); // 결과 표시 시간
             
+            Debug.Log("JTW Score 씬으로 전환 중...");
+            
+            // 모든 플레이어에게 랭크 정보 전달
+            foreach (var score in playerScores)
+            {
+                Player player = PhotonNetwork.CurrentRoom.GetPlayer(score.Key);
+                if (player != null)
+                {
+                    // 점수 정보를 Player Custom Properties에 저장
+                    Hashtable props = new Hashtable();
+                    props["finalScore"] = score.Value;
+                    props["gameType"] = "ReceiveGame"; // 게임 타입 표시
+                    player.SetCustomProperties(props);
+                }
+            }
+            
             // JTW 스코어 씬 로드
-            PhotonNetwork.LoadLevel("JTW_ScoreScene");
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.LoadLevel("Score");
+            }
         }
         
         public override void OnPlayerLeftRoom(Player otherPlayer)
@@ -280,8 +578,14 @@ namespace KYS
             
             if (propertiesThatChanged.ContainsKey(GAME_TIME_KEY))
             {
-                currentTime = (float)propertiesThatChanged[GAME_TIME_KEY];
-                UpdateUI();
+                float newTime = (float)propertiesThatChanged[GAME_TIME_KEY];
+                // 시간 차이가 0.5초 이상이면 동기화 (더 민감하게)
+                if (Mathf.Abs(currentTime - newTime) > 0.5f)
+                {
+                    currentTime = newTime;
+                    Debug.Log($"시간 동기화: {currentTime:F1}초");
+                    UpdateUI(); // 즉시 UI 업데이트
+                }
             }
             
             if (propertiesThatChanged.ContainsKey(GAME_ENDED_KEY))

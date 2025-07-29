@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace KYS
 {
-    public class CollectibleItem : MonoBehaviour
+    public class CollectibleItem : PooledObject
     {
         [Header("Item Settings")]
         [SerializeField] private float rotationSpeed = 90f;
@@ -35,7 +35,7 @@ namespace KYS
             }
             
             // 아이템 애니메이션 시작
-            StartCoroutine(ItemAnimation());
+            //StartCoroutine(ItemAnimation());
         }
         
         private void Update()
@@ -72,8 +72,8 @@ namespace KYS
             // 수집 효과 재생
             PlayCollectEffect();
             
-            // 아이템 비활성화
-            StartCoroutine(DisableAfterEffect());
+            // 오브젝트 풀로 반환 (0.5초 후)
+            ReturnToPool(0.5f);
         }
         
         private void PlayCollectEffect()
@@ -132,7 +132,8 @@ namespace KYS
         public void ResetItem()
         {
             isCollected = false;
-            transform.position = startPosition;
+            // startPosition으로 되돌리지 않고 현재 위치 유지
+            // transform.position = startPosition; // 이 줄 제거
             transform.rotation = Quaternion.identity;
             
             if (itemRenderer != null && itemRenderer.material != null)
@@ -142,7 +143,7 @@ namespace KYS
             }
             
             gameObject.SetActive(true);
-            StartCoroutine(ItemAnimation());
+            // StartCoroutine(ItemAnimation()); // 위아래 움직임 비활성화
         }
     }
 } 

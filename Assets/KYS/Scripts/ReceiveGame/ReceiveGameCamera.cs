@@ -6,8 +6,17 @@ namespace KYS
     {
         [Header("Camera Settings")]
         [SerializeField] private float targetAspectRatio = 16f / 9f; // 세로 화면 16:9
-        [SerializeField] private float fieldOfView = 60f;
-        [SerializeField] private Vector3 cameraOffset = new Vector3(0, 10, -10);
+        [SerializeField] private float fieldOfView = 60f; // 더 넓은 시야각
+        
+        [Header("Camera Position & Angle")]
+        [SerializeField] private float cameraHeight = 35f; // 카메라 높이 (Y축)
+        [SerializeField] private float cameraDistance = 25f; // 카메라 거리 (Z축)
+        [SerializeField] private float cameraAngle = 45f; // 카메라 각도 (X축 회전)
+        [SerializeField] private bool followXAxis = true; // X축 따라가기 (플레이어 이동)
+        
+        [Header("Camera Offset (Advanced)")]
+        [SerializeField] private Vector3 cameraOffset = new Vector3(0, 35, -25); // 고급 설정용
+        [SerializeField] private bool useAdvancedOffset = false; // 고급 오프셋 사용 여부
         
         [Header("Follow Settings")]
         [SerializeField] private bool followPlayers = true;
@@ -60,8 +69,10 @@ namespace KYS
                 gameCamera.rect = rect;
             }
             
-            // 초기 위치 설정
-            transform.position = cameraOffset;
+            // 초기 위치 설정 - Inspector에서 조절 가능
+            Vector3 initialPosition = useAdvancedOffset ? cameraOffset : new Vector3(0, cameraHeight, -cameraDistance);
+            transform.position = initialPosition;
+            transform.rotation = Quaternion.Euler(cameraAngle, 0f, 0f);
             targetPosition = transform.position;
             targetFieldOfView = fieldOfView;
         }
@@ -95,22 +106,27 @@ namespace KYS
             if (playerCount > 0)
             {
                 averagePosition /= playerCount;
-                targetPosition = averagePosition + cameraOffset;
+                
+                // Inspector 설정에 따른 카메라 위치 계산
+                Vector3 basePosition = useAdvancedOffset ? cameraOffset : new Vector3(0, cameraHeight, -cameraDistance);
+                
+                if (followXAxis)
+                {
+                    // X축만 따라가기 (플레이어 이동)
+                    targetPosition = new Vector3(averagePosition.x, basePosition.y, basePosition.z);
+                }
+                else
+                {
+                    // 고정 위치
+                    targetPosition = basePosition;
+                }
             }
             
             // 부드러운 카메라 이동
             transform.position = Vector3.Lerp(transform.position, targetPosition, followSpeed * Time.deltaTime);
             
-            // 플레이어들을 바라보도록 회전
-            if (playerCount > 0)
-            {
-                Vector3 lookDirection = averagePosition - transform.position;
-                if (lookDirection != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, followSpeed * Time.deltaTime);
-                }
-            }
+            // Inspector에서 설정한 각도 유지
+            transform.rotation = Quaternion.Euler(cameraAngle, 0f, 0f);
         }
         
         private void UpdateCameraZoom()
@@ -148,6 +164,35 @@ namespace KYS
             gameCamera.fieldOfView = Mathf.Lerp(gameCamera.fieldOfView, targetFieldOfView, followSpeed * Time.deltaTime);
         }
         
+        // Inspector에서 실시간으로 카메라 설정 변경 가능
+        public void SetCameraHeight(float height)
+        {
+            cameraHeight = height;
+            if (!useAdvancedOffset)
+            {
+                Vector3 newPosition = transform.position;
+                newPosition.y = height;
+                transform.position = newPosition;
+            }
+        }
+        
+        public void SetCameraDistance(float distance)
+        {
+            cameraDistance = distance;
+            if (!useAdvancedOffset)
+            {
+                Vector3 newPosition = transform.position;
+                newPosition.z = -distance;
+                transform.position = newPosition;
+            }
+        }
+        
+        public void SetCameraAngle(float angle)
+        {
+            cameraAngle = angle;
+            transform.rotation = Quaternion.Euler(angle, 0f, 0f);
+        }
+        
         public void SetCameraPosition(Vector3 position)
         {
             targetPosition = position + cameraOffset;
@@ -160,8 +205,15 @@ namespace KYS
         
         public void ResetCamera()
         {
-            targetPosition = cameraOffset;
+            targetPosition = useAdvancedOffset ? cameraOffset : new Vector3(0, cameraHeight, -cameraDistance);
             targetFieldOfView = fieldOfView;
+        }
+        
+        // 고급 설정 토글
+        public void ToggleAdvancedOffset(bool useAdvanced)
+        {
+            useAdvancedOffset = useAdvanced;
+            SetupCamera();
         }
         
         private void OnValidate()

@@ -11,8 +11,8 @@ namespace KYS
 {
     public class PhotonManager : SingtonPunCallback<PhotonManager>
     {
-        // 싱글톤 인스턴스
-        public static PhotonManager Instance { get; private set; }
+        // 상속받은 Instance 속성을 사용하므로 중복 정의 제거
+        // public static PhotonManager Instance { get; private set; }
 
         // 이벤트들 (UI와 분리하기 위해)
         public event Action OnConnectedToMasterEvent;
@@ -29,18 +29,7 @@ namespace KYS
 
         private void Awake()
         {
-            // 싱글톤 패턴 구현
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-                return;
-            }
-            
+            // 상속받은 싱글톤 패턴을 사용하므로 별도 구현 불필요
             // PhotonView 설정
             _photonView = GetComponent<PhotonView>();
             if (_photonView == null)
@@ -323,7 +312,8 @@ namespace KYS
 
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            Debug.Log("방 속성 업데이트");
+            // 방 속성 업데이트 로그는 제거 (너무 자주 호출됨)
+            // Debug.Log("방 속성 업데이트");
             
             // RoomPopUp이 활성화되어 있다면 게임 선택 UI 업데이트
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();

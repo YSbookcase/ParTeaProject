@@ -1,14 +1,19 @@
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 
 namespace KYS
 {
-    public class ReceiveGameTester : MonoBehaviour
+    public class ReceiveGameTester : MonoBehaviourPunCallbacks
     {
         [Header("Test Settings")]
         [SerializeField] private bool enableTestMode = true;
+        [SerializeField] private bool autoConnect = true;
+        [SerializeField] private string roomName = "ReceiveGame";
         [SerializeField] private KeyCode testStartKey = KeyCode.Space;
         [SerializeField] private KeyCode testItemSpawnKey = KeyCode.I;
+        [SerializeField] private KeyCode connectKey = KeyCode.C;
+        [SerializeField] private KeyCode createRoomKey = KeyCode.R;
         
         private ReceiveGameManager gameManager;
         private ReceiveGameSpawner spawner;
@@ -31,13 +36,33 @@ namespace KYS
             Debug.Log($"플레이어 수: {PhotonNetwork.PlayerList.Length}");
             Debug.Log($"마스터 클라이언트: {PhotonNetwork.IsMasterClient}");
             Debug.Log("=== 테스트 키 ===");
+            Debug.Log($"포톤 연결: {connectKey}");
+            Debug.Log($"룸 생성/입장: {createRoomKey}");
             Debug.Log($"게임 시작: {testStartKey}");
             Debug.Log($"아이템 스폰: {testItemSpawnKey}");
+            
+            // 자동 연결 활성화된 경우
+            if (autoConnect && !PhotonNetwork.IsConnected)
+            {
+                ConnectToPhoton();
+            }
         }
         
         private void Update()
         {
             if (!enableTestMode) return;
+            
+            // 포톤 연결 테스트
+            if (Input.GetKeyDown(connectKey))
+            {
+                ConnectToPhoton();
+            }
+            
+            // 룸 생성/입장 테스트
+            if (Input.GetKeyDown(createRoomKey))
+            {
+                CreateOrJoinRoom();
+            }
             
             // 게임 시작 테스트
             if (Input.GetKeyDown(testStartKey))
@@ -117,6 +142,82 @@ namespace KYS
             }
         }
         
+        // 포톤 연결
+        public void ConnectToPhoton()
+        {
+            if (PhotonNetwork.IsConnected)
+            {
+                Debug.Log("이미 포톤에 연결되어 있습니다.");
+                return;
+            }
+            
+            Debug.Log("포톤 서버에 연결 중...");
+            PhotonNetwork.ConnectUsingSettings();
+        }
+        
+        // 룸 생성 또는 입장
+        public void CreateOrJoinRoom()
+        {
+            if (!PhotonNetwork.IsConnected)
+            {
+                Debug.LogError("포톤에 연결되지 않았습니다. 먼저 연결해주세요.");
+                return;
+            }
+            
+            if (PhotonNetwork.InRoom)
+            {
+                Debug.Log("이미 방에 입장되어 있습니다.");
+                return;
+            }
+            
+            Debug.Log($"룸 '{roomName}' 생성/입장 시도...");
+            
+            RoomOptions roomOptions = new RoomOptions
+            {
+                MaxPlayers = 4,
+                IsVisible = true,
+                IsOpen = true
+            };
+            
+            PhotonNetwork.JoinOrCreateRoom(roomName, roomOptions, TypedLobby.Default);
+        }
+        
+        // 포톤 콜백 메서드들
+        public override void OnConnectedToMaster()
+        {
+            Debug.Log("포톤 마스터 서버에 연결되었습니다!");
+            Debug.Log($"닉네임: {PhotonNetwork.NickName}");
+            
+            // 자동으로 룸 생성/입장
+            if (autoConnect)
+            {
+                CreateOrJoinRoom();
+            }
+        }
+        
+        public override void OnJoinedRoom()
+        {
+            Debug.Log($"룸 '{PhotonNetwork.CurrentRoom.Name}'에 입장했습니다!");
+            Debug.Log($"플레이어 수: {PhotonNetwork.CurrentRoom.PlayerCount}/{PhotonNetwork.CurrentRoom.MaxPlayers}");
+            Debug.Log($"마스터 클라이언트: {PhotonNetwork.IsMasterClient}");
+            
+            // 플레이어 닉네임 설정
+            if (string.IsNullOrEmpty(PhotonNetwork.NickName))
+            {
+                PhotonNetwork.NickName = $"Player_{Random.Range(1000, 9999)}";
+            }
+        }
+        
+        public override void OnJoinRoomFailed(short returnCode, string message)
+        {
+            Debug.LogError($"룸 입장 실패: {message} (코드: {returnCode})");
+        }
+        
+        public override void OnDisconnected(DisconnectCause cause)
+        {
+            Debug.LogWarning($"포톤 연결 해제: {cause}");
+        }
+        
         [ContextMenu("게임 상태 확인")]
         private void CheckGameStatus()
         {
@@ -125,6 +226,12 @@ namespace KYS
             Debug.Log($"방 입장: {PhotonNetwork.InRoom}");
             Debug.Log($"플레이어 수: {PhotonNetwork.PlayerList.Length}");
             Debug.Log($"마스터 클라이언트: {PhotonNetwork.IsMasterClient}");
+            
+            if (PhotonNetwork.InRoom)
+            {
+                Debug.Log($"현재 룸: {PhotonNetwork.CurrentRoom.Name}");
+                Debug.Log($"룸 플레이어 수: {PhotonNetwork.CurrentRoom.PlayerCount}/{PhotonNetwork.CurrentRoom.MaxPlayers}");
+            }
             
             if (gameManager != null)
             {
