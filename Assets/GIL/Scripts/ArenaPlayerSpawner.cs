@@ -15,30 +15,13 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
     [SerializeField] private Color circleColor = Color.cyan;
     [SerializeField] private Color centerLineColor = Color.red;
 
-    private Color[] colors = {
-        Color.red,
-        Color.blue,
-        Color.green,
-        Color.yellow
-    };
     private int _playerCount;
     
     private void Start()
     {
-        SetPlayerColor();
-        
         SpawnPlayer();
     }
     
-    private void SetPlayerColor()
-    {
-        int index = PhotonNetwork.PlayerList.Length - 1;
-        index %= colors.Length;
-
-        Hashtable props = new Hashtable();
-        props["Color"] = index;
-        PhotonNetwork.LocalPlayer.SetCustomProperties(props);
-    }
     private void SpawnPlayer()
     {
         _playerCount = PhotonNetwork.PlayerList.Length;

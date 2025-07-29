@@ -3,7 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
 
-public class ArenaPlayerColorSync : MonoBehaviourPun
+public class ArenaPlayerColorSync : MonoBehaviourPunCallbacks
 {
     [SerializeField] private Renderer playerRenderer;
 
@@ -30,7 +30,7 @@ public class ArenaPlayerColorSync : MonoBehaviourPun
     }
 
     // 새로운 플레이어가 들어와서 프로퍼티가 업데이트되면 다시 색상을 적용
-    public void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
         if (targetPlayer == photonView.Owner && changedProps.ContainsKey("Color"))
         {
