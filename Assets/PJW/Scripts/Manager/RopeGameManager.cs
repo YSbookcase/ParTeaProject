@@ -1,18 +1,21 @@
+using PJW;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 namespace PJW
 {
-    public class RopeGameManager : MonoBehaviour
+    public class RopeGameManager : MonoBehaviourPunCallbacks
     {
-        [SerializeField] private Text countdownText;
+        [Header("UI")]
+        [SerializeField] private TextMeshProUGUI countdownText;
+
+        [Header("Rank 계산기")]
         [SerializeField] private RankCalculator rankCalculator;
 
         private int totalPlayers;
-        private int deadPlayers = 0;
         private int deathCount = 0;
 
         private void Start()
@@ -23,11 +26,13 @@ namespace PJW
 
         public void BeginCountdown()
         {
+            deathCount = 0;
+
             StopAllCoroutines();
-            StartCoroutine(StartCountdownRoutine());
+            StartCoroutine(CountdownRoutine());
         }
 
-        private IEnumerator StartCountdownRoutine()
+        private IEnumerator CountdownRoutine()
         {
             Time.timeScale = 0f;
             countdownText.gameObject.SetActive(true);
@@ -48,28 +53,13 @@ namespace PJW
             Time.timeScale = 1f;
         }
 
-        // 점수는 임시로 만듦
-        public void OnPlayerDied(Player playerWhoDied)
+        public void OnPlayerDied(Player player)
         {
-            if (!PhotonNetwork.IsMasterClient) return;
+            if (!PhotonNetwork.IsMasterClient)
+                return;
 
             deathCount++;
-
-            int score = 0;
-            switch (deathCount)
-            {
-                case 1: score = 2; break;
-                case 2: score = 3; break;
-                case 3: score = 4; break;
-                case 4: score = 5; break;
-                default: score = 0; break;
-            }
-
-            playerWhoDied.SetTotalGameScore(score);
-
-            deadPlayers++;
-
-            if (deadPlayers >= totalPlayers)
+            if (deathCount >= totalPlayers)
             {
                 EndGame();
             }
@@ -77,14 +67,12 @@ namespace PJW
 
         private void EndGame()
         {
-            if (PhotonNetwork.IsMasterClient && rankCalculator != null)
-            {
-                rankCalculator.CalculateRanks();
-            }
+            if (!PhotonNetwork.IsMasterClient)
+                return;
 
-            RopeUIManager.Instance?.ShowDeathPanel();
-            // PhotonView photonView = PhotonView.Get(RopeUIManager.Instance);
-            // photonView.RPC("RPC_ShowDeathPanel", RpcTarget.All);
+            rankCalculator?.CalculateRanks();
+
+            PhotonNetwork.LoadLevel("Score");
         }
     }
 }

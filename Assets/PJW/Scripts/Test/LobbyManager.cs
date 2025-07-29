@@ -20,20 +20,17 @@ namespace PJW
 
         private void Start()
         {
-            // 랜덤 닉네임 부여 & 서버 접속
             PhotonNetwork.NickName = $"Player_{Random.Range(1000, 9999)}";
             PhotonNetwork.ConnectUsingSettings();
 
             startButton.interactable = false;
             startButton.onClick.AddListener(OnClickStart);
 
-            // 접속 전이라도 자신의 닉네임은 미리 보여줄 수 있음
             playerListText.text = PhotonNetwork.NickName + "\n";
         }
 
         public override void OnConnectedToMaster()
         {
-            // 룸 입장
             PhotonNetwork.JoinOrCreateRoom(
                 "PJWTestRoom",
                 new RoomOptions { MaxPlayers = 4 },

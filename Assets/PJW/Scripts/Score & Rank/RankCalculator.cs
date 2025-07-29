@@ -21,7 +21,13 @@ namespace PJW
             for (int i = 0; i < sortedPlayers.Count; i++)
             {
                 int rank = i + 1; // 1등부터 시작
-                sortedPlayers[i].SetRank(rank);
+                Player p = sortedPlayers[i];
+
+                // 커스텀 프로퍼티에 저장
+                p.SetRank(rank);
+
+                // 디버그: 플레이어 닉네임과 등수 출력
+                Debug.Log($"[RankCalculator] {p.NickName} 는 {rank}등 입니다. (Score: {p.GetTotalGameScore()})");
             }
         }
     }
