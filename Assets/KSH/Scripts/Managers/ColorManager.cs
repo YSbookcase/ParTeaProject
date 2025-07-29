@@ -42,7 +42,7 @@ namespace KSH
         
             //커스텀프로퍼티 해시테이블 생성
             ExitGames.Client.Photon.Hashtable colorProperty = new ExitGames.Client.Photon.Hashtable();
-            colorProperty["Color"] = colorHex; //Color 키에 변환한 문자열 저장
+            colorProperty["TeamColor"] = colorHex; //Color 키에 변환한 문자열 저장
             PhotonNetwork.LocalPlayer.SetCustomProperties(colorProperty); //로컬 플레이어의 커스텀프로퍼티에 변경사항 적용
         }
         public void RegisterPlayer(PlayerController pc) //플레이어 등록
@@ -65,9 +65,9 @@ namespace KSH
                 }
             }
             
-            if (changedProps.ContainsKey("Color")) //만약 Color 키가 변경되었으면
+            if (changedProps.ContainsKey("TeamColor")) //만약 Color 키가 변경되었으면
             {
-                string colorHex = (string)changedProps["Color"];  //Color 키를 문자열로 저장
+                string colorHex = (string)changedProps["TeamColor"];  //Color 키를 문자열로 저장
                 if (ColorUtility.TryParseHtmlString("#" + colorHex, out Color newColor)) //문자열을 색상으로 변경할 수 있다면
                 {
                     //만약 플레이어의 고유 번호를 얻는다면
