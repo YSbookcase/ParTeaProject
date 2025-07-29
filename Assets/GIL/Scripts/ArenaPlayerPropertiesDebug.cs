@@ -7,7 +7,6 @@ namespace GIL.Scripts
 {
     public class ArenaPlayerPropertiesDebug : MonoBehaviourPunCallbacks
     {
-        public List<PlayerInfo> playerInfoList = new();
         private void Start()
         {
             PrintAllPlayerProperties();

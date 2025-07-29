@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
+using ExitGames.Client.Photon;
 
 namespace GIL.Scripts
 {
@@ -15,9 +15,9 @@ namespace GIL.Scripts
             ActorNumber = actorNumber;
             CustomProperties = new Dictionary<string, object>();
 
-            foreach (DictionaryEntry entry in customProperties)
+            foreach (var key in customProperties.Keys)
             {
-                CustomProperties[entry.Key.ToString()] = entry.Value;
+                CustomProperties[key.ToString()] = customProperties[key];
             }
         }
     }
