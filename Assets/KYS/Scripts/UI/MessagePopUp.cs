@@ -40,7 +40,16 @@ namespace KYS
 
         private void CheckedMessage(PointerEventData eventData)
         {
-            UIManager.Instance.ClosePopUp();
+            // MessagePopUp만 닫기 (RoomPopUp은 유지)
+            if (UIManager.Instance.PopUp != null && UIManager.Instance.PopUp.StackCount() > 1)
+            {
+                UIManager.Instance.ClosePopUp();
+            }
+            else
+            {
+                // MessagePopUp만 직접 제거
+                Destroy(gameObject);
+            }
         }
 
     }

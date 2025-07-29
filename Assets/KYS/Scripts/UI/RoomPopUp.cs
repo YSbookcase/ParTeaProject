@@ -135,7 +135,7 @@ namespace KYS
                 PhotonManager.Instance.OnMasterClientSwitchedEvent += OnMasterClientSwitched; // 마스터 클라이언트 변경 이벤트 구독
             }
 
-            // 방 입장 시 초기화
+            // 방 입장 시 초기화 (이미 방에 있는 플레이어들에 대해서만)
             InitializeRoom();
         }
 
@@ -164,24 +164,44 @@ namespace KYS
         // 방 초기화
         private void InitializeRoom()
         {
+            Debug.Log("[RoomPopUp] 방 초기화 시작");
+            
+            // 기존 패널들 정리
+            if (playerPanels.Count > 0)
+            {
+                Debug.Log($"[RoomPopUp] 기존 패널 {playerPanels.Count}개 정리");
+                foreach (var kvp in playerPanels)
+                {
+                    if (kvp.Value != null && kvp.Value.gameObject != null)
+                    {
+                        Destroy(kvp.Value.gameObject);
+                    }
+                }
+                playerPanels.Clear();
+            }
+
             // 게임 선택 버튼들의 상태 설정
             UpdateGameSelectionButtonStates();
 
             // 게임 선택 UI 초기화
             InitializeGameSelection();
+            
+            // 색상 선택 UI 초기화
+            InitializeColorSelection();
 
             // 플레이어 패널 생성
             PlayerPanelSpawn();
+            
+            Debug.Log("[RoomPopUp] 방 초기화 완료");
         }
 
         // 플레이어 패널 생성
         public void PlayerPanelSpawn(Player player)
         {
-            if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
+            // 이미 패널이 존재하는지 확인
+            if (playerPanels.ContainsKey(player.ActorNumber))
             {
-                // 게임 선택 버튼들의 상태 업데이트
-                UpdateGameSelectionButtonStates();
-                panel.Init(player);
+                Debug.LogWarning($"[RoomPopUp] 플레이어 패널이 이미 존재합니다: {player.NickName}");
                 return;
             }
 
@@ -191,11 +211,53 @@ namespace KYS
             item.Init(player);
             playerPanels.Add(player.ActorNumber, item);
 
+            // 새로 들어온 플레이어에게 자동으로 색상 할당
+            if (player.IsLocal && !player.CustomProperties.ContainsKey("Color"))
+            {
+                AssignAutoColor(player);
+            }
+
             // UI 레이아웃 강제 업데이트
             Canvas.ForceUpdateCanvases();
             if (playerPanelContent is RectTransform rectTransform)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+            }
+            
+            Debug.Log($"[RoomPopUp] 플레이어 패널 생성 완료: {player.NickName}");
+        }
+        
+        // 자동 색상 할당
+        private void AssignAutoColor(Player player)
+        {
+            // 사용 가능한 색상 찾기
+            bool[] usedColors = new bool[4]; // 4가지 색상
+            
+            // 다른 플레이어들이 사용 중인 색상 체크
+            foreach (Player otherPlayer in PhotonNetwork.PlayerList)
+            {
+                if (otherPlayer != player && otherPlayer.CustomProperties.TryGetValue("Color", out object colorValue))
+                {
+                    if (colorValue != null)
+                    {
+                        int colorIndex = (int)colorValue;
+                        if (colorIndex >= 0 && colorIndex < 4)
+                        {
+                            usedColors[colorIndex] = true;
+                        }
+                    }
+                }
+            }
+            
+            // 사용 가능한 첫 번째 색상 할당
+            for (int i = 0; i < 4; i++)
+            {
+                if (!usedColors[i])
+                {
+                    PhotonManager.Instance.SetPlayerColor(i);
+                    Debug.Log($"[RoomPopUp] 자동 색상 할당: {player.NickName} -> 색상 {i}");
+                    break;
+                }
             }
         }
 
@@ -203,18 +265,26 @@ namespace KYS
         {
             PhotonNetwork.AutomaticallySyncScene = true;
 
-            // 게임 선택 버튼들의 상태 설정
-            UpdateGameSelectionButtonStates();
-
-            InitializeGameSelection();
-
+            // 모든 플레이어에 대해 패널 생성
             foreach (Player player in PhotonNetwork.PlayerList)
             {
-                GameObject obj = Instantiate(playerPanelItemPrefab);
-                obj.transform.SetParent(playerPanelContent, false); // false로 설정하여 로컬 위치 유지
-                PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
-                item.Init(player);
-                playerPanels.Add(player.ActorNumber, item);
+                // 이미 존재하는 패널인지 확인
+                if (!playerPanels.ContainsKey(player.ActorNumber))
+                {
+                    GameObject obj = Instantiate(playerPanelItemPrefab);
+                    obj.transform.SetParent(playerPanelContent, false); // false로 설정하여 로컬 위치 유지
+                    PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
+                    item.Init(player);
+                    playerPanels.Add(player.ActorNumber, item);
+                    
+                    // 새로 들어온 플레이어에게 자동으로 색상 할당
+                    if (player.IsLocal && !player.CustomProperties.ContainsKey("Color"))
+                    {
+                        AssignAutoColor(player);
+                    }
+                    
+                    Debug.Log($"[RoomPopUp] 플레이어 패널 생성: {player.NickName}");
+                }
             }
 
             // UI 레이아웃 강제 업데이트
@@ -223,66 +293,104 @@ namespace KYS
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
             }
+            
+            Debug.Log($"[RoomPopUp] 총 {playerPanels.Count}개의 플레이어 패널 생성 완료");
         }
 
         public void PlayerPanelDestroy(Player player)
         {
             if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
             {
-                Destroy(panel.gameObject);
+                if (panel != null && panel.gameObject != null)
+                {
+                    Destroy(panel.gameObject);
+                }
                 playerPanels.Remove(player.ActorNumber);
+                Debug.Log($"[RoomPopUp] 플레이어 패널 제거 완료: {player.NickName}");
             }
             else
             {
-                Debug.LogError("플레이어 패널을 찾을 수 없음");
+                Debug.LogWarning($"[RoomPopUp] 플레이어 패널을 찾을 수 없음: {player.NickName}");
             }
         }
 
         // 게임 시작
         private void GameStart(PointerEventData eventData)
         {
-            if (PhotonNetwork.IsMasterClient && AllPlayerReadyCheck())
+            if (!PhotonNetwork.IsMasterClient)
             {
-                // 선택된 게임에 따라 씬 이동
-                string sceneName = GetSelectedGameScene();
-                Debug.Log($"[RoomPopUp] 게임 시작: {sceneName}");
-                
-                // 방 속성에 선택된 게임 저장
-                Hashtable roomProperty = new Hashtable();
-                roomProperty["SelectedGame"] = selectedGameIndex;
-                PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
-                
-                // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
-                if (Manager.game != null)
-                {
-                    Manager.game.GameStart(sceneName);
-                    Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
-                }
-                else
-                {
-                    Debug.LogWarning("[RoomPopUp] JTW.Manager.game이 null입니다. 기본 씬 이동을 사용합니다.");
-                    // 씬 이동
-                    PhotonNetwork.LoadLevel(sceneName);
-                }
-                
-                UIManager.Instance.CleanAllUI();
+                ShowErrorMessage("방장만 게임을 시작할 수 있습니다.");
+                return;
             }
+            
+            if (!AllPlayerReadyCheck())
+            {
+                ShowErrorMessage("모든 플레이어가 Ready 상태이고 색상을 선택해야 합니다.");
+                return;
+            }
+            
+            // 선택된 게임에 따라 씬 이동
+            string sceneName = GetSelectedGameScene();
+            Debug.Log($"[RoomPopUp] 게임 시작: {sceneName}");
+            
+            // 방 속성에 선택된 게임 저장
+            Hashtable roomProperty = new Hashtable();
+            roomProperty["SelectedGame"] = selectedGameIndex;
+            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+            
+            // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
+            if (Manager.game != null)
+            {
+                Manager.game.GameStart(sceneName);
+                Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] JTW.Manager.game이 null입니다. 기본 씬 이동을 사용합니다.");
+                // 씬 이동
+                PhotonNetwork.LoadLevel(sceneName);
+            }
+            
+            UIManager.Instance.CleanAllUI();
         }
 
         // 모든 플레이어 준비 상태 확인
         public bool AllPlayerReadyCheck()
         {
+            Debug.Log($"[RoomPopUp] 플레이어 준비 상태 확인 시작 - 총 {PhotonNetwork.PlayerList.Length}명");
+            
             foreach (Player player in PhotonNetwork.PlayerList)
             {
-                if (!player.CustomProperties.TryGetValue("Ready", out object value) || !(bool)value)
+                Debug.Log($"[RoomPopUp] 플레이어 {player.NickName} 상태 확인 중...");
+                
+                // Ready 상태 확인
+                if (!player.CustomProperties.TryGetValue("Ready", out object readyValue) || !(bool)readyValue)
+                {
+                    Debug.Log($"[RoomPopUp] 플레이어 {player.NickName}이 Ready 상태가 아닙니다. Ready: {readyValue}");
                     return false;
+                }
+                
+                // 색상 선택 확인
+                if (!player.CustomProperties.TryGetValue("Color", out object colorValue) || colorValue == null)
+                {
+                    Debug.Log($"[RoomPopUp] 플레이어 {player.NickName}이 색상을 선택하지 않았습니다. Color: {colorValue}");
+                    return false;
+                }
+                
+                Debug.Log($"[RoomPopUp] 플레이어 {player.NickName} - Ready: {readyValue}, Color: {colorValue}");
             }
+            
+            Debug.Log("[RoomPopUp] 모든 플레이어가 Ready 상태이고 색상을 선택했습니다.");
             return true;
         }
 
         // 방 나가기
         private void LeaveRoom(PointerEventData eventData)
         {
+            // 방장이 나가는 경우, Photon이 자동으로 다음 플레이어에게 방장 권한을 넘김
+            // 별도로 권한을 넘길 필요 없음 (Photon이 자동 처리)
+            Debug.Log("[RoomPopUp] 방을 나갑니다.");
+
             foreach (Player player in PhotonNetwork.PlayerList)
             {
                 if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
@@ -296,6 +404,8 @@ namespace KYS
             UIManager.Instance.CleanPopUp();
             UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
+
+
 
         // 게임 선택 버튼들
         private void ClickLeftGameButton(PointerEventData eventData)
@@ -459,12 +569,36 @@ namespace KYS
         private void OnPlayerEnteredRoom(Player newPlayer)
         {
             Debug.Log($"플레이어 입장: {newPlayer.NickName}");
-            PlayerPanelSpawn(newPlayer);
+            
+            // 이미 패널이 존재하는지 확인
+            if (!playerPanels.ContainsKey(newPlayer.ActorNumber))
+            {
+                PlayerPanelSpawn(newPlayer);
+            }
+            else
+            {
+                // 기존 패널 업데이트
+                if (playerPanels.TryGetValue(newPlayer.ActorNumber, out PlayerPanelItem panel))
+                {
+                    panel.Init(newPlayer);
+                }
+            }
         }
 
         private void OnPlayerLeftRoom(Player otherPlayer)
         {
             Debug.Log($"플레이어 퇴장: {otherPlayer.NickName}");
+            
+            // 방장이 나간 경우 채팅에 알림
+            if (otherPlayer.IsMasterClient)
+            {
+                DisplayChatMessage("시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
+            }
+            else
+            {
+                DisplayChatMessage("시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
+            }
+            
             PlayerPanelDestroy(otherPlayer);
         }
 
@@ -500,6 +634,49 @@ namespace KYS
             
             // 게임 선택 버튼들의 상태 업데이트
             UpdateGameSelectionButtonStates();
+            
+            // 모든 플레이어 패널의 방장 표시 업데이트
+            UpdateAllPlayerPanelsMasterClientStatus();
+            
+            // 방장 변경 알림 메시지 표시
+            ShowMasterClientChangeMessage(newMasterClient);
+            
+            // 채팅에 방장 변경 메시지 추가 (특별한 형식으로)
+            string masterChangeMessage = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다! 👑";
+            DisplayChatMessage("시스템", masterChangeMessage);
+        }
+
+        // 모든 플레이어 패널의 방장 표시 업데이트
+        private void UpdateAllPlayerPanelsMasterClientStatus()
+        {
+            foreach (var kvp in playerPanels)
+            {
+                Player player = PhotonNetwork.CurrentRoom.GetPlayer(kvp.Key);
+                if (player != null)
+                {
+                    kvp.Value.UpdatePlayerProperties(player);
+                }
+            }
+        }
+
+        // 방장 변경 알림 메시지 표시
+        private void ShowMasterClientChangeMessage(Player newMasterClient)
+        {
+            string message = "";
+            if (newMasterClient.ActorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
+            {
+                message = "🎉 당신이 새로운 방장이 되었습니다! 🎉";
+            }
+            else
+            {
+                message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
+            }
+            
+            // 간단한 알림 메시지 표시 (선택사항)
+            Debug.Log($"[RoomPopUp] {message}");
+            
+            // 방장 변경 시 특별한 채팅 메시지 색상으로 표시 (선택사항)
+            // DisplayChatMessage("시스템", message);
         }
 
         // 게임 선택 버튼들의 상태 업데이트
@@ -527,10 +704,25 @@ namespace KYS
         // 에러 메시지 표시
         private void ShowErrorMessage(string message)
         {
+            // 이미 MessagePopUp이 열려있는지 확인
+            MessagePopUp existingMessagePopUp = UIManager.Instance.FindActivePopUp<MessagePopUp>();
+            if (existingMessagePopUp != null)
+            {
+                // 기존 메시지 팝업 업데이트
+                existingMessagePopUp.SetMessage(message, "확인");
+                return;
+            }
+            
+            // 새로운 메시지 팝업 생성
             MessagePopUp messagePopUp = UIManager.Instance.ShowPopUp<MessagePopUp>();
             if (messagePopUp != null)
             {
                 messagePopUp.SetMessage(message, "확인");
+                Debug.Log($"[RoomPopUp] 에러 메시지 표시: {message}");
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] MessagePopUp을 생성할 수 없습니다.");
             }
         }
 
