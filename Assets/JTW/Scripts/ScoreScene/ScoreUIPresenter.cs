@@ -2,6 +2,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using BaseUI = JTW_JumpGame.BaseUI;
@@ -30,15 +31,16 @@ namespace JTW_JumpGame
         {
             scorePanel = GetUI("ScorePanel");
 
-            foreach(Player player in PhotonNetwork.PlayerList)
-            {
+            List<Player> palyers = PhotonNetwork.PlayerList.OrderBy(p => p.GetRank()).ToList();
 
+            foreach(Player player in palyers)
+            {
                 GameObject obj = Instantiate(playerScorePanelPrefab, scorePanel.transform);
                 obj.GetComponent<RectTransform>().anchoredPosition = startPositon;
 
                 PlayerScorePanel panel = obj.GetComponent<PlayerScorePanel>();
 
-                panel.InitInfo(player.NickName, player.GetTotalGameScore() + rankScore[player.GetRank()]);
+                panel.InitInfo(player.GetRank(), player.NickName, player.GetTotalGameScore(), rankScore[player.GetRank()]);
 
                 player.AddTotalGameScore(rankScore[player.GetRank()]);
                 startPositon.y -= 140;
