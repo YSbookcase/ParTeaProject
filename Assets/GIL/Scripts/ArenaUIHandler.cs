@@ -5,15 +5,16 @@ using UnityEngine;
 
 namespace GIL.Scripts
 {
-    public class ArenaPlayerPropertiesDebug : MonoBehaviourPunCallbacks
+    public class ArenaUIHandler : MonoBehaviourPunCallbacks
     {
-        public List<PlayerInfo> playerInfoList = new();
+        private Dictionary<object, object> _playerProperties = new();
+
         private void Start()
         {
-            PrintAllPlayerProperties();
+            GetAllPlayerProperties();
         }
 
-        private void PrintAllPlayerProperties()
+        private void GetAllPlayerProperties()
         {
             Debug.Log("== [Photon] 현재 플레이어들의 CustomProperties 출력 ==");
 
@@ -25,6 +26,7 @@ namespace GIL.Scripts
                 {
                     object value = player.CustomProperties[key];
                     Debug.Log($"  - {key}: {value}");
+                    _playerProperties.Add(key, value);
                 }
             }
         }
