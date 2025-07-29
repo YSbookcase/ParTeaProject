@@ -13,6 +13,11 @@ public class JumpPlayerController : MonoBehaviourPun
 
     private bool isGround = true;
 
+    private Color[] playerColors = new Color[]
+    {
+        Color.red, Color.blue, Color.green, Color.yellow
+    };
+
     private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
@@ -23,6 +28,12 @@ public class JumpPlayerController : MonoBehaviourPun
 
         NicknamePanel panel = nicknamePanelObj.GetComponent<NicknamePanel>();
         panel.SetInfo(photonView.Owner.NickName, transform);
+
+        object colorIndex;
+        if(photonView.Owner.CustomProperties.TryGetValue("Color", out colorIndex))
+        {
+            GetComponent<MeshRenderer>().material.color = playerColors[(int)colorIndex];
+        }
     }
 
     public void OnJump(InputValue value)
