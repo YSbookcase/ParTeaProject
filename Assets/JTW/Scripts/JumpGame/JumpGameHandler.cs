@@ -12,7 +12,9 @@ namespace JTW_JumpGame
     {
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private GameObject obstaclePrefab;
+        [SerializeField] private GameObject jumpScorePanelPrefab;
 
+        [SerializeField] private Canvas gameCanvas;
         [SerializeField] private Transform obstacleSpawnPoint;
 
         [Header("테스트 용")]
@@ -21,6 +23,7 @@ namespace JTW_JumpGame
         private GameObject localPlayer;
 
         private List<int> alivePlayers = new List<int>();
+        private List<JumpScorePanel> jumpScorePanels = new List<JumpScorePanel>();
 
         private Vector3 playerSpawnPoint = new Vector3(-3f, 0, 0);
         private bool isGameStarted;
@@ -50,6 +53,19 @@ namespace JTW_JumpGame
             playerSpawnPoint.x += 2f * (playerNum);
 
             localPlayer = PhotonNetwork.Instantiate("JTW_JumpPlayer", playerSpawnPoint, Quaternion.identity);
+
+            Vector2 scorePoint = new Vector2(35, 150);
+
+            foreach(Player player in PhotonNetwork.PlayerList)
+            {
+                GameObject obj = Instantiate(jumpScorePanelPrefab, gameCanvas.transform);
+                obj.GetComponent<RectTransform>().anchoredPosition = scorePoint;
+
+                JumpScorePanel scorePanel = obj.GetComponent<JumpScorePanel>();
+                scorePanel.SetInfo(player);
+                jumpScorePanels.Add(scorePanel);
+                scorePoint.x += 260;
+            }
 
             Debug.Log("점프 게임 시작!");
 
@@ -144,6 +160,18 @@ namespace JTW_JumpGame
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
         {
+            if (changedProps.ContainsKey("jumpGameScore"))
+            {
+                foreach(JumpScorePanel panel in jumpScorePanels)
+                {
+                    if(panel.player == targetPlayer)
+                    {
+                        panel.SetScore((int)changedProps["jumpGameScore"]);
+                        break;
+                    }
+                }
+            }
+
             if (!PhotonNetwork.IsMasterClient) return;
 
             if (changedProps.ContainsKey("isLoaded"))
