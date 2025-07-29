@@ -3,30 +3,36 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using TMPro;
 using UnityEngine.InputSystem;
+using UnityEngine.XR;
 
 namespace KSH
 {
     public class PlayerController : MonoBehaviourPun
     {
-        [Header("움직임 관련")] [SerializeField] private float moveSpeed;
+        [Header("움직임 관련")] 
+        [SerializeField] private float moveSpeed;
         [SerializeField] private float rotateSpeed;
-        [Header("테스트용 (PC도 조작됨)")] public bool enableMoblie = false;
+        public bool isMove = true;
+        [Header("색깔 관련")]
         [SerializeField] private Material body;
         [SerializeField] private Renderer bodyRenderer;
+        public Color color;
+        [SerializeField] private TextMeshProUGUI nickName;
 
         private Rigidbody rigid;
         private Vector3 moveVec;
-        public Color color;
         private Vector2 inputDir;
         private PlayerAction playerAction;
-        public bool isMove = true;
+        private float curSpeed;
 
         private void Awake()
         {
             playerAction = new PlayerAction();
             rigid = GetComponent<Rigidbody>();
             isMove = true;
+            curSpeed = moveSpeed;
         }
         
         private void OnEnable()
@@ -41,6 +47,14 @@ namespace KSH
 
         void Start()
         {
+            if (photonView.IsMine)
+            {
+                nickName.text = PhotonNetwork.NickName;
+            }
+            else
+            {
+                nickName.text = photonView.Owner.NickName;
+            }
             ChangeColor();
         }
 
@@ -60,6 +74,18 @@ namespace KSH
             moveVec = Vector3.zero;
             isMove = false;
         }
+        public void CanMove(Vector3 moveVec)
+        {
+            this.moveVec = moveVec;
+            isMove = true;
+        }
+
+        [PunRPC]
+        public void RPC_CanMove()
+        {
+            CanMove(moveVec);
+        }
+        
         [PunRPC]
         public void RPC_DontMove()
         {
@@ -68,7 +94,7 @@ namespace KSH
         
         public void Move()
         {
-            moveVec = new Vector3(inputDir.x, 0, inputDir.y) * moveSpeed * Time.fixedDeltaTime; //초당 이동속도만큼 이동하는 벡터
+            moveVec = new Vector3(inputDir.x, 0, inputDir.y) * curSpeed * Time.fixedDeltaTime; //초당 이동속도만큼 이동하는 벡터
 
             rigid.MovePosition(transform.position + moveVec); //현재위치에서 이동벡터만큼 이동
 
@@ -86,6 +112,11 @@ namespace KSH
             if (bodyRenderer != null)
             {
                 bodyRenderer.material.color = color;
+            }
+            
+            if(nickName != null)
+            {
+                nickName.color = color;
             }
         }
 
@@ -107,6 +138,24 @@ namespace KSH
                     SettingColor(color);
                 }
             }
+        }
+        
+        public void Bounce(float bounceForce)
+        {
+            Vector3 velocity = rigid.velocity;
+            velocity.y = 0;
+            rigid.velocity = velocity;
+            rigid.AddForce(transform.up * bounceForce, ForceMode.Impulse);
+        }
+
+        public void Slow(float slowFactor)
+        {
+            curSpeed = moveSpeed * slowFactor;
+        }
+
+        public void ResetSpeed()
+        {
+            curSpeed = moveSpeed;
         }
     }
 }
