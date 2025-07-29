@@ -1,3 +1,4 @@
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -30,6 +31,12 @@ public class RacingLine : MonoBehaviour
             else
             {
                 Debug.Log("플레이어 도착");
+                PhotonView photonView = other.gameObject.GetComponent<PhotonView>();
+
+                if (photonView != null && photonView.IsMine)
+                {
+                    RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.All, photonView.Owner.ActorNumber);
+                }
             }
         }
         

@@ -10,12 +10,15 @@ public class RacingManager : MonoBehaviourPunCallbacks
 {
     public static RacingManager Instance;
 
+    public PhotonView managerView;
+
     public List<Player> racingPlayers = new List<Player>();
     public List<Player> arrivePlayers = new List<Player>();
 
     private int currentRank;
     private int retireRank;
     private bool firstArrive;
+    private bool isRacingFinished;
 
     [SerializeField] private TextMeshProUGUI countdownText;
     [SerializeField] private GameObject countdownUI;
@@ -35,6 +38,8 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
     private void Start()
     {
+        managerView = GetComponent<PhotonView>();
+
         racingPlayers.Clear();
         arrivePlayers.Clear();
 
@@ -46,6 +51,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
         currentRank = 1;
         retireRank = racingPlayers.Count;
         firstArrive = false;
+        isRacingFinished = false;
     }
 
     [PunRPC]
@@ -70,20 +76,26 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RacingFinish()
     {
+        if (isRacingFinished) return;
+        isRacingFinished = true;
+
         foreach (Player retire in racingPlayers)
         {
             retire.SetRank(retireRank);
         }
-
-        SceneManager.LoadScene("Score");
+        if(PhotonNetwork.IsMasterClient)
+        {
+            SceneManager.LoadScene("Score");
+        }
     }
-
-    public void PlayerArrive(Player player)
+    [PunRPC]
+    public void PlayerArrive(int actorNumber)
     {
+        Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
         if (!firstArrive)
         {
             firstArrive = true;
-            photonView.RPC("RetireCount", RpcTarget.All);
+            managerView.RPC("RetireCount", RpcTarget.All);
         }
 
         arrivePlayers.Add(player);
@@ -94,7 +106,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         if (racingPlayers.Count == 0)
         {
-            photonView.RPC(nameof(RacingFinish), RpcTarget.All);
+            managerView.RPC(nameof(RacingFinish), RpcTarget.All);
         }
     }
 
@@ -110,9 +122,9 @@ public class RacingManager : MonoBehaviourPunCallbacks
         }
 
         countdownUI.SetActive(false);
-        if (firstArrive)
+        if (firstArrive && PhotonNetwork.IsMasterClient)
         {
-            photonView.RPC(nameof(RacingFinish), RpcTarget.All);
+            managerView.RPC(nameof(RacingFinish), RpcTarget.All);
         }
         yield return null;
     }

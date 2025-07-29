@@ -5,9 +5,28 @@ using UnityEngine;
 
 public class RacingSpawner : MonoBehaviour
 {
+    public static RacingSpawner Instance;
+
     [SerializeField] private RacingMap racingMap;
 
     private bool isSpawned = false;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void Start()
+    {
+        SetStartLine();
+    }
 
     private void Update()
     {
@@ -15,12 +34,17 @@ public class RacingSpawner : MonoBehaviour
         PlayerSpawn();
     }
 
-    private void PlayerSpawn()
+    private void SetStartLine()
     {
-        isSpawned = true;
         int trackLength = Random.Range(1, racingMap.racingLines.Count - 1);
         racingMap.SetTrack(trackLength);
         racingMap.SetDollyCart(racingMap.startLine);
+    }
+
+    private void PlayerSpawn()
+    {
+        isSpawned = true;
+        
         int playerIndex = 0;
         foreach (var player in PhotonNetwork.PlayerList)
         {
