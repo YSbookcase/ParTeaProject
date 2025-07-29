@@ -156,7 +156,7 @@ MonoBehaviour:
     type: 3}
   obstaclePrefab: {fileID: 4454453914561749657, guid: 42550dac38461224bb2d03bd2cb9404c,
     type: 3}
-  nicknamePanel: {fileID: 4283974777373364330, guid: 378468f5e3f66d14f80c84c147f0b523,
+  jumpScorePanelPrefab: {fileID: 5894718510958982061, guid: 44a7d4febff1cb5438d82d897e005d22,
     type: 3}
   gameCanvas: {fileID: 465045375}
   obstacleSpawnPoint: {fileID: 684973151}
