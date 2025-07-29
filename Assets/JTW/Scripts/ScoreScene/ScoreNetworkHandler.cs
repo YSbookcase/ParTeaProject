@@ -47,4 +47,15 @@ public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
 
         return true;
     }
+
+    public void GoNext()
+    {
+        photonView.RPC(nameof(GoNextGame), RpcTarget.All);
+    }
+
+    [PunRPC]
+    private void GoNextGame()
+    {
+        Manager.game.GoNextMiniGame("JumpGame");
+    }
 }

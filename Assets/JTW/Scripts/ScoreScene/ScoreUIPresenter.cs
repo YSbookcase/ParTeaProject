@@ -12,6 +12,7 @@ namespace JTW_JumpGame
     public class ScoreUIPresenter : BaseUI
     {
         [SerializeField] private GameObject playerScorePanelPrefab;
+        [SerializeField] private ScoreNetworkHandler network;
 
         private GameObject scorePanel;
         private Button nextButton;
@@ -46,12 +47,15 @@ namespace JTW_JumpGame
                 startPositon.y -= 140;
             }
 
-            nextButton.interactable = true;
+            if (PhotonNetwork.IsMasterClient)
+            {
+                nextButton.interactable = true;
+            }
         }
 
         private void GoNextGame()
         {
-            Manager.game.GoNextMiniGame("JumpGame");
+            network.GoNext();
         }
     }
 }

@@ -1,9 +1,6 @@
 ﻿using KYS;
 using Photon.Pun;
 using Photon.Realtime;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
@@ -30,7 +27,7 @@ public class GameManager : Singleton<GameManager>
         PhotonNetwork.CurrentRoom.IsVisible = false;
 
         // 모든 플레이어의 점수를 0으로 초기화
-        foreach(Player player in PhotonNetwork.PlayerList)
+        foreach (Player player in PhotonNetwork.PlayerList)
         {
             player.SetTotalGameScore(0);
         }
@@ -41,12 +38,15 @@ public class GameManager : Singleton<GameManager>
         GoNextMiniGame(sceneName);
     }
 
-    public void GameEnd()
+    public void miniGameEnd()
     {
+        UIManager.Instance.ShowPopUp<RoomPopUp>();
+
+        if (!PhotonNetwork.IsMasterClient) return;
+
         PhotonNetwork.CurrentRoom.IsOpen = true;
         PhotonNetwork.CurrentRoom.IsVisible = true;
 
-        UIManager.Instance.ShowPopUp<RoomPopUp>();
         PhotonNetwork.LoadLevel("NetworkScene");
     }
 
@@ -58,17 +58,19 @@ public class GameManager : Singleton<GameManager>
     public void GoNextMiniGame(string sceneName)
     {
         // 지정된만큼 미니게임을 하였다면, 게임 종료.
-        if(curGameCount == maxGameCount)
+        if (curGameCount == maxGameCount)
         {
-            GameEnd();
+            miniGameEnd();
             return;
         }
 
         curGameCount++;
 
+        if (!PhotonNetwork.IsMasterClient) return;
+
         // 플레이어들이 미니게임 씬으로 넘어갈 때,
         // 모두가 로딩이 완료되었는지 확인하기 위해 isLoaded를 사용한다.
-        foreach(Player player in PhotonNetwork.PlayerList)
+        foreach (Player player in PhotonNetwork.PlayerList)
         {
             Hashtable property = new Hashtable();
             property["isLoaded"] = false;
