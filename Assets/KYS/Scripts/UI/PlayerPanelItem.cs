@@ -38,7 +38,7 @@ namespace KYS
         public void Init(Player player)
         {
             nicknameText.text = player.NickName;
-            hostImage.enabled = player.IsMasterClient;
+            UpdateMasterClientDisplay(player.IsMasterClient);
             readyButton.interactable = player.IsLocal;
 
             // ?? ??? ??
@@ -57,7 +57,20 @@ namespace KYS
             // ?? ?? ?? (?? ??)
             if (player.CustomProperties.TryGetValue("Color", out object colorValue))
             {
-                UpdatePlayerColor((int)colorValue);
+                if (colorValue != null)
+                {
+                    UpdatePlayerColor((int)colorValue);
+                }
+                else
+                {
+                    // 색상이 취소된 경우
+                    UpdatePlayerColor(-1);
+                }
+            }
+            else
+            {
+                // 색상이 설정되지 않은 경우
+                UpdatePlayerColor(-1);
             }
 
             // ?? ?? ?? ?? (?? ??)
@@ -77,6 +90,68 @@ namespace KYS
         {
             readyText.text = isReady ? "Ready" : "Click Ready";
             readyButtonImage.color = isReady ? Color.green : Color.white;
+        }
+
+        // 방장 표시 업데이트
+        private void UpdateMasterClientDisplay(bool isMasterClient)
+        {
+            bool wasMasterClient = hostImage.enabled;
+            hostImage.enabled = isMasterClient;
+            
+            // 방장인 경우 닉네임에 [방장] 표시 추가
+            if (isMasterClient)
+            {
+                if (!nicknameText.text.Contains("[방장]"))
+                {
+                    nicknameText.text = $"{nicknameText.text} [방장]";
+                }
+            }
+            else
+            {
+                // 방장이 아닌 경우 [방장] 표시 제거
+                nicknameText.text = nicknameText.text.Replace(" [방장]", "");
+            }
+            
+            // 방장 상태가 변경된 경우 애니메이션 효과
+            if (wasMasterClient != isMasterClient)
+            {
+                if (isMasterClient)
+                {
+                    // 방장이 된 경우 특별한 효과
+                    StartCoroutine(MasterClientAnimation());
+                }
+            }
+        }
+
+        // 방장 변경 애니메이션
+        private System.Collections.IEnumerator MasterClientAnimation()
+        {
+            // 방장 이미지 크기 애니메이션
+            Vector3 originalScale = hostImage.transform.localScale;
+            Vector3 targetScale = originalScale * 1.2f;
+            
+            // 확대
+            float duration = 0.2f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / duration;
+                hostImage.transform.localScale = Vector3.Lerp(originalScale, targetScale, progress);
+                yield return null;
+            }
+            
+            // 원래 크기로 복원
+            elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / duration;
+                hostImage.transform.localScale = Vector3.Lerp(targetScale, originalScale, progress);
+                yield return null;
+            }
+            
+            hostImage.transform.localScale = originalScale;
         }
 
         private void ReadyButtonClick(PointerEventData eventData)
@@ -117,8 +192,21 @@ namespace KYS
             // ?? ???? (?? ??)
             if (player.CustomProperties.TryGetValue("Color", out object colorValue))
             {
-                int colorIndex = (int)colorValue;
-                UpdatePlayerColor(colorIndex);
+                if (colorValue != null)
+                {
+                    int colorIndex = (int)colorValue;
+                    UpdatePlayerColor(colorIndex);
+                }
+                else
+                {
+                    // 색상이 취소된 경우
+                    UpdatePlayerColor(-1);
+                }
+            }
+            else
+            {
+                // 색상이 설정되지 않은 경우
+                UpdatePlayerColor(-1);
             }
 
             // ?? ?? ???? (?? ??)
@@ -132,7 +220,7 @@ namespace KYS
             nicknameText.text = player.NickName;
             
             // ??? ?? ????
-            hostImage.enabled = player.IsMasterClient;
+            UpdateMasterClientDisplay(player.IsMasterClient);
             
             // 모든 플레이어의 색상 버튼 UI 업데이트 (색상 중복 방지를 위해)
             UpdateAllColorButtonsUI();
@@ -145,8 +233,13 @@ namespace KYS
             int myColorIndex = -1;
             if (PhotonNetwork.LocalPlayer.CustomProperties.TryGetValue("Color", out object myColorValue))
             {
-                myColorIndex = (int)myColorValue;
+                if (myColorValue != null)
+                {
+                    myColorIndex = (int)myColorValue;
+                }
             }
+            
+            Debug.Log($"[PlayerPanelItem] 모든 색상 버튼 UI 업데이트 - 내 색상: {myColorIndex}");
             
             // 모든 색상 버튼 업데이트
             for (int i = 0; i < colorButtons.Length; i++)
@@ -163,7 +256,7 @@ namespace KYS
                     if (isMyColor)
                     {
                         // 내가 선택한 색상 - 강조
-                        colorButtons[i].GetComponent<Image>().color = Color.white;
+                        colorButtons[i].GetComponent<Image>().color = Color.yellow; // 선택된 색상은 노란색으로 강조
                         colorButtons[i].interactable = true;
                     }
                     else if (isColorTaken)
@@ -199,6 +292,27 @@ namespace KYS
         // 색상 버튼 클릭 이벤트
         private void OnColorButtonClick(int colorIndex)
         {
+            // 현재 플레이어의 색상 확인
+            int currentColorIndex = -1;
+            if (PhotonNetwork.LocalPlayer.CustomProperties.TryGetValue("Color", out object currentColorValue))
+            {
+                if (currentColorValue != null)
+                {
+                    currentColorIndex = (int)currentColorValue;
+                }
+            }
+            
+            Debug.Log($"[PlayerPanelItem] 색상 버튼 클릭: {colorIndex}, 현재 색상: {currentColorIndex}");
+            
+            // 같은 색상을 다시 클릭한 경우 - 색상 취소
+            if (currentColorIndex == colorIndex)
+            {
+                // PhotonManager를 통해 색상 취소
+                PhotonManager.Instance.ClearPlayerColor();
+                Debug.Log($"[PlayerPanelItem] 색상 취소 요청: {colorIndex}");
+                return;
+            }
+            
             // 이미 다른 플레이어가 선택한 색상인지 확인
             if (IsColorAlreadySelected(colorIndex))
             {
@@ -208,7 +322,7 @@ namespace KYS
             
             // PhotonManager를 통해 색상 변경
             PhotonManager.Instance.SetPlayerColor(colorIndex);
-            Debug.Log($"[PlayerPanelItem] 색상 선택: {colorIndex}");
+            Debug.Log($"[PlayerPanelItem] 색상 선택 요청: {colorIndex}");
         }
         
         // 색상이 이미 다른 플레이어에 의해 선택되었는지 확인
@@ -218,10 +332,13 @@ namespace KYS
             {
                 if (player.CustomProperties.TryGetValue("Color", out object value))
                 {
-                    int playerColor = (int)value;
-                    if (playerColor == colorIndex && player != PhotonNetwork.LocalPlayer)
+                    if (value != null)
                     {
-                        return true; // 다른 플레이어가 이미 이 색상을 선택함
+                        int playerColor = (int)value;
+                        if (playerColor == colorIndex && player != PhotonNetwork.LocalPlayer)
+                        {
+                            return true; // 다른 플레이어가 이미 이 색상을 선택함
+                        }
                     }
                 }
             }
@@ -250,13 +367,29 @@ namespace KYS
                 // 색상 버튼들 업데이트 (선택된 색상 강조)
                 UpdateColorButtonUI(colorIndex);
                 
-                Debug.Log($"[PlayerPanelItem] 플레이어 색상 변경: {colorIndex}");
+                Debug.Log($"[PlayerPanelItem] 플레이어 색상 변경: {colorIndex} -> {colors[colorIndex]}");
+            }
+            else
+            {
+                // 색상이 취소된 경우 (colorIndex가 -1이거나 범위 밖)
+                if (playerPanelBackground != null)
+                {
+                    playerPanelBackground.color = Color.white; // 기본 색상으로 변경
+                    Debug.Log($"[PlayerPanelItem] 플레이어 패널 배경색을 흰색으로 변경");
+                }
+                
+                // 색상 버튼들 업데이트 (선택 해제)
+                UpdateColorButtonUI(-1);
+                
+                Debug.Log($"[PlayerPanelItem] 플레이어 색상 취소됨 (colorIndex: {colorIndex})");
             }
         }
 
         // 색상 버튼 UI 업데이트
         private void UpdateColorButtonUI(int selectedColorIndex)
         {
+            Debug.Log($"[PlayerPanelItem] 색상 버튼 UI 업데이트 - 선택된 색상: {selectedColorIndex}");
+            
             for (int i = 0; i < colorButtons.Length; i++)
             {
                 if (colorButtons[i] != null)
@@ -270,21 +403,24 @@ namespace KYS
                     // 버튼 상태 설정
                     if (isMyColor)
                     {
-                        // 내가 선택한 색상 - 강조
-                        colorButtons[i].GetComponent<Image>().color = Color.white;
+                        // 내가 선택한 색상 - 강조 (선택된 상태)
+                        colorButtons[i].GetComponent<Image>().color = Color.yellow; // 선택된 색상은 노란색으로 강조
                         colorButtons[i].interactable = true;
+                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 내가 선택한 색상 (강조)");
                     }
                     else if (isColorTaken)
                     {
                         // 다른 플레이어가 선택한 색상 - 비활성화
                         colorButtons[i].GetComponent<Image>().color = Color.gray;
                         colorButtons[i].interactable = false;
+                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 다른 플레이어가 선택한 색상 (비활성화)");
                     }
                     else
                     {
                         // 선택 가능한 색상 - 활성화
                         colorButtons[i].GetComponent<Image>().color = Color.white;
                         colorButtons[i].interactable = true;
+                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 선택 가능한 색상 (활성화)");
                     }
                 }
             }
