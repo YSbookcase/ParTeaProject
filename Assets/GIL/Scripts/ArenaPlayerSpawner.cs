@@ -10,7 +10,6 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
     [SerializeField] private Vector3 center = Vector3.zero;
     
     [Header("Debug Settings")]
-    public float radius = 5f;
     public int segments = 60;
     [SerializeField] private Color circleColor = Color.cyan;
     [SerializeField] private Color centerLineColor = Color.red;
@@ -45,11 +44,11 @@ public class ArenaPlayerSpawner : MonoBehaviourPunCallbacks
         Gizmos.color = circleColor;
         float angleStep = 360f / segments;
 
-        Vector3 prevPoint = center + new Vector3(Mathf.Cos(0), 0, Mathf.Sin(0)) * radius;
+        Vector3 prevPoint = center + new Vector3(Mathf.Cos(0), 0, Mathf.Sin(0)) * spawnRadius;
         for (int i = 1; i <= segments; i++)
         {
             float rad = Mathf.Deg2Rad * angleStep * i;
-            Vector3 nextPoint = center + new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad)) * radius;
+            Vector3 nextPoint = center + new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad)) * spawnRadius;
             Gizmos.DrawLine(prevPoint, nextPoint);
             prevPoint = nextPoint;
         }
