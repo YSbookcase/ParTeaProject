@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using System;
+using System.Data.SqlTypes;
 using Photon.Pun;
 using Photon.Realtime;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KSH
 {
-    public class GameManager : MonoBehaviour
+    public class GameManager : MonoBehaviourPunCallbacks
     {
         [Header("시간 설정")]
         [SerializeField] private float timer;
@@ -22,6 +23,8 @@ namespace KSH
         public event Action OnGameEnd;
         
         private Player player;
+        private bool isReady = false;
+        public int readyCount;
 
         private void Awake()
         {
@@ -34,13 +37,19 @@ namespace KSH
             {
                 Destroy(gameObject); // 하나만 존재해야 하므로 제거
             }
+            
+            TeamManager.Instance.SetTeam(); //팀 설정
         }
         
 
         private void Start()
         {
-            isGameStart = true;
-            TeamManager.Instance.SetTeam();
+            UIManager.Instance.OnCountDownEnd += StartGame; //카운트 다운이 끝나면 게임 시작
+
+            if (PhotonNetwork.IsMasterClient)
+            {
+                photonView.RPC("StartCount", RpcTarget.All);
+            }
         }
 
         private void Update()
@@ -122,6 +131,27 @@ namespace KSH
               int totalRank = (team == 0) ? redRank : blueRank;
               int rank = player.GetRank();
               player.SetRank(totalRank);
+            }
+        }
+
+        [PunRPC]
+        private void StartCount()
+        {
+            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
+            {
+                pc.photonView.RPC("RPC_DontMove", RpcTarget.All);
+            }
+            
+            UIManager.Instance.StartCountDown();
+        }
+
+        private void StartGame()
+        {
+            isGameStart = true;
+            
+            foreach (PlayerController pc in FindObjectsOfType<PlayerController>())
+            {
+                pc.photonView.RPC("RPC_CanMove", RpcTarget.All);
             }
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System;
 namespace KSH
 {
     public class UIManager : MonoBehaviour
@@ -15,6 +16,24 @@ namespace KSH
         [SerializeField] private TextMeshProUGUI winnerText;
         [Header("시간 관련 텍스트")]
         [SerializeField] private TextMeshProUGUI timerText;
+        [SerializeField] private GameObject countDownPanal;
+        [SerializeField] private TextMeshProUGUI countDownText;
+        
+        public event Action OnCountDownEnd;
+        public static UIManager Instance;
+        
+        private void Awake()
+        {
+            if(Instance == null) // Instance가 null이면
+            {
+                Instance = this; // 할당
+                DontDestroyOnLoad(this);
+            }
+            else // 이미 존재한다면
+            {
+                Destroy(gameObject); // 하나만 존재해야 하므로 제거
+            }
+        }
         
 
         void Start()
@@ -76,6 +95,25 @@ namespace KSH
         {
             winnerText.text = msg;
             winnerPanelImage.color = winnercolor;
+        }
+
+        public void StartCountDown()
+        {
+            StartCoroutine(CountDown());
+        }
+
+        private IEnumerator CountDown()
+        {
+            countDownPanal.SetActive(true);
+            
+            for (int i = 3; i >= 0; i--)
+            {
+                countDownText.text = i.ToString();
+                yield return new WaitForSeconds(1f);
+            }
+            countDownText.text = "GO!";
+            countDownPanal.SetActive(false);
+            OnCountDownEnd?.Invoke();
         }
     }
 }
