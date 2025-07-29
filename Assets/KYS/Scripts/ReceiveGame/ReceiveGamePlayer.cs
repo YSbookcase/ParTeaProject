@@ -64,35 +64,54 @@ namespace KYS
         private Vector3 networkPosition;
         private Quaternion networkRotation;
         private float lag;
+        private int playerColorIndex = -1; // 플레이어 색상 인덱스
+        private bool isColorSet = false; // 색상이 설정되었는지 확인
         
         private void Start()
         {
+            // 모든 플레이어가 색상과 이름 태그를 설정
+            targetPosition = transform.position;
+            gameManager = FindObjectOfType<ReceiveGameManager>();
+            gameUI = FindObjectOfType<ReceiveGameUI>();
+            
+            // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.useGravity = false; // 중력 비활성화
+                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            }
+            
+            // 플레이어 색상 설정 (모든 플레이어가 설정)
+            SetPlayerColor();
+            
+            // 이름 태그 생성 (모든 플레이어가 생성)
+            CreateNameTag();
+            
             if (photonView.IsMine)
             {
-                // 로컬 플레이어 설정
-                targetPosition = transform.position;
-                gameManager = FindObjectOfType<ReceiveGameManager>();
-                gameUI = FindObjectOfType<ReceiveGameUI>();
-                
-                // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
-                Rigidbody rb = GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    rb.useGravity = false; // 중력 비활성화
-                    rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-                }
+                // 로컬 플레이어만 추가 설정
+                Debug.Log($"로컬 플레이어 초기화: {PhotonNetwork.LocalPlayer.NickName}");
                 
                 // 플랫폼 감지
                 DetectPlatform();
                 
+                // MobileUIManager 자동 찾기
+                if (mobileUIManager == null)
+                {
+                    mobileUIManager = FindObjectOfType<MobileUIManager>();
+                    if (mobileUIManager != null)
+                    {
+                        Debug.Log("MobileUIManager를 자동으로 찾았습니다.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("MobileUIManager를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
+                    }
+                }
+                
                 // Input System 초기화
                 InitializeInputSystem();
-                
-                // 플레이어 색상 설정 (RoomPopUp에서 설정된 색상 사용)
-                SetPlayerColor();
-                
-                // 이름 태그 생성
-                CreateNameTag();
             }
             
             audioSource = GetComponent<AudioSource>();
@@ -106,6 +125,7 @@ namespace KYS
         {
             if (photonView.IsMine)
             {
+                // 로컬 플레이어만 입력 처리
                 HandleInput();
                 CheckItemCollection();
             }
@@ -116,7 +136,7 @@ namespace KYS
                 transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
             }
             
-            // 이름 태그 업데이트
+            // 이름 태그 업데이트 (모든 플레이어)
             UpdateNameTag();
         }
         
@@ -137,15 +157,18 @@ namespace KYS
                 HandleDesktopInput(ref moveDirection);
             }
             
-            // 키보드 입력 처리 (PC 테스트용)
-            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
-                moveDirection.z += 1f;
-            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
-                moveDirection.z -= 1f;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-                moveDirection.x -= 1f;
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-                moveDirection.x += 1f;
+            // 키보드 입력 처리 (PC 테스트용 - 모바일 UI가 작동하지 않을 때 대체)
+            if (moveDirection.magnitude < 0.1f)
+            {
+                if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+                    moveDirection.z += 1f;
+                if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+                    moveDirection.z -= 1f;
+                if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+                    moveDirection.x -= 1f;
+                if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+                    moveDirection.x += 1f;
+            }
             
             if (moveDirection.magnitude > 0.1f)
             {
@@ -230,25 +253,34 @@ namespace KYS
         
         private void SetPlayerColor()
         {
-            if (playerRenderer != null)
+            if (playerRenderer != null && !isColorSet)
             {
                 // RoomPopUp에서 설정된 색상 가져오기
                 int colorIndex = GetPlayerColorIndex();
+                playerColorIndex = colorIndex; // 네트워크 동기화용 변수에 저장
                 Color playerColor = GetColorByIndex(colorIndex);
                 playerRenderer.material.color = playerColor;
+                isColorSet = true;
                 
-                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.NickName} 색상 설정: {colorIndex}");
+                Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
             }
         }
         
         private int GetPlayerColorIndex()
         {
+            // 해당 플레이어의 색상 정보 가져오기
+            Player targetPlayer = photonView.Owner;
+            if (targetPlayer == null)
+            {
+                targetPlayer = PhotonNetwork.LocalPlayer;
+            }
+            
             // PhotonManager에서 플레이어 색상 정보 가져오기
             try
             {
                 if (PhotonManager.Instance != null)
                 {
-                    return PhotonManager.Instance.GetPlayerColor(PhotonNetwork.LocalPlayer);
+                    return PhotonManager.Instance.GetPlayerColor(targetPlayer);
                 }
             }
             catch (System.Exception e)
@@ -257,7 +289,7 @@ namespace KYS
             }
             
             // 기본값: ActorNumber 기반
-            return (PhotonNetwork.LocalPlayer.ActorNumber - 1) % 8;
+            return (targetPlayer.ActorNumber - 1) % 8;
         }
         
         private Color GetColorByIndex(int index)
@@ -301,7 +333,16 @@ namespace KYS
             
             if (nameText != null)
             {
-                nameText.text = PhotonNetwork.LocalPlayer.NickName;
+                // 해당 플레이어의 닉네임 표시
+                if (photonView.Owner != null)
+                {
+                    nameText.text = photonView.Owner.NickName;
+                    Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
+                }
+                else
+                {
+                    nameText.text = "Unknown Player";
+                }
             }
         }
         
@@ -377,6 +418,7 @@ namespace KYS
                 stream.SendNext(transform.position);
                 stream.SendNext(transform.rotation);
                 stream.SendNext(isMoving);
+                stream.SendNext(playerColorIndex); // 색상 인덱스 전송
             }
             else
             {
@@ -384,6 +426,20 @@ namespace KYS
                 networkPosition = (Vector3)stream.ReceiveNext();
                 networkRotation = (Quaternion)stream.ReceiveNext();
                 isMoving = (bool)stream.ReceiveNext();
+                int receivedColorIndex = (int)stream.ReceiveNext();
+                
+                // 색상 동기화
+                if (receivedColorIndex != playerColorIndex && !isColorSet)
+                {
+                    playerColorIndex = receivedColorIndex;
+                    if (playerRenderer != null)
+                    {
+                        Color playerColor = GetColorByIndex(playerColorIndex);
+                        playerRenderer.material.color = playerColor;
+                        isColorSet = true;
+                        Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
+                    }
+                }
                 
                 lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             }
@@ -482,39 +538,45 @@ namespace KYS
             #if UNITY_ANDROID || UNITY_IOS || UNITY_WSA
                 isMobilePlatform = true;
             #else
-                isMobilePlatform = false;
+                // PC에서도 모바일 UI를 테스트할 수 있도록 수정
+                isMobilePlatform = true; // 테스트용으로 모바일로 설정
             #endif
             
-            Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")}");
+            Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
         }
         
-        // 모바일 입력 처리
+        // 모바일 입력 처리 (한 손 조작용)
         private void HandleMobileInput(ref Vector3 moveDirection)
         {
             if (mobileUIManager != null)
             {
-                // 조이스틱 입력 처리
+                // 조이스틱 입력 처리 (이동만)
                 Vector2 joystickInput = mobileUIManager.GetLeftJoystickInput();
                 if (joystickInput.magnitude > 0.1f)
                 {
                     moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
                     isMoving = true;
+                    Debug.Log($"조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
                 }
                 else
                 {
                     isMoving = false;
                 }
                 
-                // 버튼 입력 처리
-                if (mobileUIManager.IsJumpButtonPressed())
-                {
-                    jumpPressed = true;
-                }
-                
+                // 액션 버튼 입력 처리 (필요시)
                 if (mobileUIManager.IsActionButtonPressed())
                 {
                     actionPressed = true;
+                    Debug.Log("액션 버튼 눌림!");
                 }
+                else
+                {
+                    actionPressed = false;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("MobileUIManager가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
             }
         }
         
