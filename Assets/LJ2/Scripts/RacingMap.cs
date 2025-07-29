@@ -5,7 +5,7 @@ using Cinemachine;
 
 public class RacingMap : MonoBehaviour
 {
-    [SerializeField] List<RacingLine> racingLines = new List<RacingLine>();
+    [SerializeField] public List<RacingLine> racingLines = new List<RacingLine>();
 
     [SerializeField] CinemachineDollyCart dollyCart;
     public RacingLine startLine;
@@ -19,13 +19,22 @@ public class RacingMap : MonoBehaviour
             return;
         }
         
+        // 통과해야 하는 Line의 수 설정
+        foreach (RacingLine line in racingLines)
+        {
+            line.havePassLine = length;
+        }
+
+        // 랜덤으로 시작 지점 선정
         int startIndex = Random.Range(0, racingLines.Count);
         Debug.Log($"Start index = {startIndex}");
         startLine = racingLines[startIndex];
-        startLine.gameObject.SetActive(true);
+        startLine.bottomLine.SetActive(true);
 
+        // 시작 지점, 통과해야 할 Line의 수로 Goal 선정
         int goalIndex = (startIndex + length) % racingLines.Count;
         goalLine = racingLines[goalIndex];
+        goalLine.goalQuad.SetActive(true);
     }
 
     public void SetDollyCart(RacingLine selectLine)

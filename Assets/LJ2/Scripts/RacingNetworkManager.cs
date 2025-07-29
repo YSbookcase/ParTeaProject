@@ -39,7 +39,7 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
 
     private void PlayerSpawn()
     {
-        racingMap.SetTrack(1);
+        racingMap.SetTrack(2);
         racingMap.SetDollyCart(racingMap.startLine);
         Transform spawnPos = racingMap.startLine.spawnPositions[3];
         PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);

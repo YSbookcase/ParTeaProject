@@ -30,6 +30,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
 
     [SerializeField] public float cameraSpeed;
 
+    public int linePassed;
+
     private void Awake()
     {
         if (rigid == null)
@@ -51,6 +53,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
                 virtualCamera.LookAt = transform;
             }
             previousPosition = transform.position;
+
+            linePassed = 0;
         }
     }
 
@@ -201,7 +205,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         if(!photonView.IsMine) return;
         rigid.velocity *= 0.9f; // 충돌 후 속도 감소
         rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
-
     }
 
     [PunRPC]
