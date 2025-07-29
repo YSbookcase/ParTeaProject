@@ -13,7 +13,6 @@ namespace GIL.Scripts
     
         private void Start()
         {
-            //if(PhotonNetwork.IsMasterClient) StartCoroutine(TriggerShrinkRPC());
             StartCoroutine(ShrinkArena());
         }
     
