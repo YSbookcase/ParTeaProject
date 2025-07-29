@@ -1,4 +1,3 @@
-// Assets/PJW/Scripts/Player/PlayerSpawner.cs
 using UnityEngine;
 using Photon.Pun;
 using UnityEngine.SceneManagement;

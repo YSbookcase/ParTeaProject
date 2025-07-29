@@ -91,14 +91,14 @@ namespace PJW
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse);
 
             photonView.RPC(
-                 nameof(RPCNotifyDeath),
+                 nameof(RPCRopeNotifyDeath),
                  RpcTarget.MasterClient,
                  PhotonNetwork.LocalPlayer.ActorNumber
              );
         }
 
         [PunRPC]
-        private void RPCNotifyDeath(int actorNumber, PhotonMessageInfo info)
+        private void RPCRopeNotifyDeath(int actorNumber, PhotonMessageInfo info)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 

@@ -1,18 +1,18 @@
 using PJW;
 using Photon.Pun;
 using Photon.Realtime;
-using ExitGames.Client.Photon;
+using PhotonHashtable = ExitGames.Client.Photon.Hashtable;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 using TMPro;
-using PhotonHashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace PJW
 {
+    [RequireComponent(typeof(PhotonView))]
     public class RopeGameManager : MonoBehaviourPunCallbacks
     {
-        [Header("UI")]  
+        [Header("UI")]
         [SerializeField] private TextMeshProUGUI countdownText;
 
         [Header("Rank 계산기")]
@@ -27,30 +27,29 @@ namespace PJW
         {
             totalPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
 
-            var props = new PhotonHashtable { { IsLoadedKey, true }};
+            // 자신의 로딩 완료 상태 설정
+            var props = new PhotonHashtable { { IsLoadedKey, true } };
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
         }
 
+        // 모든 플레이어가 준비되면 호출
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 
             if (changedProps.ContainsKey(IsLoadedKey))
             {
-                bool allLoaded = PhotonNetwork.PlayerList
-                    .All(p => p.CustomProperties.ContainsKey(IsLoadedKey)
-                           && (bool)p.CustomProperties[IsLoadedKey]);
+                bool allLoaded = PhotonNetwork.PlayerList.All(p => p.CustomProperties.ContainsKey(IsLoadedKey) && (bool)p.CustomProperties[IsLoadedKey]);
 
                 if (allLoaded)
                 {
-                    photonView.RPC("RPCRopeBeginCountdown", RpcTarget.AllViaServer);
+                    photonView.RPC(nameof(RPCBeginCountdown), RpcTarget.AllViaServer);
                 }
             }
         }
 
-        // RPC로 호출되는 카운트다운 시작
         [PunRPC]
-        private void RPCRopeBeginCountdown()
+        private void RPCBeginCountdown()
         {
             BeginCountdown();
         }
@@ -91,16 +90,25 @@ namespace PJW
             deathCount++;
             if (deathCount >= totalPlayers)
             {
-                EndGame();
+                rankCalculator?.CalculateRanks();
+
+                string winnerName = player.NickName;
+                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer, winnerName);
             }
         }
 
-        private void EndGame()
+        [PunRPC]
+        private void RPCRopeShowDeathPanel(string winnerName)
         {
-            if (!PhotonNetwork.IsMasterClient)
-                return;
+            if (RopeUIManager.Instance != null)
+                RopeUIManager.Instance.ShowDeathPanel(winnerName);
 
-            rankCalculator?.CalculateRanks();
+            StartCoroutine(LoadScoreAfterDelay());
+        }
+
+        private IEnumerator LoadScoreAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(3f);
             PhotonNetwork.LoadLevel("Score");
         }
     }
