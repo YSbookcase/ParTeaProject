@@ -24,6 +24,8 @@ namespace KYS
         public event Action<List<RoomInfo>> OnRoomListUpdateEvent;
         public event Action<Player, Hashtable> OnPlayerPropertiesUpdateEvent; // 플레이어 속성 업데이트 이벤트 추가
         public event Action<Player> OnMasterClientSwitchedEvent; // 마스터 클라이언트 변경 이벤트 추가
+        public event Action<short, string> OnCreateRoomFailedEvent; // 방 생성 실패 이벤트 추가
+        public event Action<short, string> OnJoinRoomFailedEvent; // 방 입장 실패 이벤트 추가
 
         private PhotonView _photonView;
 
@@ -64,45 +66,58 @@ namespace KYS
         // 공개 메서드들 (UI에서 호출)
         public void CreateRoom(string roomName)
         {
-            if (string.IsNullOrEmpty(roomName))
+            // 방 이름 검증
+            if (string.IsNullOrEmpty(roomName) || string.IsNullOrWhiteSpace(roomName))
             {
-                Debug.LogError("방 이름이 비어있습니다.");
+                Debug.LogError("[PhotonManager] 방 이름이 비어있습니다.");
+                OnCreateRoomFailedEvent?.Invoke(0, "방 이름을 입력해주세요.");
                 return;
             }
 
-            // Photon 네트워크 상태 확인
+            // 방 이름 길이 제한
+            if (roomName.Length > 20)
+            {
+                Debug.LogError("[PhotonManager] 방 이름이 너무 깁니다. (최대 20자)");
+                OnCreateRoomFailedEvent?.Invoke(0, "방 이름은 최대 20자까지 가능합니다.");
+                return;
+            }
+
+            // Photon 연결 상태 확인
             if (!PhotonNetwork.IsConnected)
             {
-                Debug.Log("[PhotonManager] Photon에 연결되지 않음. 연결을 시작합니다.");
+                Debug.Log("[PhotonManager] Photon에 연결되어 있지 않습니다. 연결을 시도합니다.");
                 ConnectToPhoton();
                 return;
             }
 
             if (!PhotonNetwork.InLobby)
             {
-                Debug.Log("[PhotonManager] 로비에 있지 않음. 로비 참가를 시도합니다.");
+                Debug.Log("[PhotonManager] 로비에 있지 않습니다. 로비 참가를 시도합니다.");
                 if (PhotonNetwork.IsConnected && PhotonNetwork.Server == ServerConnection.MasterServer)
                 {
                     PhotonNetwork.JoinLobby();
                 }
                 else
                 {
-                    Debug.LogError("[PhotonManager] 마스터 서버에 연결되지 않음. 연결을 기다려주세요.");
+                    Debug.LogError("[PhotonManager] 서버에 연결되어 있지 않습니다. 연결을 시도해주세요.");
+                    OnCreateRoomFailedEvent?.Invoke(0, "서버에 연결되어 있지 않습니다.");
                     return;
                 }
                 return;
             }
 
-            Debug.Log($"[PhotonManager] 방 생성 시도: {roomName}");
+            Debug.Log($"[PhotonManager] 방 생성 요청: {roomName}");
             
-            RoomOptions options = new RoomOptions
+            // 방 옵션 설정 - 방이 보이고 열려있도록 설정
+            RoomOptions roomOptions = new RoomOptions
             {
                 MaxPlayers = 4,
                 IsVisible = true,
-                IsOpen = true
+                IsOpen = true,
+                PublishUserId = true
             };
-            options.CustomRoomPropertiesForLobby = new string[] { "SelectedGame" };
-            PhotonNetwork.CreateRoom(roomName, options);
+            
+            PhotonNetwork.CreateRoom(roomName, roomOptions);
         }
 
         public void JoinRoom(string roomName)
@@ -148,15 +163,17 @@ namespace KYS
         // 수동으로 Photon 연결 시작
         public void ConnectToPhoton()
         {
-            if (!PhotonNetwork.IsConnected)
+            // 이미 연결 중이거나 연결된 경우 중복 연결 방지
+            if (PhotonNetwork.IsConnected || PhotonNetwork.NetworkClientState == ClientState.ConnectingToNameServer || 
+                PhotonNetwork.NetworkClientState == ClientState.ConnectingToMasterServer || 
+                PhotonNetwork.NetworkClientState == ClientState.ConnectingToGameServer)
             {
-                Debug.Log("[PhotonManager] Photon 연결 시작");
-                PhotonNetwork.ConnectUsingSettings();
+                Debug.Log($"[PhotonManager] 이미 Photon에 연결되어 있거나 연결 중입니다. 현재 상태: {PhotonNetwork.NetworkClientState}");
+                return;
             }
-            else
-            {
-                Debug.Log("[PhotonManager] 이미 Photon에 연결되어 있습니다.");
-            }
+            
+            Debug.Log("[PhotonManager] Photon 연결 시작");
+            PhotonNetwork.ConnectUsingSettings();
         }
 
         // MonoBehaviourPunCallbacks 오버라이드
@@ -177,20 +194,40 @@ namespace KYS
 
         public override void OnDisconnected(DisconnectCause cause)
         {
-            Debug.Log($"Photon 연결 해제: {cause}");
+            Debug.Log($"[PhotonManager] Photon 연결 해제: {cause}");
             
             // 연결 해제 시 닉네임 초기화
             PhotonNetwork.NickName = "";
             
-            // 로그아웃이 아닌 경우에만 자동 재연결 (네트워크 오류 등)
-            if (cause != DisconnectCause.DisconnectByClientLogic)
+            // 연결 끊김 원인에 따른 처리
+            switch (cause)
             {
-                Debug.Log("[PhotonManager] 네트워크 오류로 인한 재연결 시도");
-                PhotonNetwork.ConnectUsingSettings(); // 재연결 시도
-            }
-            else
-            {
-                Debug.Log("[PhotonManager] 사용자 로그아웃으로 인한 연결 해제 - 자동 재연결하지 않음");
+                case DisconnectCause.DisconnectByClientLogic:
+                    Debug.Log("[PhotonManager] 사용자 로그아웃으로 인한 연결 해제 - 자동 재연결하지 않음");
+                    break;
+                    
+                case DisconnectCause.Exception:
+                case DisconnectCause.ExceptionOnConnect:
+                    Debug.LogError("[PhotonManager] 예외로 인한 연결 해제 - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(2f));
+                    break;
+                    
+                case DisconnectCause.ServerTimeout:
+                case DisconnectCause.ClientTimeout:
+                    Debug.LogWarning("[PhotonManager] 타임아웃으로 인한 연결 해제 - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(1f));
+                    break;
+                    
+                case DisconnectCause.DisconnectByServerLogic:
+                case DisconnectCause.DisconnectByServerReasonUnknown:
+                    Debug.LogWarning("[PhotonManager] 서버에 의한 연결 해제 - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(3f));
+                    break;
+                    
+                default:
+                    Debug.LogWarning($"[PhotonManager] 기타 이유로 인한 연결 해제 ({cause}) - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(2f));
+                    break;
             }
         }
 
@@ -217,19 +254,15 @@ namespace KYS
 
         public override void OnCreatedRoom()
         {
-            Debug.Log($"방 생성 완료: {PhotonNetwork.CurrentRoom.Name}");
+            Debug.Log($"[PhotonManager] 방 생성 완료: {PhotonNetwork.CurrentRoom.Name}");
             
-            // 방 속성 설정 (기본 게임: 테트리스)
+            // 방 속성 설정 (기본 게임: 점프)
             Hashtable roomProperty = new Hashtable();
-            roomProperty["SelectedGame"] = 0; // 0: 테트리스
+            roomProperty["SelectedGame"] = 0; // 0: 점프 게임
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
             
-            // 방 생성 후 자동으로 방에 입장 (LeaveRoom 제거)
-            // 방 목록 업데이트는 다른 클라이언트들이 방을 볼 수 있도록 자동으로 처리됨
-            
-            // 디버그 정보 출력
-            Debug.Log($"방 보임 상태: {PhotonNetwork.CurrentRoom.IsVisible}");
-            Debug.Log($"방 열림 상태: {PhotonNetwork.CurrentRoom.IsOpen}");
+            // 방 상태 확인
+            Debug.Log($"[PhotonManager] 방 생성 후 상태 - 보임: {PhotonNetwork.CurrentRoom.IsVisible}, 열림: {PhotonNetwork.CurrentRoom.IsOpen}, 플레이어 수: {PhotonNetwork.CurrentRoom.PlayerCount}/{PhotonNetwork.CurrentRoom.MaxPlayers}");
         }
 
         public override void OnJoinedRoom()
@@ -251,12 +284,38 @@ namespace KYS
 
         public override void OnCreateRoomFailed(short returnCode, string message)
         {
-            Debug.LogError($"방 생성 실패: {message}");
+            Debug.LogError($"[PhotonManager] 방 생성 실패 - 코드: {returnCode}, 메시지: {message}");
+            
+            // 방 생성 실패 시 현재 상태 확인
+            Debug.Log($"[PhotonManager] 방 생성 실패 후 상태 - 연결됨: {PhotonNetwork.IsConnected}, 로비: {PhotonNetwork.InLobby}");
+            
+            // 방 생성 실패 시 로비 상태 복구
+            if (PhotonNetwork.IsConnected && !PhotonNetwork.InLobby)
+            {
+                Debug.Log("[PhotonManager] 방 생성 실패 후 로비 재참가 시도");
+                StartCoroutine(RejoinLobbyAfterDelay(1f));
+            }
+            
+            // 방 생성 실패 이벤트 발생 (UI에서 처리할 수 있도록)
+            OnCreateRoomFailedEvent?.Invoke(returnCode, message);
         }
 
         public override void OnJoinRoomFailed(short returnCode, string message)
         {
-            Debug.LogError($"방 입장 실패: {message}");
+            Debug.LogError($"[PhotonManager] 방 입장 실패 - 코드: {returnCode}, 메시지: {message}");
+            
+            // 방 입장 실패 시 현재 상태 확인
+            Debug.Log($"[PhotonManager] 방 입장 실패 후 상태 - 연결됨: {PhotonNetwork.IsConnected}, 로비: {PhotonNetwork.InLobby}");
+            
+            // 방 입장 실패 시 로비 상태 복구
+            if (PhotonNetwork.IsConnected && !PhotonNetwork.InLobby)
+            {
+                Debug.Log("[PhotonManager] 방 입장 실패 후 로비 재참가 시도");
+                StartCoroutine(RejoinLobbyAfterDelay(1f));
+            }
+            
+            // 방 입장 실패 이벤트 발생 (UI에서 처리할 수 있도록)
+            OnJoinRoomFailedEvent?.Invoke(returnCode, message);
         }
 
         public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -293,21 +352,32 @@ namespace KYS
 
         public override void OnRoomListUpdate(List<RoomInfo> roomList)
         {
-            Debug.Log($"방 목록 업데이트: {roomList.Count}개의 방");
-            OnRoomListUpdateEvent?.Invoke(roomList);
-            
-            // 각 방의 상세 정보 출력
-            foreach (RoomInfo info in roomList)
+            // 방 목록이 변경된 경우에만 간단한 로그 출력
+            if (roomList != null && roomList.Count > 0)
             {
-                if (info.RemovedFromList)
+                int visibleRooms = 0;
+                int removedRooms = 0;
+                
+                foreach (RoomInfo info in roomList)
                 {
-                    Debug.Log($"방 제거됨: {info.Name}");
+                    if (info.RemovedFromList)
+                    {
+                        removedRooms++;
+                    }
+                    else if (info.IsVisible)
+                    {
+                        visibleRooms++;
+                    }
                 }
-                else
+                
+                // 변경사항이 있을 때만 로그 출력
+                if (visibleRooms > 0 || removedRooms > 0)
                 {
-                    Debug.Log($"방 정보: {info.Name}, 플레이어: {info.PlayerCount}/{info.MaxPlayers}, 보임: {info.IsVisible}, 열림: {info.IsOpen}");
+                    Debug.Log($"[PhotonManager] 방 목록 업데이트 - 보이는 방: {visibleRooms}개, 제거된 방: {removedRooms}개");
                 }
             }
+            
+            OnRoomListUpdateEvent?.Invoke(roomList);
         }
 
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
@@ -519,6 +589,24 @@ namespace KYS
                 Debug.Log($"[PhotonManager] 자동 권한 이전: {nextMasterClient.NickName}");
                 TransferMasterClient(nextMasterClient);
             }
+        }
+
+        // 로비 재참가 코루틴
+        private System.Collections.IEnumerator RejoinLobbyAfterDelay(float delay)
+        {
+            Debug.Log("[PhotonManager] 로비 재참가 대기 중...");
+            yield return new WaitForSeconds(delay);
+            Debug.Log("[PhotonManager] 로비 재참가 시도");
+            PhotonNetwork.JoinLobby();
+        }
+
+        // 자동 재연결 코루틴
+        private System.Collections.IEnumerator ReconnectAfterDelay(float delay)
+        {
+            Debug.Log("[PhotonManager] 자동 재연결 대기 중...");
+            yield return new WaitForSeconds(delay);
+            Debug.Log("[PhotonManager] 자동 재연결 시도");
+            PhotonNetwork.ConnectUsingSettings();
         }
     }
 }
