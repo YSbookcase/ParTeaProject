@@ -1,5 +1,6 @@
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -42,13 +43,38 @@ namespace KYS
             new GameInfo("받기", "ReceiveGame", "물건받기 게임")
         };
 
-        // PhotonView 컴포넌트
-        // private PhotonView photonView; // 삭제
+        // 모든 클라이언트가 같은 ViewID를 사용하는 PhotonView
+        private PhotonView photonView;
+        
+        // 채팅용 고정 ViewID (모든 클라이언트가 공유)
+        private const int CHAT_VIEW_ID = 9999;
 
         private new void Awake()
         {
             base.Awake();
             canCloseWithESC = false; // ESC로 닫을 수 없음
+            
+            // 모든 클라이언트가 자체 PhotonView 생성
+            photonView = GetComponent<PhotonView>();
+            if (photonView == null)
+            {
+                photonView = gameObject.AddComponent<PhotonView>();
+            }
+            
+            // PhotonView 설정 (RPC만 사용하므로 ObservedComponents는 비워둠)
+            if (photonView != null)
+            {
+                photonView.ObservedComponents = new List<Component>(); // RPC만 사용하므로 비워둠
+                photonView.Synchronization = ViewSynchronization.UnreliableOnChange;
+                photonView.OwnershipTransfer = OwnershipOption.Takeover;
+                
+                Debug.Log($"[RoomPopUp] PhotonView 설정 완료 - ViewID: {photonView.ViewID}");
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] PhotonView 설정 실패!");
+            }
+            
             // Resources 폴더에서 프리팹 로드
             playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
             if (playerPanelItemPrefab == null)
@@ -62,13 +88,6 @@ namespace KYS
             {
                 Debug.LogError("[RoomPopUp] Resources/UI/ChatTextPrefab을 찾을 수 없습니다.");
             }
-
-            // PhotonView 설정 제거
-            // photonView = GetComponent<PhotonView>();
-            // if (photonView == null)
-            // {
-            //     photonView = gameObject.AddComponent<PhotonView>();
-            // }
 
             // 방 관련 이벤트 연결 (null 체크 추가)
             var startButton = GetEvent("StartButton");
@@ -125,6 +144,18 @@ namespace KYS
 
         private void OnEnable()
         {
+            Debug.Log($"[RoomPopUp] OnEnable 호출 - 방: {PhotonNetwork.InRoom}, 연결: {PhotonNetwork.IsConnected}");
+            
+            // PhotonView 초기화 확인 - 고정 ViewID 사용
+            if (photonView != null && photonView.ViewID == 0)
+            {
+                // 고정 ViewID 할당 (모든 클라이언트가 같은 ID 사용)
+                photonView.ViewID = CHAT_VIEW_ID;
+                Debug.Log($"[RoomPopUp] PhotonView 고정 ViewID 할당: {photonView.ViewID}");
+            }
+            
+            Debug.Log($"[RoomPopUp] PhotonView 최종 상태 - ViewID: {photonView?.ViewID}, IsMine: {photonView?.IsMine}, 마스터: {PhotonNetwork.IsMasterClient}");
+            
             // PhotonManager 이벤트 구독
             if (PhotonManager.Instance != null)
             {
@@ -134,6 +165,9 @@ namespace KYS
                 PhotonManager.Instance.OnPlayerPropertiesUpdateEvent += OnPlayerPropertiesUpdate; // 플레이어 속성 업데이트 이벤트 구독
                 PhotonManager.Instance.OnMasterClientSwitchedEvent += OnMasterClientSwitched; // 마스터 클라이언트 변경 이벤트 구독
             }
+
+            // RPC 기반 채팅은 별도 이벤트 구독이 필요 없음
+            Debug.Log($"[RoomPopUp] RPC 기반 채팅 초기화 완료 - PhotonView ViewID: {photonView?.ViewID}");
 
             // 방 입장 시 초기화 (이미 방에 있는 플레이어들에 대해서만)
             InitializeRoom();
@@ -150,15 +184,53 @@ namespace KYS
                 PhotonManager.Instance.OnPlayerPropertiesUpdateEvent -= OnPlayerPropertiesUpdate; // 이벤트 구독 해제
                 PhotonManager.Instance.OnMasterClientSwitchedEvent -= OnMasterClientSwitched; // 마스터 클라이언트 변경 이벤트 구독 해제
             }
+            
+            // RPC 기반 채팅은 별도 이벤트 구독 해제가 필요 없음
         }
 
         private void Start()
         {
+            // PhotonView 초기화 확인 - 고정 ViewID 사용
+            if (photonView != null && photonView.ViewID == 0)
+            {
+                // 고정 ViewID 할당 (모든 클라이언트가 같은 ID 사용)
+                photonView.ViewID = CHAT_VIEW_ID;
+                Debug.Log($"[RoomPopUp] Start에서 PhotonView 고정 ViewID 할당: {photonView.ViewID}");
+            }
+            
             // 채팅 입력 필드 이벤트 연결
             if (chatField != null)
             {
                 chatField.onEndEdit.AddListener(HandleChatInput);
+                chatField.onSubmit.AddListener(HandleChatInput); // 모바일 전송 버튼 지원
+                
+                // 모바일 환경을 위한 추가 설정
+                #if UNITY_ANDROID || UNITY_IOS
+                // 모바일에서 키보드 완료 버튼 텍스트 설정
+                if (chatField.textViewport != null)
+                {
+                    var contentSizeFitter = chatField.textViewport.gameObject.GetComponent<ContentSizeFitter>();
+                    if (contentSizeFitter == null)
+                    {
+                        contentSizeFitter = chatField.textViewport.gameObject.AddComponent<ContentSizeFitter>();
+                    }
+                    contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                }
+                
+                // 모바일 키보드 설정
+                chatField.keyboardType = TouchScreenKeyboardType.Default;
+                chatField.characterLimit = 100; // 최대 100자
+                // TMP_InputField는 hideMobileInput 속성이 없으므로 제거
+                #endif
+                
+                Debug.Log("[RoomPopUp] 채팅 입력 필드 설정 완료");
             }
+            else
+            {
+                Debug.LogError("[RoomPopUp] ChatField를 찾을 수 없습니다!");
+            }
+            
+            Debug.Log("[RoomPopUp] Start 완료");
         }
 
         // 방 초기화
@@ -191,6 +263,9 @@ namespace KYS
 
             // 플레이어 패널 생성
             PlayerPanelSpawn();
+            
+            // 채팅 초기화
+            InitializeChat();
             
             Debug.Log("[RoomPopUp] 방 초기화 완료");
         }
@@ -513,14 +588,33 @@ namespace KYS
         // 채팅 관련 메서드들
         private void HandleChatInput(string text)
         {
-            // onEndEdit는 포커스가 벗어날 때 호출되므로 Enter 키가 아닌 경우 무시
-            if (!Input.GetKeyDown(KeyCode.Return))
-                return;
-
+            // 모바일과 PC 모두 지원하도록 수정
+            // onEndEdit는 Enter 키나 모바일 키보드의 전송 버튼을 눌렀을 때 호출됨
             if (!string.IsNullOrWhiteSpace(text))
             {
+                Debug.Log($"[RoomPopUp] 채팅 입력 감지: {text}");
                 SendChatMessage(null);
             }
+        }
+
+        // 모바일에서 키보드 상태 변경 감지
+        private void Update()
+        {
+            // 모바일에서 키보드가 열려있을 때 Enter 키 감지
+            #if UNITY_ANDROID || UNITY_IOS
+            if (chatField != null && chatField.isFocused && TouchScreenKeyboard.visible)
+            {
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                {
+                    string text = chatField.text.Trim();
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        Debug.Log($"[RoomPopUp] 모바일 키보드 Enter 감지: {text}");
+                        SendChatMessage(null);
+                    }
+                }
+            }
+            #endif
         }
 
         private void SendChatMessage(PointerEventData eventData)
@@ -528,9 +622,65 @@ namespace KYS
             string message = chatField.text.Trim();
             if (!string.IsNullOrEmpty(message))
             {
-                // PhotonManager의 PhotonView 사용
-                PhotonManager.Instance.GetComponent<PhotonView>().RPC(nameof(PhotonManager.SendChatMessage), RpcTarget.All, PhotonNetwork.NickName, message);
+                Debug.Log($"[RoomPopUp] RPC 채팅 메시지 전송 시도: {message}");
+                Debug.Log($"[RoomPopUp] 현재 상태 - 방: {PhotonNetwork.InRoom}, 연결: {PhotonNetwork.IsConnected}, 닉네임: {PhotonNetwork.NickName}");
+                
+                // PhotonView 상태 확인
+                if (photonView == null)
+                {
+                    Debug.LogError("[RoomPopUp] PhotonView가 null입니다!");
+                    DisplayChatMessage(PhotonNetwork.NickName, message);
+                    chatField.text = "";
+                    return;
+                }
+                
+                Debug.Log($"[RoomPopUp] PhotonView 상태 - ViewID: {photonView.ViewID}, IsMine: {photonView.IsMine}");
+                
+                if (photonView.ViewID == 0)
+                {
+                    Debug.LogWarning("[RoomPopUp] PhotonView ViewID가 0입니다. ViewID를 할당합니다.");
+                    photonView.ViewID = PhotonNetwork.AllocateViewID(false);
+                    Debug.Log($"[RoomPopUp] ViewID 할당 후: {photonView.ViewID}");
+                }
+                
+                // RPC를 통해 모든 클라이언트에게 메시지 전송
+                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    Debug.Log($"[RoomPopUp] RPC 호출 시도 - ViewID: {photonView.ViewID}, IsMine: {photonView.IsMine}, 메시지: {message}");
+                    // RPC 호출
+                    photonView.RPC(nameof(SendChatMessage), RpcTarget.All, PhotonNetwork.NickName, message);
+                    Debug.Log($"[RoomPopUp] RPC 채팅 메시지 전송 완료: {message}");
+                }
+                else
+                {
+                    if (!PhotonNetwork.InRoom)
+                    {
+                        Debug.LogWarning("[RoomPopUp] 방에 입장하지 않았습니다.");
+                    }
+                    else if (photonView == null)
+                    {
+                        Debug.LogWarning("[RoomPopUp] PhotonView가 null입니다.");
+                    }
+                    else if (photonView.ViewID == 0)
+                    {
+                        Debug.LogWarning("[RoomPopUp] PhotonView ViewID가 0입니다.");
+                    }
+                    
+                    Debug.LogWarning("[RoomPopUp] RPC 호출 조건을 만족하지 않아 로컬에서만 표시합니다.");
+                    // 로컬에서만 표시
+                    DisplayChatMessage(PhotonNetwork.NickName, message);
+                }
+                
                 chatField.text = "";
+                
+                // 모바일에서 키보드 숨기기
+                #if UNITY_ANDROID || UNITY_IOS
+                if (TouchScreenKeyboard.visible)
+                {
+                    chatField.DeactivateInputField();
+                }
+                #endif
+                
                 chatField.ActivateInputField();
             }
         }
@@ -547,6 +697,40 @@ namespace KYS
                 {
                     scrollRect.verticalNormalizedPosition = 0f;
                 }
+            }
+        }
+        
+        // RPC 채팅 메서드
+        [PunRPC]
+        private void SendChatMessage(string sender, string message)
+        {
+            Debug.Log($"[RoomPopUp] RPC 채팅 메시지 수신: {sender} -> {message}");
+            Debug.Log($"[RoomPopUp] 현재 클라이언트: {PhotonNetwork.NickName}, 방: {PhotonNetwork.CurrentRoom?.Name}");
+            DisplayChatMessage(sender, message);
+        }
+        
+        // 채팅 초기화
+        private void InitializeChat()
+        {
+            Debug.Log("[RoomPopUp] RPC 기반 채팅 초기화");
+            // RPC 기반 채팅은 별도 초기화가 필요 없음
+        }
+        
+        // 디버그용: 수동 RPC 테스트
+        public void TestRPC()
+        {
+            Debug.Log("[RoomPopUp] 디버그 RPC 테스트 시작");
+            Debug.Log($"[RoomPopUp] 현재 상태 - 방: {PhotonNetwork.InRoom}, 연결: {PhotonNetwork.IsConnected}");
+            Debug.Log($"[RoomPopUp] PhotonView - ViewID: {photonView?.ViewID}, IsMine: {photonView?.IsMine}");
+            
+            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            {
+                photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "디버그", "테스트 메시지입니다!");
+                Debug.Log("[RoomPopUp] 디버그 RPC 호출 완료");
+            }
+            else
+            {
+                Debug.LogError("[RoomPopUp] 디버그 RPC 호출 실패 - 조건을 만족하지 않음");
             }
         }
 
@@ -570,6 +754,16 @@ namespace KYS
         {
             Debug.Log($"플레이어 입장: {newPlayer.NickName}");
             
+            // 플레이어 입장 메시지 전송 (RPC)
+            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            {
+                photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
+            }
+            else
+            {
+                DisplayChatMessage("시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
+            }
+            
             // 이미 패널이 존재하는지 확인
             if (!playerPanels.ContainsKey(newPlayer.ActorNumber))
             {
@@ -589,14 +783,28 @@ namespace KYS
         {
             Debug.Log($"플레이어 퇴장: {otherPlayer.NickName}");
             
-            // 방장이 나간 경우 채팅에 알림
+            // 방장이 나간 경우 채팅에 알림 (RPC로 전송)
             if (otherPlayer.IsMasterClient)
             {
-                DisplayChatMessage("시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
+                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
+                }
+                else
+                {
+                    DisplayChatMessage("시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
+                }
             }
             else
             {
-                DisplayChatMessage("시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
+                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
+                }
+                else
+                {
+                    DisplayChatMessage("시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
+                }
             }
             
             PlayerPanelDestroy(otherPlayer);
@@ -605,6 +813,8 @@ namespace KYS
         private void OnLeftRoom()
         {
             Debug.Log("방을 나갔습니다. 로비로 돌아갑니다.");
+            
+            // RPC 기반 채팅은 별도 정리가 필요 없음
             ClearChat();
 
             // 로비로 돌아가기
@@ -672,11 +882,17 @@ namespace KYS
                 message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
             }
             
-            // 간단한 알림 메시지 표시 (선택사항)
-            Debug.Log($"[RoomPopUp] {message}");
+            // RPC로 시스템 메시지 전송
+            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            {
+                photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", message);
+            }
+            else
+            {
+                DisplayChatMessage("시스템", message);
+            }
             
-            // 방장 변경 시 특별한 채팅 메시지 색상으로 표시 (선택사항)
-            // DisplayChatMessage("시스템", message);
+            Debug.Log($"[RoomPopUp] {message}");
         }
 
         // 게임 선택 버튼들의 상태 업데이트

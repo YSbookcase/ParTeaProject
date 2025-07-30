@@ -27,17 +27,12 @@ namespace KYS
         public event Action<short, string> OnCreateRoomFailedEvent; // 방 생성 실패 이벤트 추가
         public event Action<short, string> OnJoinRoomFailedEvent; // 방 입장 실패 이벤트 추가
 
-        private PhotonView _photonView;
+        // PhotonView 제거 - 각 UI 컴포넌트가 자체 PhotonView를 가져야 함
 
         private void Awake()
         {
             // 상속받은 싱글톤 패턴을 사용하므로 별도 구현 불필요
-            // PhotonView 설정
-            _photonView = GetComponent<PhotonView>();
-            if (_photonView == null)
-            {
-                _photonView = gameObject.AddComponent<PhotonView>();
-            }
+            Debug.Log("[PhotonManager] Awake 완료 - 순수한 연결 관리자로 동작합니다.");
         }
 
         private void Start()
@@ -163,6 +158,17 @@ namespace KYS
         // 수동으로 Photon 연결 시작
         public void ConnectToPhoton()
         {
+            Debug.Log($"[PhotonManager] ConnectToPhoton 호출 - 현재 상태: {PhotonNetwork.NetworkClientState}, 연결됨: {PhotonNetwork.IsConnected}");
+            
+            // PeerCreated 상태에서 멈춘 경우 강제로 연결 해제 후 재연결
+            if (PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+            {
+                Debug.LogWarning("[PhotonManager] PeerCreated 상태에서 멈춤. 연결을 강제로 해제하고 재연결을 시도합니다.");
+                PhotonNetwork.Disconnect();
+                StartCoroutine(ReconnectAfterDelay(1f));
+                return;
+            }
+            
             // 이미 연결 중이거나 연결된 경우 중복 연결 방지
             if (PhotonNetwork.IsConnected || PhotonNetwork.NetworkClientState == ClientState.ConnectingToNameServer || 
                 PhotonNetwork.NetworkClientState == ClientState.ConnectingToMasterServer || 
@@ -172,8 +178,23 @@ namespace KYS
                 return;
             }
             
-            Debug.Log("[PhotonManager] Photon 연결 시작");
-            PhotonNetwork.ConnectUsingSettings();
+            // 연결 중이 아닌 경우에만 연결 시도
+            if (PhotonNetwork.NetworkClientState == ClientState.Disconnected)
+            {
+                Debug.Log("[PhotonManager] Photon 연결 시작");
+                
+                // 연결 전에 기본 설정 확인
+                if (string.IsNullOrEmpty(PhotonNetwork.NickName))
+                {
+                    PhotonNetwork.NickName = "Guest";
+                }
+                
+                PhotonNetwork.ConnectUsingSettings();
+            }
+            else
+            {
+                Debug.Log($"[PhotonManager] 연결할 수 없는 상태입니다. 현재 상태: {PhotonNetwork.NetworkClientState}");
+            }
         }
 
         // MonoBehaviourPunCallbacks 오버라이드
@@ -185,6 +206,7 @@ namespace KYS
         public override void OnConnectedToMaster()
         {
             Debug.Log("마스터 서버 연결 완료");
+            
             SyncNicknameWithFirebase(); // Firebase 닉네임 동기화
             OnConnectedToMasterEvent?.Invoke();
             
@@ -222,6 +244,16 @@ namespace KYS
                 case DisconnectCause.DisconnectByServerReasonUnknown:
                     Debug.LogWarning("[PhotonManager] 서버에 의한 연결 해제 - 재연결 시도");
                     StartCoroutine(ReconnectAfterDelay(3f));
+                    break;
+                    
+                case DisconnectCause.InvalidAuthentication:
+                    Debug.LogError("[PhotonManager] 인증 실패로 인한 연결 해제 - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(2f));
+                    break;
+                    
+                case DisconnectCause.InvalidRegion:
+                    Debug.LogError("[PhotonManager] 잘못된 지역으로 인한 연결 해제 - 재연결 시도");
+                    StartCoroutine(ReconnectAfterDelay(2f));
                     break;
                     
                 default:
@@ -268,6 +300,7 @@ namespace KYS
         public override void OnJoinedRoom()
         {
             Debug.Log($"방 참가 완료: {PhotonNetwork.CurrentRoom.Name}");
+            
             OnJoinedRoomEvent?.Invoke();
             
             // 디버그 정보 출력
@@ -389,10 +422,11 @@ namespace KYS
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
             if (roomPopUp != null)
             {
-                // 선택된 게임이 변경된 경우 UI 업데이트
+                // 선택된 게임이 변경된 경우 UI 업데이트 (즉시 호출)
                 if (propertiesThatChanged.ContainsKey("SelectedGame"))
                 {
-                    roomPopUp.Invoke("UpdateGameSelectionUI", 0.1f);
+                    roomPopUp.UpdateGameSelectionUI();
+                    Debug.Log($"[PhotonManager] 게임 변경 감지: {propertiesThatChanged["SelectedGame"]}");
                 }
             }
             
@@ -400,8 +434,12 @@ namespace KYS
             LobbyPopUp lobbyPopUp = FindObjectOfType<LobbyPopUp>();
             if (lobbyPopUp != null)
             {
-                // 방 속성이 변경되면 방 목록 새로고침
-                lobbyPopUp.Invoke("RefreshRoomList", 0.1f);
+                // 방 속성이 변경되면 방 목록 즉시 업데이트
+                if (propertiesThatChanged.ContainsKey("SelectedGame"))
+                {
+                    lobbyPopUp.OnRoomPropertiesChanged(propertiesThatChanged);
+                    Debug.Log("[PhotonManager] 로비 방 목록 즉시 업데이트");
+                }
             }
         }
 
@@ -411,17 +449,17 @@ namespace KYS
             OnPlayerPropertiesUpdateEvent?.Invoke(targetPlayer, changedProps);
         }
 
-        // PhotonManager에 채팅 RPC 메서드 추가
-        [PunRPC]
-        public void SendChatMessage(string sender, string message)
-        {
-            // RoomPopUp이 활성화되어 있다면 채팅 메시지 표시
-            RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
-            if (roomPopUp != null)
-            {
-                roomPopUp.DisplayChatMessage(sender, message);
-            }
-        }
+        // PhotonManager에서 채팅 RPC 메서드 제거 (PhotonChatManager로 대체)
+        // [PunRPC]
+        // public void SendChatMessage(string sender, string message)
+        // {
+        //     // RoomPopUp이 활성화되어 있다면 채팅 메시지 표시
+        //     RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
+        //     if (roomPopUp != null)
+        //     {
+        //         roomPopUp.DisplayChatMessage(sender, message);
+        //     }
+        // }
 
         // 주기적으로 방 목록 업데이트하는 코루틴
         private System.Collections.IEnumerator PeriodicRoomListUpdate()
@@ -608,5 +646,7 @@ namespace KYS
             Debug.Log("[PhotonManager] 자동 재연결 시도");
             PhotonNetwork.ConnectUsingSettings();
         }
+
+        // PhotonView 관련 코루틴들 제거 - 각 UI 컴포넌트가 자체 PhotonView를 관리
     }
 }

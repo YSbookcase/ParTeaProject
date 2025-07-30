@@ -1,6 +1,7 @@
 using Firebase.Auth;
 using Photon.Pun;
 using Photon.Realtime;
+using ExitGames.Client.Photon;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -85,6 +86,13 @@ namespace KYS
                 
                 // 상태 변경 로그 (디버깅용)
                 Debug.Log($"[LobbyPopUp] 네트워크 상태 변경: {currentState}");
+                
+                // PeerCreated 상태에서 멈춘 경우 처리
+                if (currentState == ClientState.PeerCreated)
+                {
+                    Debug.LogWarning("[LobbyPopUp] PeerCreated 상태 감지. 3초 후 재연결을 시도합니다.");
+                    StartCoroutine(HandlePeerCreatedState());
+                }
             }
 
             // 방 목록 상태 확인 (10초마다로 변경)
@@ -101,6 +109,8 @@ namespace KYS
             {
                 case ClientState.Disconnected:
                     return "연결 해제됨";
+                case ClientState.PeerCreated:
+                    return "연결 초기화 중...";
                 case ClientState.ConnectingToNameServer:
                     return "서버 연결 중...";
                 case ClientState.ConnectedToNameServer:
@@ -146,15 +156,31 @@ namespace KYS
                 // 닉네임 동기화
                 PhotonManager.Instance.SyncNicknameWithFirebase();
 
-                // Photon 연결 시작 (이미 연결되어 있지 않은 경우에만)
-                if (!PhotonNetwork.IsConnected)
+                // Photon 연결 상태 확인 및 연결
+                Debug.Log($"[LobbyPopUp] 현재 Photon 상태: {PhotonNetwork.NetworkClientState}, 연결됨: {PhotonNetwork.IsConnected}, 로비: {PhotonNetwork.InLobby}");
+                
+                // PeerCreated 상태에서 멈춘 경우 처리
+                if (PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+                {
+                    Debug.LogWarning("[LobbyPopUp] PeerCreated 상태에서 멈춤. PhotonManager에서 재연결을 시도합니다.");
+                    PhotonManager.Instance.ConnectToPhoton();
+                    return;
+                }
+                
+                if (!PhotonNetwork.IsConnected && PhotonNetwork.NetworkClientState == ClientState.Disconnected)
                 {
                     PhotonManager.Instance.ConnectToPhoton();
                     Debug.Log("[LobbyPopUp] Photon 연결 시작");
                 }
+                else if (PhotonNetwork.IsConnected && !PhotonNetwork.InLobby)
+                {
+                    // 연결되어 있지만 로비에 없는 경우 로비 참가
+                    Debug.Log("[LobbyPopUp] 이미 연결되어 있음. 로비 참가 시도");
+                    PhotonNetwork.JoinLobby();
+                }
                 else
                 {
-                    Debug.Log("[LobbyPopUp] 이미 Photon에 연결되어 있음");
+                    Debug.Log("[LobbyPopUp] 이미 Photon에 연결되어 있고 로비에도 있음");
                 }
 
                 Debug.Log("[LobbyPopUp] PhotonManager 이벤트 구독 완료");
@@ -541,6 +567,130 @@ namespace KYS
             }
         }
 
+        // 방 속성 변경 감지 메서드
+        public void OnRoomPropertiesChanged(Hashtable propertiesThatChanged)
+        {
+            Debug.Log($"[LobbyPopUp] OnRoomPropertiesChanged 호출됨 - 변경된 속성: {string.Join(", ", propertiesThatChanged.Keys)}");
+            
+            if (propertiesThatChanged.ContainsKey("SelectedGame"))
+            {
+                int newGameIndex = (int)propertiesThatChanged["SelectedGame"];
+                Debug.Log($"[LobbyPopUp] 방 속성 변경 감지 - 게임 변경: {newGameIndex}");
+                
+                // 현재 방에 있는 경우에만 해당 방의 정보를 업데이트
+                if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null)
+                {
+                    string currentRoomName = PhotonNetwork.CurrentRoom.Name;
+                    if (currentRoomInfos.ContainsKey(currentRoomName))
+                    {
+                        // RoomInfo는 불변이므로 새로운 RoomInfo 객체를 생성해야 함
+                        // 하지만 Photon이 자동으로 방 목록을 업데이트하므로 
+                        // 여기서는 즉시 새로고침만 하고, Photon의 자동 업데이트를 기다림
+                        Debug.Log($"[LobbyPopUp] 현재 방 '{currentRoomName}'의 게임 정보 업데이트 대기 중");
+                        
+                        // 현재 방의 최신 정보로 currentRoomInfos 업데이트
+                        // RoomInfo는 불변이므로 새로운 RoomInfo 객체를 생성해야 하지만,
+                        // Photon이 자동으로 방 목록을 업데이트하므로 여기서는 기다림
+                    }
+                }
+                
+                // 즉시 새로고침 시도 (Photon의 자동 업데이트를 기다리지 않고)
+                RefreshRoomListImmediate();
+                
+                // 추가로 0.5초 후에도 다시 새로고침 (Photon의 자동 업데이트를 기다림)
+                StartCoroutine(RefreshRoomListAfterPropertyChange());
+            }
+        }
+        
+        // 방 속성 변경 후 방 목록 새로고침을 위한 코루틴
+        private System.Collections.IEnumerator RefreshRoomListAfterPropertyChange()
+        {
+            // Photon이 방 목록을 업데이트할 시간을 줌
+            yield return new WaitForSeconds(0.3f);
+            
+            Debug.Log("[LobbyPopUp] 방 속성 변경 후 방 목록 새로고침");
+            
+            // Photon에서 최신 방 목록을 요청
+            if (PhotonNetwork.InLobby)
+            {
+                // Photon이 자동으로 방 목록을 업데이트하므로 
+                // 여기서는 현재 저장된 정보를 기반으로 UI만 새로고침
+                RefreshRoomListImmediate();
+            }
+        }
+        
+        // 즉시 방 목록 새로고침
+        private void RefreshRoomListImmediate()
+        {
+            if (PhotonNetwork.InLobby)
+            {
+                Debug.Log("[LobbyPopUp] 방 목록 즉시 새로고침 시작");
+                Debug.Log($"[LobbyPopUp] 현재 저장된 방 정보: {currentRoomInfos.Count}개");
+                
+                // 기존 UI 아이템 정리
+                foreach (var kvp in roomListItems)
+                {
+                    if (kvp.Value != null)
+                    {
+                        Destroy(kvp.Value);
+                    }
+                }
+                roomListItems.Clear();
+                
+                // 누적된 방 정보를 기반으로 UI 아이템 다시 생성
+                foreach (var kvp in currentRoomInfos)
+                {
+                    RoomInfo info = kvp.Value;
+                    Debug.Log($"[LobbyPopUp] 방 정보 처리: {info.Name}, 게임: {(info.CustomProperties.ContainsKey("SelectedGame") ? info.CustomProperties["SelectedGame"] : "없음")}");
+                    
+                    // 방 아이템 생성
+                    GameObject roomListItem = Instantiate(roomListItemPrefab);
+                    if (roomListItem == null)
+                    {
+                        Debug.LogError($"[LobbyPopUp] RoomListItem 인스턴스 생성 실패: {info.Name}");
+                        continue;
+                    }
+                    
+                    roomListItem.transform.SetParent(roomListContent, false);
+                    
+                    // Vertical Layout Group에 맞게 RectTransform 설정
+                    RectTransform rectTransform = roomListItem.GetComponent<RectTransform>();
+                    if (rectTransform != null)
+                    {
+                        rectTransform.anchorMin = new Vector2(0, 1);
+                        rectTransform.anchorMax = new Vector2(1, 1);
+                        rectTransform.sizeDelta = new Vector2(0, 80f);
+                        rectTransform.pivot = new Vector2(0.5f, 1f);
+                    }
+                    
+                    RoomListItem itemComponent = roomListItem.GetComponent<RoomListItem>();
+                    if (itemComponent != null)
+                    {
+                        itemComponent.Init(info);
+                        roomListItems.Add(info.Name, roomListItem);
+                    }
+                    else
+                    {
+                        Debug.LogError($"[LobbyPopUp] RoomListItem 컴포넌트를 찾을 수 없습니다: {info.Name}");
+                        Destroy(roomListItem);
+                    }
+                }
+                
+                // UI 레이아웃 강제 업데이트
+                Canvas.ForceUpdateCanvases();
+                if (roomListContent is RectTransform contentRectTransform)
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
+                }
+                
+                Debug.Log($"[LobbyPopUp] 방 목록 새로고침 완료 - {roomListItems.Count}개 방");
+            }
+            else
+            {
+                Debug.LogWarning("[LobbyPopUp] 로비에 있지 않아 방 목록 새로고침을 할 수 없습니다.");
+            }
+        }
+
         // 수동으로 방 목록 새로고침하는 메서드 (디버깅용)
         public void RefreshRoomList()
         {
@@ -590,6 +740,29 @@ namespace KYS
                 else
                 {
                     Debug.LogError("[LobbyPopUp] Photon 연결 상태가 이상합니다.");
+                }
+            }
+        }
+        
+        // PeerCreated 상태 처리 코루틴
+        private System.Collections.IEnumerator HandlePeerCreatedState()
+        {
+            yield return new WaitForSeconds(3f);
+            
+            // 3초 후에도 여전히 PeerCreated 상태인지 확인
+            if (PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+            {
+                Debug.LogWarning("[LobbyPopUp] PeerCreated 상태가 지속됨. 강제로 연결을 해제하고 재연결을 시도합니다.");
+                
+                // 강제로 연결 해제
+                PhotonNetwork.Disconnect();
+                
+                // 잠시 대기 후 재연결
+                yield return new WaitForSeconds(1f);
+                
+                if (PhotonManager.Instance != null)
+                {
+                    PhotonManager.Instance.ConnectToPhoton();
                 }
             }
         }
