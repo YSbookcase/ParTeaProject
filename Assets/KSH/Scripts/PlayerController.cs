@@ -51,6 +51,8 @@ namespace KSH
             if (photonView.IsMine)
             {
                 nickName.text = PhotonNetwork.NickName;
+                
+                FindObjectOfType<FollowCamera>().SetCameraTarget(this.transform);
             }
             else
             {
