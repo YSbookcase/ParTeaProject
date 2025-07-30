@@ -422,10 +422,11 @@ namespace KYS
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
             if (roomPopUp != null)
             {
-                // 선택된 게임이 변경된 경우 UI 업데이트
+                // 선택된 게임이 변경된 경우 UI 업데이트 (즉시 호출)
                 if (propertiesThatChanged.ContainsKey("SelectedGame"))
                 {
-                    roomPopUp.Invoke("UpdateGameSelectionUI", 0.1f);
+                    roomPopUp.UpdateGameSelectionUI();
+                    Debug.Log($"[PhotonManager] 게임 변경 감지: {propertiesThatChanged["SelectedGame"]}");
                 }
             }
             
@@ -433,8 +434,12 @@ namespace KYS
             LobbyPopUp lobbyPopUp = FindObjectOfType<LobbyPopUp>();
             if (lobbyPopUp != null)
             {
-                // 방 속성이 변경되면 방 목록 새로고침
-                lobbyPopUp.Invoke("RefreshRoomList", 0.1f);
+                // 방 속성이 변경되면 방 목록 즉시 업데이트
+                if (propertiesThatChanged.ContainsKey("SelectedGame"))
+                {
+                    lobbyPopUp.OnRoomPropertiesChanged(propertiesThatChanged);
+                    Debug.Log("[PhotonManager] 로비 방 목록 즉시 업데이트");
+                }
             }
         }
 
