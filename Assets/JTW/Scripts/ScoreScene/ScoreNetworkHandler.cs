@@ -9,11 +9,14 @@ public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
 {
     [SerializeField] private ScoreUIPresenter scorePresenter;
 
+    private bool isInit = false;
+
     private void Start()
     {
-        if (isAllRankUpdated())
+        if (isAllRankUpdated() && !isInit)
         {
             scorePresenter.InitScore();
+            isInit = true;
         }
     }
 
@@ -21,9 +24,10 @@ public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
     {
         if (changedProps.ContainsKey("rank"))
         {
-            if (isAllRankUpdated())
+            if (isAllRankUpdated() && !isInit)
             {
                 scorePresenter.InitScore();
+                isInit = true;
             }
         }
     }
