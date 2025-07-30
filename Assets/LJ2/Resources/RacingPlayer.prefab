@@ -105,6 +105,7 @@ MonoBehaviour:
     type: 3}
   cameraSpeed: 1
   linePassed: 0
+  isControllable: 0
 --- !u!114 &-1325575301692957695
 MonoBehaviour:
   m_ObjectHideFlags: 0

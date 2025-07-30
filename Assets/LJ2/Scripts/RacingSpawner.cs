@@ -9,7 +9,12 @@ public class RacingSpawner : MonoBehaviour
 
     [SerializeField] private RacingMap racingMap;
 
+    private bool isSetStartLine = false;
+    private bool isSetStartLineIndex = false;
     private bool isSpawned = false;
+
+    private int trackLength;
+    private int startIndex;
 
     private void Awake()
     {
@@ -25,23 +30,43 @@ public class RacingSpawner : MonoBehaviour
 
     private void Start()
     {
-        SetStartLine();
+        
     }
+
 
     private void Update()
     {
-        if (isSpawned || !Manager.game.isAllPlayerLoaded()) return;
-        PlayerSpawn();
+        if (PhotonNetwork.IsMasterClient && Manager.game.isAllPlayerLoaded() && !isSetStartLineIndex)
+        {
+            SetStartLineIndex();
+        }
+        if (PhotonNetwork.IsMasterClient && isSetStartLineIndex && !isSetStartLine)
+        {
+            RacingManager.Instance.managerView.RPC("SetStartLine", RpcTarget.All, trackLength, startIndex);
+
+            isSetStartLineIndex = true;
+        }
+        if (isSpawned || !Manager.game.isAllPlayerLoaded() || !isSetStartLine) return;
+        PlayerSpawn(racingMap.startLine);
+        RacingManager.Instance.managerView.RPC("RacingStart", RpcTarget.All);
     }
 
-    private void SetStartLine()
+    public void SetStartLineIndex()
     {
-        int trackLength = Random.Range(1, racingMap.racingLines.Count - 1);
-        racingMap.SetTrack(trackLength);
-        racingMap.SetDollyCart(racingMap.startLine);
+        trackLength = Random.Range(1, racingMap.racingLines.Count);
+        startIndex = Random.Range(0, racingMap.racingLines.Count);
+        Debug.Log($"Track length: {trackLength}, Start index: {startIndex}");
+        isSetStartLineIndex = true;
+    }
+    [PunRPC]
+    public void SetStartLine(int trackLength, int startIndex)
+    {
+        racingMap.mapView.RPC("SetTrack", RpcTarget.All, trackLength, startIndex);
+        racingMap.mapView.RPC("SetDollyCart", RpcTarget.All, startIndex);
+        isSetStartLine = true;
     }
 
-    private void PlayerSpawn()
+    private void PlayerSpawn(RacingLine startLine)
     {
         isSpawned = true;
         
@@ -54,7 +79,8 @@ public class RacingSpawner : MonoBehaviour
             }
             playerIndex++;
         }
-        Transform spawnPos = racingMap.startLine.spawnPositions[playerIndex];
+        Transform spawnPos = startLine.spawnPositions[playerIndex];
+        Debug.Log($"player spawn index : {playerIndex}");
         PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
     }
 }

@@ -31,6 +31,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     [SerializeField] public float cameraSpeed;
 
     public int linePassed;
+    public bool isControllable;
 
     private void Awake()
     {
@@ -61,6 +62,10 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private void OnEnable()
     {
         moveAction.action.Enable();
+        if (photonView.IsMine)
+        {
+            RacingManager.Instance.racingControllers[PhotonNetwork.LocalPlayer.ActorNumber] = this;
+        }
     }
     private void OnDisable()
     {
@@ -86,7 +91,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
 
     private void Update()
     {
-        if (photonView.IsMine)
+        if (photonView.IsMine && isControllable)
         {
             //SetRotation();
             SetRotationByCam();
@@ -106,6 +111,22 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10);
             rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
+        }
+    }
+
+    [PunRPC]
+    public void SetControllable(bool controllable)
+    {
+        isControllable = controllable;
+        if (controllable)
+        {
+            moveDirection = transform.forward; // 초기 방향 설정
+            currentSpeed = 0f; // 초기 속도 설정
+        }
+        else
+        {
+            moveDirection = Vector3.zero; // 컨트롤 불가능 시 방향 초기화
+            currentSpeed = 0f; // 컨트롤 불가능 시 속도 초기화
         }
     }
 
@@ -132,6 +153,12 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             // 카메라 기준으로 입력 방향 구성
             Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
 
+            float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
+            if (directionDot < -0.5f) // 방향이 너무 반대에 가까우면
+            {
+                inputDirection = Vector3.zero; // 입력 무시
+            }
+
             // 차량 회전 처리
             if (inputDirection != Vector3.zero)
             {
@@ -150,6 +177,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             {
                 moveDirection = transform.forward;
             }
+
         }
     }
 
@@ -216,11 +244,4 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
     }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, moveDirection * 10f);
-        Gizmos.color = Color.green;
-        Gizmos.DrawRay(transform.position, transform.forward * 10f);
-    }
 }

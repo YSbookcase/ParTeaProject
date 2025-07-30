@@ -26,7 +26,7 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("입장 완료");
         PhotonNetwork.LocalPlayer.NickName = $"Player_{PhotonNetwork.LocalPlayer.ActorNumber}";
-        PlayerSpawn();
+        //PlayerSpawn();
     }
 
     public override void OnMasterClientSwitched(Player newMasterClient)
@@ -37,15 +37,15 @@ public class RacingNetworkManager : MonoBehaviourPunCallbacks
         }
     }
 
-    private void PlayerSpawn()
-    {
-        racingMap.SetTrack(2);
-        racingMap.SetDollyCart(racingMap.startLine);
-        Transform spawnPos = racingMap.startLine.spawnPositions[3];
-        PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
-    }
-    public override void OnPlayerEnteredRoom(Player player)
-    {
-        Debug.Log($"{player.NickName} 입장 완료");
-    }
+        //private void PlayerSpawn()
+        //{
+        //    racingMap.SetTrack(2);
+        //    racingMap.SetDollyCart(racingMap.startLine);
+        //    Transform spawnPos = racingMap.startLine.spawnPositions[3];
+        //    PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
+        //}
+        //public override void OnPlayerEnteredRoom(Player player)
+        //{
+        //    Debug.Log($"{player.NickName} 입장 완료");
+        //}
 }
