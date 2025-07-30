@@ -238,18 +238,7 @@ namespace KYS
                 if (item != null)
                 {
                     spawnedItems.Add(item.gameObject);
-                    
-                    // 아이템에 Rigidbody 추가하여 중력으로 떨어지도록 설정
-                    Rigidbody rb = item.GetComponent<Rigidbody>();
-                    if (rb == null)
-                    {
-                        rb = item.gameObject.AddComponent<Rigidbody>();
-                    }
-                    rb.useGravity = true;
-                    rb.drag = 0.5f; // 공기 저항
-                    
-                    // 15초 후 아이템 제거 (떨어지는 시간 고려)
-                    StartCoroutine(DestroyItemAfterTime(item.gameObject, 15f));
+                    Debug.Log($"아이템 스폰 완료: {position}");
                 }
             }
             // 기존 방식 (폴백)
@@ -257,18 +246,7 @@ namespace KYS
             {
                 GameObject item = Instantiate(itemPrefab, position, Quaternion.identity);
                 spawnedItems.Add(item);
-                
-                // 아이템에 Rigidbody 추가하여 중력으로 떨어지도록 설정
-                Rigidbody rb = item.GetComponent<Rigidbody>();
-                if (rb == null)
-                {
-                    rb = item.AddComponent<Rigidbody>();
-                }
-                rb.useGravity = true;
-                rb.drag = 0.5f; // 공기 저항
-                
-                // 15초 후 아이템 제거 (떨어지는 시간 고려)
-                StartCoroutine(DestroyItemAfterTime(item, 15f));
+                Debug.Log($"아이템 스폰 완료 (폴백): {position}");
             }
             else
             {
@@ -276,26 +254,7 @@ namespace KYS
             }
         }
         
-        private IEnumerator DestroyItemAfterTime(GameObject item, float time)
-        {
-            yield return new WaitForSeconds(time);
-            
-            if (item != null)
-            {
-                spawnedItems.Remove(item);
-                
-                // 오브젝트 풀 사용 시 풀로 반환, 아니면 Destroy
-                CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
-                if (collectibleItem != null && itemPoolManager != null)
-                {
-                    itemPoolManager.ReturnItem(collectibleItem);
-                }
-                else
-                {
-                    Destroy(item);
-                }
-            }
-        }
+
         
         // 맵 생성 메서드
         private void CreateMap()
@@ -365,13 +324,23 @@ namespace KYS
         // 맵 내 랜덤 위치 생성 (하늘에서 떨어지는 위치)
         private Vector3 GetRandomPositionInMap()
         {
-            float halfWidth = mapSize.x / 2f - 2f; // 벽에서 더 안쪽
-            float halfHeight = mapSize.y / 2f - 2f;
+            // 맵 전체 영역에서 랜덤하게 스폰 (중앙 제외)
+            float halfWidth = mapSize.x / 2f - 3f; // 벽에서 더 안쪽
+            float halfHeight = mapSize.y / 2f - 3f;
             
-            float x = Random.Range(-halfWidth, halfWidth);
-            float z = Random.Range(-halfHeight, halfHeight);
+            // 중앙 영역을 제외하고 스폰 (중앙 4x4 영역 제외)
+            float x, z;
+            do
+            {
+                x = Random.Range(-halfWidth, halfWidth);
+                z = Random.Range(-halfHeight, halfHeight);
+            } while (Mathf.Abs(x) < 2f && Mathf.Abs(z) < 2f); // 중앙 4x4 영역 제외
             
-            return new Vector3(x, 20f, z); // 더 높은 위치에서 떨어짐
+            // 높이도 랜덤하게 설정 (15-25 범위)
+            float y = Random.Range(15f, 25f);
+            
+            Debug.Log($"아이템 스폰 위치: ({x}, {y}, {z}) - 맵 크기: {mapSize}");
+            return new Vector3(x, y, z);
         }
         
         private void SpawnPowerUp(Vector3 position)
@@ -385,16 +354,11 @@ namespace KYS
                 ItemType powerUpType = (ItemType)Random.Range(2, 5); // Speed, Slow, Magnet
                 powerUp.GetComponent<ItemController>()?.SetItemType(powerUpType);
                 
-                // 파워업에도 Rigidbody 추가
-                Rigidbody rb = powerUp.GetComponent<Rigidbody>();
-                if (rb == null)
-                {
-                    rb = powerUp.AddComponent<Rigidbody>();
-                }
-                rb.useGravity = true;
-                rb.drag = 0.5f;
+                // 파워업의 ItemController에서 자동으로 Rigidbody 설정됨
+                Debug.Log($"파워업 스폰 완료: {position}, 타입: {powerUpType}");
                 
-                StartCoroutine(DestroyItemAfterTime(powerUp, 20f));
+                // 60초 후 자동 제거 (바닥에 오래 남아있도록)
+                StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
             }
         }
         
@@ -405,7 +369,8 @@ namespace KYS
                 GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
                 spawnedObstacles.Add(obstacle);
                 
-                StartCoroutine(DestroyItemAfterTime(obstacle, 8f));
+                // 8초 후 자동 제거
+                StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
             }
         }
         
@@ -425,6 +390,39 @@ namespace KYS
                 }
                 
                 Debug.Log($"플레이어 {playerActorNumber} 아이템 수집! 점수: {playerScores[playerActorNumber]}");
+            }
+        }
+        
+        public void RemoveItemFromList(GameObject item)
+        {
+            if (spawnedItems.Contains(item))
+            {
+                spawnedItems.Remove(item);
+                Debug.Log($"아이템이 리스트에서 제거됨: {item.name}");
+            }
+        }
+        
+        private IEnumerator DestroyPowerUpAfterTime(GameObject powerUp, float time)
+        {
+            yield return new WaitForSeconds(time);
+            
+            if (powerUp != null && spawnedPowerUps.Contains(powerUp))
+            {
+                spawnedPowerUps.Remove(powerUp);
+                Destroy(powerUp);
+                Debug.Log("파워업 자동 제거됨");
+            }
+        }
+        
+        private IEnumerator DestroyObstacleAfterTime(GameObject obstacle, float time)
+        {
+            yield return new WaitForSeconds(time);
+            
+            if (obstacle != null && spawnedObstacles.Contains(obstacle))
+            {
+                spawnedObstacles.Remove(obstacle);
+                Destroy(obstacle);
+                Debug.Log("장애물 자동 제거됨");
             }
         }
         

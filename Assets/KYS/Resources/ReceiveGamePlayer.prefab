@@ -180,7 +180,7 @@ MonoBehaviour:
   slowEffectMultiplier: 0.5
   playerRenderer: {fileID: 8063006303642728739}
   playerAnimator: {fileID: 0}
-  nameTagPrefab: {fileID: 1542201599109866052, guid: 2915b9c0a60a19845b62d285a9cf82f4,
+  nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
     type: 3}
   nameTagOffset: {x: 0, y: 2.5, z: 0}
   collectEffect: {fileID: 0}
