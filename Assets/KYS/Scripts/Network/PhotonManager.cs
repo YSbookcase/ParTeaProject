@@ -163,15 +163,17 @@ namespace KYS
         // 수동으로 Photon 연결 시작
         public void ConnectToPhoton()
         {
-            if (!PhotonNetwork.IsConnected)
+            // 이미 연결 중이거나 연결된 경우 중복 연결 방지
+            if (PhotonNetwork.IsConnected || PhotonNetwork.NetworkClientState == ClientState.ConnectingToNameServer || 
+                PhotonNetwork.NetworkClientState == ClientState.ConnectingToMasterServer || 
+                PhotonNetwork.NetworkClientState == ClientState.ConnectingToGameServer)
             {
-                Debug.Log("[PhotonManager] Photon 연결 시작");
-                PhotonNetwork.ConnectUsingSettings();
+                Debug.Log($"[PhotonManager] 이미 Photon에 연결되어 있거나 연결 중입니다. 현재 상태: {PhotonNetwork.NetworkClientState}");
+                return;
             }
-            else
-            {
-                Debug.Log("[PhotonManager] 이미 Photon에 연결되어 있습니다.");
-            }
+            
+            Debug.Log("[PhotonManager] Photon 연결 시작");
+            PhotonNetwork.ConnectUsingSettings();
         }
 
         // MonoBehaviourPunCallbacks 오버라이드
@@ -350,44 +352,29 @@ namespace KYS
 
         public override void OnRoomListUpdate(List<RoomInfo> roomList)
         {
-            Debug.Log($"[PhotonManager] 방 목록 업데이트 호출됨 - 총 방 개수: {roomList.Count}");
-            
-            // 방 목록 상세 정보 로깅
-            int visibleRooms = 0;
-            int openRooms = 0;
-            int removedRooms = 0;
-            int totalRooms = 0;
-            
-            Debug.Log($"[PhotonManager] === 방 목록 상세 분석 시작 ===");
-            
-            foreach (RoomInfo info in roomList)
+            // 방 목록이 변경된 경우에만 간단한 로그 출력
+            if (roomList != null && roomList.Count > 0)
             {
-                totalRooms++;
-                Debug.Log($"[PhotonManager] [{totalRooms}/{roomList.Count}] 방: {info.Name}, 플레이어: {info.PlayerCount}/{info.MaxPlayers}, 제거됨: {info.RemovedFromList}, 보임: {info.IsVisible}, 열림: {info.IsOpen}");
+                int visibleRooms = 0;
+                int removedRooms = 0;
                 
-                if (info.RemovedFromList)
+                foreach (RoomInfo info in roomList)
                 {
-                    removedRooms++;
-                    Debug.Log($"[PhotonManager] 방 제거됨: {info.Name}");
+                    if (info.RemovedFromList)
+                    {
+                        removedRooms++;
+                    }
+                    else if (info.IsVisible)
+                    {
+                        visibleRooms++;
+                    }
                 }
-                else
+                
+                // 변경사항이 있을 때만 로그 출력
+                if (visibleRooms > 0 || removedRooms > 0)
                 {
-                    if (info.IsVisible) visibleRooms++;
-                    if (info.IsOpen) openRooms++;
+                    Debug.Log($"[PhotonManager] 방 목록 업데이트 - 보이는 방: {visibleRooms}개, 제거된 방: {removedRooms}개");
                 }
-            }
-            
-            Debug.Log($"[PhotonManager] === 방 목록 상세 분석 완료 ===");
-            Debug.Log($"[PhotonManager] 방 목록 요약 - 전체: {totalRooms}개, 보이는 방: {visibleRooms}개, 열린 방: {openRooms}개, 제거된 방: {removedRooms}개");
-            
-            // 이벤트 구독자 수 확인
-            if (OnRoomListUpdateEvent != null)
-            {
-                Debug.Log($"[PhotonManager] OnRoomListUpdateEvent 구독자 수: {OnRoomListUpdateEvent.GetInvocationList().Length}");
-            }
-            else
-            {
-                Debug.LogWarning("[PhotonManager] OnRoomListUpdateEvent에 구독자가 없습니다!");
             }
             
             OnRoomListUpdateEvent?.Invoke(roomList);

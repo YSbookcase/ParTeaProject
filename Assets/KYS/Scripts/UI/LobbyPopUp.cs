@@ -72,14 +72,63 @@ namespace KYS
             ConnectEventsIfNeeded();
         }
 
+        private ClientState lastNetworkState = ClientState.Disconnected;
+        
         private void Update()
         {
-            stateText.text = $"Current State : {PhotonNetwork.NetworkClientState}";
+            // 네트워크 상태가 변경된 경우에만 UI 업데이트
+            ClientState currentState = PhotonNetwork.NetworkClientState;
+            if (currentState != lastNetworkState)
+            {
+                stateText.text = $"Current State : {GetUserFriendlyStateName(currentState)}";
+                lastNetworkState = currentState;
+                
+                // 상태 변경 로그 (디버깅용)
+                Debug.Log($"[LobbyPopUp] 네트워크 상태 변경: {currentState}");
+            }
 
-            // 방 목록 상태 확인 (5초마다)
-            if (Time.frameCount % 300 == 0) // 약 5초마다 (60fps 기준)
+            // 방 목록 상태 확인 (10초마다로 변경)
+            if (Time.frameCount % 600 == 0) // 약 10초마다 (60fps 기준)
             {
                 CheckAndRefreshRoomList();
+            }
+        }
+        
+        // 사용자 친화적인 상태 이름 반환
+        private string GetUserFriendlyStateName(ClientState state)
+        {
+            switch (state)
+            {
+                case ClientState.Disconnected:
+                    return "연결 해제됨";
+                case ClientState.ConnectingToNameServer:
+                    return "서버 연결 중...";
+                case ClientState.ConnectedToNameServer:
+                    return "서버 연결됨";
+                case ClientState.ConnectingToMasterServer:
+                    return "마스터 서버 연결 중...";
+                case ClientState.ConnectedToMasterServer:
+                    return "마스터 서버 연결됨";
+                case ClientState.ConnectingToGameServer:
+                    return "게임 서버 연결 중...";
+                case ClientState.ConnectedToGameServer:
+                    return "게임 서버 연결됨";
+                case ClientState.Joining:
+                    return "방 입장 중...";
+                case ClientState.Joined:
+                    return "방 입장됨";
+                case ClientState.Leaving:
+                    return "방 나가는 중...";
+                case ClientState.DisconnectingFromGameServer:
+                    return "게임 서버 연결 해제 중...";
+                case ClientState.DisconnectingFromMasterServer:
+                    return "마스터 서버 연결 해제 중...";
+                case ClientState.DisconnectingFromNameServer:
+                    return "서버 연결 해제 중...";
+                case ClientState.Authenticating:
+                    return "인증 중...";
+                default:
+                    return state.ToString();
             }
         }
 
@@ -97,10 +146,18 @@ namespace KYS
                 // 닉네임 동기화
                 PhotonManager.Instance.SyncNicknameWithFirebase();
 
-                // Photon 연결 시작 (로그인 후 로비에서만 실행)
-                PhotonManager.Instance.ConnectToPhoton();
+                // Photon 연결 시작 (이미 연결되어 있지 않은 경우에만)
+                if (!PhotonNetwork.IsConnected)
+                {
+                    PhotonManager.Instance.ConnectToPhoton();
+                    Debug.Log("[LobbyPopUp] Photon 연결 시작");
+                }
+                else
+                {
+                    Debug.Log("[LobbyPopUp] 이미 Photon에 연결되어 있음");
+                }
 
-                Debug.Log("[LobbyPopUp] PhotonManager 이벤트 구독 완료 및 Photon 연결 시작");
+                Debug.Log("[LobbyPopUp] PhotonManager 이벤트 구독 완료");
             }
             else
             {
@@ -218,16 +275,12 @@ namespace KYS
 
         private void OnRoomListUpdate(List<RoomInfo> roomList)
         {
-            Debug.Log($"[LobbyPopUp] 방 목록 업데이트 시작 - 총 방 개수: {roomList.Count}");
-            
-            // PhotonManager에서 받은 방 목록 검증
+            // 방 목록이 변경된 경우에만 로그 출력
             if (roomList == null)
             {
                 Debug.LogError("[LobbyPopUp] PhotonManager에서 받은 roomList가 null입니다!");
                 return;
             }
-            
-            Debug.Log($"[LobbyPopUp] PhotonManager에서 받은 방 목록 검증 - Count: {roomList.Count}");
 
             // null 체크 추가
             if (roomListItemPrefab == null)
@@ -243,9 +296,6 @@ namespace KYS
             }
 
             // 방 목록 누적 업데이트 (Photon의 증분 업데이트 방식 대응)
-            Debug.Log($"[LobbyPopUp] === 방 목록 누적 업데이트 시작 ===");
-            Debug.Log($"[LobbyPopUp] 기존 방 정보: {currentRoomInfos.Count}개, 기존 UI 아이템: {roomListItems.Count}개");
-            
             int addedRooms = 0;
             int removedRooms = 0;
             int updatedRooms = 0;
@@ -253,8 +303,6 @@ namespace KYS
             // 새로운 방 목록으로 기존 방 정보 업데이트
             foreach (RoomInfo info in roomList)
             {
-                Debug.Log($"[LobbyPopUp] 방 정보 처리: {info.Name}, 제거됨: {info.RemovedFromList}");
-                
                 if (info.RemovedFromList)
                 {
                     // 방이 제거된 경우
@@ -262,7 +310,6 @@ namespace KYS
                     {
                         currentRoomInfos.Remove(info.Name);
                         removedRooms++;
-                        Debug.Log($"[LobbyPopUp] 방 정보 제거: {info.Name}");
                     }
                 }
                 else
@@ -274,22 +321,21 @@ namespace KYS
                     if (isNewRoom)
                     {
                         addedRooms++;
-                        Debug.Log($"[LobbyPopUp] 새 방 정보 추가: {info.Name}");
                     }
                     else
                     {
                         updatedRooms++;
-                        Debug.Log($"[LobbyPopUp] 방 정보 업데이트: {info.Name}");
                     }
                 }
             }
             
-            Debug.Log($"[LobbyPopUp] 방 정보 업데이트 완료 - 추가: {addedRooms}개, 제거: {removedRooms}개, 업데이트: {updatedRooms}개");
-            Debug.Log($"[LobbyPopUp] 현재 누적된 방 정보: {currentRoomInfos.Count}개");
+            // 변경사항이 있을 때만 로그 출력
+            if (addedRooms > 0 || removedRooms > 0 || updatedRooms > 0)
+            {
+                Debug.Log($"[LobbyPopUp] 방 목록 업데이트 - 추가: {addedRooms}개, 제거: {removedRooms}개, 업데이트: {updatedRooms}개, 총: {currentRoomInfos.Count}개");
+            }
 
             // UI 업데이트 - 누적된 방 정보를 기반으로 전체 재생성
-            Debug.Log($"[LobbyPopUp] === UI 아이템 재생성 시작 ===");
-            
             // 기존 UI 아이템 정리
             foreach (var kvp in roomListItems)
             {
@@ -302,14 +348,10 @@ namespace KYS
 
             // 누적된 방 정보를 기반으로 UI 아이템 생성
             int visibleRoomCount = 0;
-            int uiCreationCount = 0;
             
             foreach (var kvp in currentRoomInfos)
             {
                 RoomInfo info = kvp.Value;
-                uiCreationCount++;
-                
-                Debug.Log($"[LobbyPopUp] [{uiCreationCount}/{currentRoomInfos.Count}] UI 아이템 생성: {info.Name}, 플레이어: {info.PlayerCount}/{info.MaxPlayers}");
 
                 // 방 아이템 생성
                 GameObject roomListItem = Instantiate(roomListItemPrefab);
@@ -337,28 +379,26 @@ namespace KYS
                     itemComponent.Init(info);
                     roomListItems.Add(info.Name, roomListItem);
                     visibleRoomCount++;
-                    Debug.Log($"[LobbyPopUp] ? UI 아이템 생성 완료: {info.Name} (총 {visibleRoomCount}개)");
                 }
                 else
                 {
-                    Debug.LogError($"[LobbyPopUp] ? RoomListItem 컴포넌트를 찾을 수 없습니다: {info.Name}");
+                    Debug.LogError($"[LobbyPopUp] RoomListItem 컴포넌트를 찾을 수 없습니다: {info.Name}");
                     Destroy(roomListItem);
                 }
             }
-
-            Debug.Log($"[LobbyPopUp] === UI 아이템 재생성 완료 ===");
-            Debug.Log($"[LobbyPopUp] UI 아이템 생성 완료 - 성공: {visibleRoomCount}개, 총 UI 아이템: {roomListItems.Count}개");
 
             // UI 레이아웃 강제 업데이트
             Canvas.ForceUpdateCanvases();
             if (roomListContent is RectTransform contentRectTransform)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
-                Debug.Log($"[LobbyPopUp] Content 레이아웃 재구성 완료 - Content 크기: {contentRectTransform.sizeDelta}");
             }
             
-            // 디버그 정보 출력
-            DebugRoomListStatus();
+            // 변경사항이 있을 때만 디버그 정보 출력
+            if (addedRooms > 0 || removedRooms > 0 || updatedRooms > 0)
+            {
+                DebugRoomListStatus();
+            }
         }
 
         private void OnJoinedRoom()
@@ -485,13 +525,19 @@ namespace KYS
         // 디버그용 - 현재 방 목록 상태 출력
         public void DebugRoomListStatus()
         {
-            Debug.Log($"[LobbyPopUp] 현재 방 목록 상태:");
-            Debug.Log($"[LobbyPopUp] - Photon 로비 상태: {PhotonNetwork.InLobby}");
-            Debug.Log($"[LobbyPopUp] - 생성된 방 아이템 개수: {roomListItems.Count}");
+            Debug.Log($"[LobbyPopUp] 방 목록 상태 - 총 {roomListItems.Count}개 방");
             
-            foreach (var kvp in roomListItems)
+            // 방이 많을 때는 요약만 출력
+            if (roomListItems.Count > 5)
             {
-                Debug.Log($"[LobbyPopUp] - 방 아이템: {kvp.Key}, GameObject: {(kvp.Value != null ? "존재" : "null")}");
+                Debug.Log($"[LobbyPopUp] 방 목록 요약: {roomListItems.Count}개 방이 표시됨");
+            }
+            else
+            {
+                foreach (var kvp in roomListItems)
+                {
+                    Debug.Log($"[LobbyPopUp] - 방: {kvp.Key}");
+                }
             }
         }
 
@@ -523,7 +569,7 @@ namespace KYS
         {
             if (roomListItems.Count == 0 && PhotonNetwork.InLobby)
             {
-                Debug.Log("[LobbyPopUp] 방 목록이 비어있어 자동 새로고침 시도");
+                // 로그 제거 - 너무 자주 호출됨
                 StartCoroutine(AutoRefreshRoomList());
             }
         }
@@ -535,7 +581,6 @@ namespace KYS
             
             if (PhotonNetwork.InLobby && roomListItems.Count == 0)
             {
-                Debug.Log("[LobbyPopUp] 자동 방 목록 새로고침 실행");
                 // Photon 연결 상태 확인
                 if (PhotonNetwork.IsConnected && PhotonNetwork.Server == ServerConnection.MasterServer)
                 {
