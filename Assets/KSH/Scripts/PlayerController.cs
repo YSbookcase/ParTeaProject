@@ -20,6 +20,7 @@ namespace KSH
         [SerializeField] private Renderer bodyRenderer;
         public Color color;
         [SerializeField] private TextMeshProUGUI nickName;
+        public TextMeshProUGUI NickName => nickName;
 
         private Rigidbody rigid;
         private Vector3 moveVec;
@@ -56,6 +57,7 @@ namespace KSH
                 nickName.text = photonView.Owner.NickName;
             }
             ChangeColor();
+            PlayerColor();
         }
 
         void Update()
@@ -109,11 +111,6 @@ namespace KSH
         public void SettingColor(Color newcolor) //색깔 세팅
         {
             color = newcolor;
-            if (bodyRenderer != null)
-            {
-                bodyRenderer.material.color = color;
-            }
-            
             if(nickName != null)
             {
                 nickName.color = color;
@@ -122,20 +119,35 @@ namespace KSH
 
         public void ChangeColor()
         {
-            body = new Material(body); // 새 메터리얼 생성
-        
-            if(bodyRenderer != null)
-                bodyRenderer.material = body;
-        
             ColorManager.Instance.RegisterPlayer(this); //매니저에 플레이어를 등록
         
             //만약 포톤뷰를 소유한 플레이어의 커스텀프로퍼티에서 Color키를 찾으면
-            if (photonView.Owner.CustomProperties.TryGetValue("Color", out object value))
+            if (photonView.Owner.CustomProperties.TryGetValue("TeamColor", out object value))
             {
                 //value가 문자열이고 Color타입으로 변환할 수 있다면
                 if (value is string colorHex && ColorUtility.TryParseHtmlString("#" + colorHex, out color))
                 {
                     SettingColor(color);
+                }
+            }
+        }
+
+        public void PlayerColor()
+        {
+            if(photonView.Owner.CustomProperties.TryGetValue("Color", out object value))
+            {
+                int colorIndex = (int)value;
+                
+                Color[] colors = {
+                    Color.red,
+                    Color.blue,
+                    Color.green,
+                    Color.yellow
+                };
+
+                if (colorIndex >= 0 && colorIndex < colors.Length)
+                {
+                    GetComponent<Renderer>().material.color = colors[colorIndex];
                 }
             }
         }
