@@ -132,6 +132,12 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             // 카메라 기준으로 입력 방향 구성
             Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
 
+            float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
+            if (directionDot < 0.25f) // 방향이 너무 반대에 가까우면
+            {
+                inputDirection = Vector3.zero; // 입력 무시
+            }
+
             // 차량 회전 처리
             if (inputDirection != Vector3.zero)
             {
@@ -150,6 +156,9 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             {
                 moveDirection = transform.forward;
             }
+
+            
+
         }
     }
 
