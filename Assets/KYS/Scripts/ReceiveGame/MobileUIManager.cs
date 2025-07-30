@@ -6,10 +6,12 @@ namespace KYS
     public class MobileUIManager : MonoBehaviour
     {
         [Header("Mobile UI Elements")]
-        [SerializeField] private MobileJoystick leftJoystick;
+        [SerializeField] private MobileJoystick leftJoystick; // 이동용 조이스틱만
+        [SerializeField] private MobileActionButton actionButton; // 액션 버튼 (필요시)
+        
+        // 사용하지 않는 요소들 (하위 호환성을 위해 유지)
         [SerializeField] private MobileJoystick rightJoystick;
         [SerializeField] private MobileActionButton jumpButton;
-        [SerializeField] private MobileActionButton actionButton;
         [SerializeField] private MobileActionButton specialButton;
         
         [Header("UI Layout")]
@@ -21,6 +23,7 @@ namespace KYS
         [SerializeField] private bool enableJoystick = true;
         [SerializeField] private bool enableButtons = true;
         [SerializeField] private bool autoDetectPlatform = true;
+        [SerializeField] private bool enableMouseInput = true; // PC에서 마우스 입력 활성화
         
         private bool isInitialized = false;
         
@@ -105,38 +108,51 @@ namespace KYS
         
         private void SetupJoysticks()
         {
+            // 좌측 조이스틱만 활성화 (이동용)
             if (leftJoystick != null)
             {
                 leftJoystick.EnableJoystick();
+                
+                // PC에서 마우스 입력 활성화
+                if (enableMouseInput && !isMobilePlatform)
+                {
+                    Debug.Log("PC에서 마우스 입력 활성화");
+                }
+                
+                Debug.Log("좌측 조이스틱 활성화 (이동용)");
             }
             
+            // 우측 조이스틱은 비활성화 (한 손 조작을 위해)
             if (rightJoystick != null)
             {
-                rightJoystick.EnableJoystick();
+                rightJoystick.DisableJoystick();
+                rightJoystick.gameObject.SetActive(false); // UI에서 숨김
             }
         }
         
         private void SetupButtons()
         {
+            // 점프 버튼 비활성화 (한 손 조작을 위해)
             if (jumpButton != null)
             {
-                jumpButton.SetActionName("Jump");
-                jumpButton.OnActionPressed += OnJumpPressed;
-                jumpButton.EnableButton();
+                jumpButton.DisableButton();
+                jumpButton.gameObject.SetActive(false); // UI에서 숨김
             }
             
+            // 액션 버튼만 활성화 (필요시)
             if (actionButton != null)
             {
                 actionButton.SetActionName("Action");
                 actionButton.OnActionPressed += OnActionPressed;
                 actionButton.EnableButton();
+                Debug.Log("액션 버튼 활성화");
             }
             
+            // 특수 버튼 비활성화 (한 손 조작을 위해)
             if (specialButton != null)
             {
-                specialButton.SetActionName("Special");
-                specialButton.OnActionPressed += OnSpecialPressed;
-                specialButton.EnableButton();
+                specialButton.DisableButton();
+                specialButton.gameObject.SetActive(false); // UI에서 숨김
             }
         }
         
