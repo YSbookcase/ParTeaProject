@@ -38,8 +38,6 @@ namespace KSH
             {
                 Destroy(gameObject); // 하나만 존재해야 하므로 제거
             }
-            
-            TeamManager.Instance.SetTeam(); //팀 설정
         }
         
 
@@ -55,6 +53,7 @@ namespace KSH
 
             if (PhotonNetwork.IsMasterClient)
             {
+                TeamManager.Instance.SetTeam(); //팀 설정
                 photonView.RPC("StartCount", RpcTarget.All);
             }
         }
