@@ -6,6 +6,7 @@ using System;
 using System.Data.SqlTypes;
 using Photon.Pun;
 using Photon.Realtime;
+using UnityEngine.Playables;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KSH
@@ -15,9 +16,10 @@ namespace KSH
         [Header("시간 설정")]
         [SerializeField] private float timer;
         public float Timer { get => timer; set => timer = value; }
+        [SerializeField] private PlayableDirector timeLine;
         
         private bool isGameStart = false;
-
+        private bool isTimeLine = false;
         public static GameManager Instance;
         public event Action OnGameStart;
         public event Action OnGameEnd;
@@ -44,6 +46,12 @@ namespace KSH
         private void Start()
         {
             UIManager.Instance.OnCountDownEnd += StartGame; //카운트 다운이 끝나면 게임 시작
+            
+            if (!isTimeLine)
+            {
+                timeLine.Play();
+                isTimeLine = true;
+            }
 
             if (PhotonNetwork.IsMasterClient)
             {

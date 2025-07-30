@@ -103,6 +103,7 @@ namespace KSH
 
         private IEnumerator CountDown()
         {
+            yield return new WaitForSeconds(3f);
             countDownPanal.SetActive(true);
             
             for (int i = 3; i >= 0; i--)

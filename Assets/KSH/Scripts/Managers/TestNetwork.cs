@@ -39,7 +39,7 @@ namespace KSH
 
         private void PlayerSpawn()
         {
-            Vector3 spawnPos = new Vector3(Random.Range(24, 48), 2, Random.Range(24, 48));
+            Vector3 spawnPos = new Vector3(Random.Range(0, 48), 2, Random.Range(0, 14));
             GameObject player = PhotonNetwork.Instantiate("Player_KSH", spawnPos, Quaternion.identity);
         }
     }    
