@@ -60,6 +60,20 @@ namespace KYS
         
         private void Start()
         {
+            // 아이템 프리팹이 설정되지 않은 경우 Resources에서 로드
+            if (itemPrefab == null)
+            {
+                itemPrefab = Resources.Load<GameObject>("KYSItemPrefab");
+                if (itemPrefab != null)
+                {
+                    Debug.Log("[ReceiveGameManager] KYSItemPrefab을 Resources에서 로드했습니다.");
+                }
+                else
+                {
+                    Debug.LogError("[ReceiveGameManager] Resources/KYSItemPrefab을 찾을 수 없습니다!");
+                }
+            }
+            
             currentTime = gameTime;
             UpdateUI();
             
@@ -231,22 +245,61 @@ namespace KYS
         
         private void SpawnItem(Vector3 position)
         {
-            // 오브젝트 풀 사용
-            if (itemPoolManager != null)
+            Debug.Log($"SpawnItem 호출됨 - 위치: {position}");
+            
+            // 일반 Instantiate 방식 사용 (오브젝트 풀링 대신)
+            if (itemPrefab != null)
+            {
+                GameObject item = Instantiate(itemPrefab, position, Quaternion.identity);
+                spawnedItems.Add(item);
+                Debug.Log($"아이템 스폰 완료 (일반 방식): {position}");
+                
+                // 아이템이 실제로 보이는지 확인
+                Renderer itemRenderer = item.GetComponent<Renderer>();
+                if (itemRenderer != null)
+                {
+                    Debug.Log($"아이템 렌더러 정보 - 활성화: {itemRenderer.enabled}, 머티리얼: {itemRenderer.material?.name}, 머티리얼 색상: {itemRenderer.material?.color}");
+                }
+                else
+                {
+                    Debug.LogWarning("아이템에 Renderer 컴포넌트가 없습니다!");
+                }
+            }
+            // 오브젝트 풀 사용 (폴백)
+            else if (itemPoolManager != null)
             {
                 CollectibleItem item = itemPoolManager.GetItem(position);
                 if (item != null)
                 {
                     spawnedItems.Add(item.gameObject);
-                    Debug.Log($"아이템 스폰 완료: {position}");
+                    Debug.Log($"아이템 스폰 완료 (오브젝트 풀): {position}, 아이템 활성화 상태: {item.gameObject.activeInHierarchy}, 위치: {item.transform.position}");
+                    
+                    // 아이템이 실제로 보이는지 확인
+                    Renderer itemRenderer = item.GetComponent<Renderer>();
+                    if (itemRenderer != null)
+                    {
+                        Debug.Log($"아이템 렌더러 정보 - 활성화: {itemRenderer.enabled}, 머티리얼: {itemRenderer.material?.name}, 머티리얼 색상: {itemRenderer.material?.color}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("아이템에 Renderer 컴포넌트가 없습니다!");
+                    }
+                    
+                    // PooledObject 컴포넌트 확인 (CollectibleItem이 PooledObject를 상속받음)
+                    if (item is PooledObject)
+                    {
+                        PooledObject pooledObj = item as PooledObject;
+                        Debug.Log($"PooledObject 기능 확인됨 - returnPool: {pooledObj.returnPool != null}");
+                    }
+                    else
+                    {
+                        Debug.LogError("아이템이 PooledObject를 상속받지 않았습니다!");
+                    }
                 }
-            }
-            // 기존 방식 (폴백)
-            else if (itemPrefab != null)
-            {
-                GameObject item = Instantiate(itemPrefab, position, Quaternion.identity);
-                spawnedItems.Add(item);
-                Debug.Log($"아이템 스폰 완료 (폴백): {position}");
+                else
+                {
+                    Debug.LogError($"아이템 풀에서 아이템을 가져오지 못했습니다!");
+                }
             }
             else
             {
@@ -472,6 +525,7 @@ namespace KYS
                     }
                     else
                     {
+                        Debug.LogWarning($"[ReceiveGameManager] 아이템을 안전하게 파괴합니다: {item.name}");
                         Destroy(item);
                     }
                 }

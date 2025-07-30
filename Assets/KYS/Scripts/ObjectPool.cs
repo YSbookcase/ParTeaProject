@@ -45,8 +45,8 @@ namespace KYS
             go.returnPool = this;
             go.gameObject.SetActive(true);
             
-            // 위치 초기화 (중앙으로 리셋)
-            go.transform.position = Vector3.zero;
+            // 위치 초기화 제거 - 호출하는 쪽에서 위치를 설정하도록 함
+            // go.transform.position = Vector3.zero;
             go.transform.rotation = Quaternion.identity;
             
             return go;

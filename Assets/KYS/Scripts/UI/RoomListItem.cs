@@ -63,15 +63,18 @@ namespace KYS
                 if (gameIndex >= 0 && gameIndex < gameNames.Length)
                 {
                     gameText.text = $"Game : {gameNames[gameIndex]}";
+                    Debug.Log($"[RoomListItem] 방 '{roomName}' 게임 정보 업데이트: {gameNames[gameIndex]} (인덱스: {gameIndex})");
                 }
                 else
                 {
                     gameText.text = "Game : 점프"; // 기본값
+                    Debug.LogWarning($"[RoomListItem] 방 '{roomName}' 게임 인덱스가 범위를 벗어남: {gameIndex}");
                 }
             }
             else
             {
                 gameText.text = "Game : 점프"; // 기본값
+                Debug.Log($"[RoomListItem] 방 '{roomName}' 게임 정보 없음 - 기본값 사용");
             }
         }
 

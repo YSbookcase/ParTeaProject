@@ -28,7 +28,8 @@ namespace KYS
             poolObject.transform.SetParent(transform);
             
             itemPool = poolObject.AddComponent<ObjectPool>();
-            itemPool.poolObject = itemPrefab.GetComponent<PooledObject>();
+            // CollectibleItem이 PooledObject를 상속받고 있으므로 직접 사용
+            itemPool.poolObject = itemPrefab;
             
             // Inspector에서 poolSize 설정을 위해 리플렉션 사용
             var poolSizeField = typeof(ObjectPool).GetField("poolSize", 
@@ -50,14 +51,17 @@ namespace KYS
                 return null;
             }
             
+            // ObjectPool에서 PooledObject를 가져오고, 이를 CollectibleItem으로 캐스팅
             PooledObject pooledObj = itemPool.ObjectOut();
-            CollectibleItem item = pooledObj.GetComponent<CollectibleItem>();
+            CollectibleItem item = pooledObj as CollectibleItem;
             
             if (item != null)
             {
-                // 위치 설정을 ResetItem 전에 해야 함
-                item.transform.position = position;
+                // 먼저 아이템 리셋
                 item.ResetItem();
+                
+                // 그 다음 위치 설정
+                item.transform.position = position;
                 
                 // 위치가 제대로 설정되었는지 확인
                 if (Vector3.Distance(item.transform.position, position) > 0.1f)
@@ -66,7 +70,11 @@ namespace KYS
                     item.transform.position = position; // 강제로 다시 설정
                 }
                 
-                Debug.Log($"아이템 풀에서 생성: {position}");
+                Debug.Log($"아이템 풀에서 생성: {position}, 실제 위치: {item.transform.position}, 활성화 상태: {item.gameObject.activeInHierarchy}");
+            }
+            else
+            {
+                Debug.LogError("PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
             }
             
             return item;

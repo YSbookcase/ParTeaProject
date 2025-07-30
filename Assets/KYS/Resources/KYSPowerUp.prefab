@@ -149,6 +149,12 @@ MonoBehaviour:
   itemType: 0
   pointValue: 1
   effectDuration: 5
+  groundLevel: 0.5
+  bounceForce: 2
+  maxFallSpeed: 12
+  rotationSpeed: 60
+  bobSpeed: 1.5
+  bobHeight: 0.3
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   bonusColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   speedColor: {r: 0, g: 0, b: 1, a: 1}

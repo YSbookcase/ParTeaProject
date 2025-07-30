@@ -128,7 +128,15 @@ namespace KYS
             if (!isCollected)
             {
                 Debug.Log("아이템이 바닥에서 시간 초과로 리턴됩니다.");
-                ReturnToPool(0f);
+                if (returnPool != null)
+                {
+                    ReturnToPool(0f);
+                }
+                else
+                {
+                    Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                    Destroy(gameObject);
+                }
             }
         }
         
@@ -164,8 +172,16 @@ namespace KYS
             // 수집 효과 재생
             PlayCollectEffect();
             
-            // 오브젝트 풀로 반환 (0.5초 후)
-            ReturnToPool(0.5f);
+            // 오브젝트 풀로 반환 (0.5초 후) - null 체크 추가
+            if (returnPool != null)
+            {
+                ReturnToPool(0.5f);
+            }
+            else
+            {
+                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Destroy(gameObject, 0.5f);
+            }
         }
         
         private void PlayCollectEffect()
