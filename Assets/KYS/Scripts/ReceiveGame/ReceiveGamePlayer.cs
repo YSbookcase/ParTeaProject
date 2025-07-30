@@ -42,7 +42,7 @@ namespace KYS
         private ReceiveGameUI gameUI;
         private AudioSource audioSource;
         private GameObject nameTag;
-        private TextMeshPro nameText;
+        private ReceiveGameNicknamePanel nicknamePanel;
         
         // Input System 변수들
         private Vector2 moveInput;
@@ -136,8 +136,8 @@ namespace KYS
                 transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
             }
             
-            // 이름 태그 업데이트 (모든 플레이어)
-            UpdateNameTag();
+            // 파워업 효과 체크
+            CheckPowerUpEffects();
         }
         
         private void HandleInput()
@@ -233,6 +233,9 @@ namespace KYS
                 
                 // 아이템 제거
                 item.Collect();
+                
+                // spawnedItems 리스트에서 제거
+                gameManager.RemoveItemFromList(item.gameObject);
             }
         }
         
@@ -311,59 +314,53 @@ namespace KYS
         
         private void CreateNameTag()
         {
+            // Screen Space - Overlay Canvas 찾기
+            Canvas overlayCanvas = FindObjectOfType<Canvas>();
+            if (overlayCanvas == null || overlayCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                Debug.Log("Screen Space - Overlay Canvas를 자동으로 생성합니다.");
+                overlayCanvas = CreateOverlayCanvas();
+            }
+            
             if (nameTagPrefab != null)
             {
-                // World Space Canvas에서 이름 태그 생성
-                Canvas worldCanvas = FindObjectOfType<Canvas>();
-                if (worldCanvas != null && worldCanvas.renderMode == RenderMode.WorldSpace)
-                {
-                    nameTag = Instantiate(nameTagPrefab, worldCanvas.transform);
-                    nameText = nameTag.GetComponentInChildren<TextMeshPro>();
-                }
-                else
-                {
-                    Debug.LogWarning("World Space Canvas를 찾을 수 없습니다!");
-                    CreateDynamicNameTag();
-                }
+                // 프리팹에서 이름 태그 생성
+                nameTag = Instantiate(nameTagPrefab, overlayCanvas.transform);
+                nicknamePanel = nameTag.GetComponent<ReceiveGameNicknamePanel>();
             }
             else
             {
-                CreateDynamicNameTag();
+                // 동적으로 이름 태그 생성
+                CreateDynamicNicknamePanel(overlayCanvas);
             }
             
-            if (nameText != null)
+            if (nicknamePanel != null)
             {
                 // 해당 플레이어의 닉네임 표시
                 if (photonView.Owner != null)
                 {
-                    nameText.text = photonView.Owner.NickName;
+                    nicknamePanel.SetInfo(photonView.Owner.NickName, transform);
                     Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
                 }
                 else
                 {
-                    nameText.text = "Unknown Player";
+                    nicknamePanel.SetInfo("Unknown Player", transform);
                 }
             }
         }
         
-        private void CreateDynamicNameTag()
+        private void CreateDynamicNicknamePanel(Canvas canvas)
         {
-            // World Space Canvas 찾기
-            Canvas worldCanvas = FindObjectOfType<Canvas>();
-            if (worldCanvas == null || worldCanvas.renderMode != RenderMode.WorldSpace)
-            {
-                Debug.LogError("World Space Canvas가 필요합니다!");
-                return;
-            }
-            
             // 동적으로 이름 태그 생성
-            nameTag = new GameObject("NameTag");
-            nameTag.transform.SetParent(worldCanvas.transform);
+            nameTag = new GameObject("NicknamePanel");
+            nameTag.transform.SetParent(canvas.transform);
             
-            // Panel 컴포넌트 추가
+            // RectTransform 설정
             RectTransform rectTransform = nameTag.AddComponent<RectTransform>();
-            rectTransform.sizeDelta = new Vector2(200, 50);
-            rectTransform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            rectTransform.sizeDelta = new Vector2(120, 30);
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
             
             // 배경 이미지 추가
             GameObject background = new GameObject("Background");
@@ -377,37 +374,46 @@ namespace KYS
             Image bgImage = background.AddComponent<Image>();
             bgImage.color = new Color(0, 0, 0, 0.7f);
             
-            // TextMeshPro 컴포넌트 추가
-            GameObject textObj = new GameObject("NameText");
+            // TextMeshProUGUI 컴포넌트 추가
+            GameObject textObj = new GameObject("NicknameText");
             textObj.transform.SetParent(nameTag.transform);
             RectTransform textRect = textObj.AddComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(5, 5);
-            textRect.offsetMax = new Vector2(-5, -5);
+            textRect.offsetMin = new Vector2(3, 3);
+            textRect.offsetMax = new Vector2(-3, -3);
             
-            nameText = textObj.AddComponent<TextMeshPro>();
-            nameText.fontSize = 24f;
-            nameText.color = Color.white;
-            nameText.alignment = TextAlignmentOptions.Center;
-            nameText.text = PhotonNetwork.LocalPlayer.NickName;
+            TextMeshProUGUI textComponent = textObj.AddComponent<TextMeshProUGUI>();
+            textComponent.fontSize = 16f;
+            textComponent.color = Color.white;
+            textComponent.alignment = TextAlignmentOptions.Center;
+            textComponent.text = "Player";
+            
+            // NicknamePanel 컴포넌트 추가
+            nicknamePanel = nameTag.AddComponent<ReceiveGameNicknamePanel>();
+            nicknamePanel.nicknameText = textComponent;
         }
         
-        private void UpdateNameTag()
+        private Canvas CreateOverlayCanvas()
         {
-            if (nameTag != null)
-            {
-                // 플레이어 위치에 이름 태그 위치 설정
-                Vector3 worldPosition = transform.position + nameTagOffset;
-                nameTag.transform.position = worldPosition;
-                
-                // 카메라를 향하도록 회전
-                if (Camera.main != null)
-                {
-                    nameTag.transform.LookAt(Camera.main.transform);
-                    nameTag.transform.Rotate(0, 180, 0); // 텍스트가 올바른 방향을 향하도록
-                }
-            }
+            // Screen Space - Overlay Canvas 생성
+            GameObject canvasObj = new GameObject("OverlayCanvas");
+            Canvas canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100; // 다른 UI보다 위에 표시
+            
+            // Canvas Scaler 추가
+            CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            
+            // Graphic Raycaster 추가
+            canvasObj.AddComponent<GraphicRaycaster>();
+            
+            Debug.Log("Screen Space - Overlay Canvas 생성 완료");
+            return canvas;
         }
         
         public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -548,7 +554,23 @@ namespace KYS
         // 모바일 입력 처리 (한 손 조작용)
         private void HandleMobileInput(ref Vector3 moveDirection)
         {
-            if (mobileUIManager != null)
+            // ReceiveGameUI의 조이스틱 입력을 우선적으로 사용
+            if (gameUI != null)
+            {
+                Vector2 joystickInput = gameUI.JoystickInput;
+                if (joystickInput.magnitude > 0.1f)
+                {
+                    moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
+                    isMoving = true;
+                    Debug.Log($"ReceiveGameUI 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
+                }
+                else
+                {
+                    isMoving = false;
+                }
+            }
+            // 기존 MobileUIManager도 백업으로 유지
+            else if (mobileUIManager != null)
             {
                 // 조이스틱 입력 처리 (이동만)
                 Vector2 joystickInput = mobileUIManager.GetLeftJoystickInput();
@@ -556,7 +578,7 @@ namespace KYS
                 {
                     moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
                     isMoving = true;
-                    Debug.Log($"조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
+                    Debug.Log($"MobileUIManager 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
                 }
                 else
                 {
@@ -576,7 +598,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning("MobileUIManager가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
+                Debug.LogWarning("ReceiveGameUI와 MobileUIManager가 모두 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
             }
         }
         

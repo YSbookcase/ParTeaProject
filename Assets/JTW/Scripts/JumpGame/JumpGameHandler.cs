@@ -17,9 +17,6 @@ namespace JTW_JumpGame
         [SerializeField] private Canvas gameCanvas;
         [SerializeField] private Transform obstacleSpawnPoint;
 
-        [Header("테스트 용")]
-        [SerializeField] private Button gameEndButton;
-
         private GameObject localPlayer;
 
         private List<int> alivePlayers = new List<int>();
@@ -27,11 +24,6 @@ namespace JTW_JumpGame
 
         private Vector3 playerSpawnPoint = new Vector3(-3f, 0, 0);
         private bool isGameStarted;
-
-        private void Awake()
-        {
-            gameEndButton.onClick.AddListener(GameEnd);
-        }
 
 
         [PunRPC]

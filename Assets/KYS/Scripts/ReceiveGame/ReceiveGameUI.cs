@@ -44,6 +44,32 @@ namespace KYS
             }
             
             SetupJoystick();
+            SetupSafeArea();
+        }
+        
+        private void SetupSafeArea()
+        {
+            // 모바일에서 Safe Area 적용
+            #if UNITY_ANDROID || UNITY_IOS
+            RectTransform rectTransform = GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                // Safe Area 계산
+                Rect safeArea = Screen.safeArea;
+                Vector2 anchorMin = safeArea.position;
+                Vector2 anchorMax = safeArea.position + safeArea.size;
+                
+                anchorMin.x /= Screen.width;
+                anchorMin.y /= Screen.height;
+                anchorMax.x /= Screen.width;
+                anchorMax.y /= Screen.height;
+                
+                rectTransform.anchorMin = anchorMin;
+                rectTransform.anchorMax = anchorMax;
+                
+                Debug.Log($"Safe Area 적용: {safeArea}, Anchor: {anchorMin} ~ {anchorMax}");
+            }
+            #endif
         }
         
         private void SetupJoystick()

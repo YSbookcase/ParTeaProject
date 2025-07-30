@@ -10,7 +10,7 @@ namespace KYS
         [SerializeField] private RectTransform joystickBackground;
         [SerializeField] private RectTransform joystickHandle;
         [SerializeField] private float joystickRadius = 50f;
-        [SerializeField] private bool isDynamicJoystick = false; // 고정 조이스틱으로 변경
+        // [SerializeField] private bool isDynamicJoystick = false; // 사용하지 않으므로 주석 처리
         
         [Header("Visual Settings")]
         [SerializeField] private Color normalColor = Color.white;

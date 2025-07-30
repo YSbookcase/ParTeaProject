@@ -27,7 +27,6 @@ namespace KSH
             if(Instance == null) // Instance가 null이면
             {
                 Instance = this; // 할당
-                DontDestroyOnLoad(this);
             }
             else // 이미 존재한다면
             {
@@ -104,6 +103,7 @@ namespace KSH
 
         private IEnumerator CountDown()
         {
+            yield return new WaitForSeconds(3f);
             countDownPanal.SetActive(true);
             
             for (int i = 3; i >= 0; i--)

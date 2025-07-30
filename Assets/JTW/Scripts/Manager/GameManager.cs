@@ -1,11 +1,31 @@
 ﻿using KYS;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.SceneManagement;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
+    private readonly List<string> gameList = new List<string>
+    {
+        "JumpGame",
+        "ArenaGame",
+        "RacingGame",
+        "RopeGame",
+        "ReceiveGame",
+    };
+
+    private readonly List<string> teamGameList = new List<string>
+    {
+        "TileGame",
+    };
+
+    private List<string> remainingGameList = new List<string>();
+    private List<string> remainingTeamGameList = new List<string>();
+
     // 몇개의 게임을 연속으로 할 것인지에 대한 카운트.
     private int maxGameCount;
     private int curGameCount;
@@ -21,7 +41,7 @@ public class GameManager : Singleton<GameManager>
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    public void GameStart(string sceneName, int maxGameCount = 1)
+    public void GameStart(string sceneName = null, int maxGameCount = 1)
     {
         PhotonNetwork.CurrentRoom.IsOpen = false;
         PhotonNetwork.CurrentRoom.IsVisible = false;
@@ -31,6 +51,9 @@ public class GameManager : Singleton<GameManager>
         {
             player.SetTotalGameScore(0);
         }
+
+        remainingGameList = gameList.ToList();
+        remainingTeamGameList = teamGameList.ToList();
 
         this.maxGameCount = maxGameCount;
         curGameCount = 0;
@@ -55,7 +78,7 @@ public class GameManager : Singleton<GameManager>
         PhotonNetwork.LoadLevel("Score");
     }
 
-    public void GoNextMiniGame(string sceneName)
+    public void GoNextMiniGame(string sceneName = null)
     {
         // 지정된만큼 미니게임을 하였다면, 게임 종료.
         if (curGameCount == maxGameCount)
@@ -78,6 +101,31 @@ public class GameManager : Singleton<GameManager>
 
             player.SetCustomProperties(property);
         }
+
+        if(sceneName != null)
+        {
+            PhotonNetwork.LoadLevel(sceneName);
+            return;
+        }
+
+        List<string> curGameList = remainingGameList.ToList();
+        if(PhotonNetwork.PlayerList.Count() % 2 == 0)
+        {
+            curGameList.AddRange(remainingTeamGameList);
+        }
+
+        // 더이상 진행할 수 있는 게임이 없다면 종료
+        if(curGameList.Count == 0)
+        {
+            miniGameEnd();
+            return;
+        }
+
+        int index = Random.Range(0, curGameList.Count);
+        sceneName = curGameList[index];
+
+        remainingGameList.Remove(sceneName);
+        remainingTeamGameList.Remove(sceneName);
 
         PhotonNetwork.LoadLevel(sceneName);
     }

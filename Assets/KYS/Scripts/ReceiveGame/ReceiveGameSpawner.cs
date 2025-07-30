@@ -14,25 +14,25 @@ namespace KYS
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private float spawnDelay = 1f;
         
-        private PhotonView photonView;
+        // private PhotonView photonView; // MonoBehaviourPun에서 이미 제공됨
         
         private Dictionary<int, GameObject> spawnedPlayers = new Dictionary<int, GameObject>();
         private bool isInitialized = false;
         
         private void Awake()
         {
-            // PhotonView 컴포넌트 자동 추가
-            photonView = GetComponent<PhotonView>();
-            if (photonView == null)
+            // PhotonView 컴포넌트 자동 추가 (로컬 변수 사용)
+            PhotonView pv = GetComponent<PhotonView>();
+            if (pv == null)
             {
-                photonView = gameObject.AddComponent<PhotonView>();
+                pv = gameObject.AddComponent<PhotonView>();
                 Debug.Log("ReceiveGameSpawner에 PhotonView 컴포넌트를 자동으로 추가했습니다.");
             }
             
             // PhotonView 설정
-            photonView.ObservedComponents = new List<Component> { this };
-            photonView.Synchronization = ViewSynchronization.UnreliableOnChange;
-            photonView.OwnershipTransfer = OwnershipOption.Takeover;
+            pv.ObservedComponents = new List<Component> { this };
+            pv.Synchronization = ViewSynchronization.UnreliableOnChange;
+            pv.OwnershipTransfer = OwnershipOption.Takeover;
         }
         
         private void Start()
