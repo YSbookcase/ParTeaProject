@@ -27,7 +27,7 @@ namespace KSH
         {
             PlayerController player = other.gameObject.GetComponent<PlayerController>();
             
-            Color color = player.color; //플레이어의 컬러 저장
+            Color color = player.NickName.color; //플레이어의 컬러 저장
             if (color == curColor) return;
             
             string hexcolor = $"#{ColorUtility.ToHtmlStringRGB(color)}"; //플레이이의 색을 문자열로 변환
