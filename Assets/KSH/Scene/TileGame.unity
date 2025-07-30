@@ -23599,8 +23599,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 765491756}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.24145241, y: 0.31527317, z: 0.91067886, w: -0.1138752}
-  m_LocalPosition: {x: -6228.9424, y: -222.43016, z: 3682.1633}
+  m_LocalRotation: {x: 0.07886276, y: -0.9171161, z: 0.30177462, w: 0.24821533}
+  m_LocalPosition: {x: -7861.401, y: -211.19832, z: 4704.038}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -29410,7 +29410,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 100
-  spinForce: 10
+  spinForce: 5
 --- !u!65 &1026400200
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -39408,7 +39408,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 200
-  spinForce: 20
+  spinForce: 10
 --- !u!4 &1452824827 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d6b0e842747a73b439fbd100a81eb4d3,
