@@ -24,6 +24,8 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject countdownUI;
     private Coroutine racingCountDown;
 
+    public Dictionary<int, RacingController> racingControllers = new Dictionary<int, RacingController>();
+
     private void Awake()
     {
         if (Instance == null)
@@ -83,9 +85,11 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         foreach (Player retire in racingPlayers)
         {
+            if(retire == null) continue; // Check if retire is not null to avoid NullReferenceException
             retire.SetRank(retireRank);
             Debug.Log($"{retire.NickName} has retired with rank {retireRank}");
         }
+        
         if (PhotonNetwork.IsMasterClient)
         {
             SceneManager.LoadScene("Score");
@@ -95,7 +99,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
     public void PlayerArrive(int actorNumber)
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        if (!firstArrive)
+        if (!firstArrive && PhotonNetwork.IsMasterClient)
         {
             firstArrive = true;
             managerView.RPC("RetireCount", RpcTarget.All);
@@ -105,10 +109,11 @@ public class RacingManager : MonoBehaviourPunCallbacks
         player.SetRank(currentRank);
 
         currentRank++;
-        racingPlayers.Remove(player);
+        racingPlayers.RemoveAll(p => p.ActorNumber == actorNumber);
 
         if (racingPlayers.Count == 0)
         {
+            StopAllCoroutines(); // 모든 코루틴 중지
             managerView.RPC(nameof(RacingFinish), RpcTarget.All);
         }
     }
@@ -124,11 +129,25 @@ public class RacingManager : MonoBehaviourPunCallbacks
             seconds--;
         }
 
-        countdownUI.SetActive(false);
-        if (firstArrive)
+        // 시작 카운트다운이 끝나면 RacingController의 SetControllable을 호출하여 플레이어가 조종할 수 있도록 설정
+        foreach (RacingController controller in racingControllers.Values)
         {
-            managerView.RPC(nameof(RacingFinish), RpcTarget.All);
-            Debug.Log("Retire Count Finished");
+            controller.photonView.RPC("SetControllable", RpcTarget.All, true);
+        }
+
+        countdownUI.SetActive(false);
+
+        // 도착한 플레이어가 있고 카운트다운이 끝나면 RacingFinish를 호출
+        if (firstArrive && PhotonNetwork.IsMasterClient)
+        {
+            if (!isRacingFinished)
+            {
+                managerView.RPC(nameof(RacingFinish), RpcTarget.All);
+            }
+            foreach (RacingController controller in racingControllers.Values)
+            {
+                controller.photonView.RPC("SetControllable", RpcTarget.All, false);
+            }
         }
         yield return null;
     }

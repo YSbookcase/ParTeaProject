@@ -19,7 +19,7 @@ MonoBehaviour:
     AppIdVoice: 
     AppVersion: 
     UseNameServer: 1
-    FixedRegion: 
+    FixedRegion: kr
     Server: 
     Port: 0
     ProxyServer: 
@@ -33,7 +33,39 @@ MonoBehaviour:
   EnableSupportLogger: 0
   RunInBackground: 1
   StartInOfflineMode: 0
-  RpcList: []
+  RpcList:
+  - ArenaEndGame
+  - ArenaPlayerDied
+  - ArenaStartShrink
+  - ClickRpc
+  - DeleteJumpGamePlayer
+  - DestroyRpc
+  - DestroySpaceship
+  - Fire
+  - GoNextGame
+  - JumpGame_Jump
+  - JumpGamePlayerOut
+  - JumpGameStart
+  - PlayerArrive
+  - PunRPC_CountTile
+  - RacingCrash
+  - RacingFinish
+  - RacingStart
+  - RespawnSpaceship
+  - RetireCount
+  - RPC_CanMove
+  - RPC_Dead
+  - RPC_DontMove
+  - RPCBeginCountdown
+  - RPCRopeNotifyDeath
+  - RPCRopeShowDeathPanel
+  - SendChatMessage
+  - SetColor
+  - SetDollyCart
+  - SetStartLine
+  - SetTrack
+  - StartCount
+  - RequestSpawnPlayer
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

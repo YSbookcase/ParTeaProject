@@ -47,13 +47,15 @@ public class RacingSpawner : MonoBehaviour
             isSetStartLineIndex = true;
         }
         if (isSpawned || !Manager.game.isAllPlayerLoaded() || !isSetStartLine) return;
-        PlayerSpawn();
+        PlayerSpawn(racingMap.startLine);
+        RacingManager.Instance.managerView.RPC("RacingStart", RpcTarget.All);
     }
 
     public void SetStartLineIndex()
     {
-        trackLength = Random.Range(1, racingMap.racingLines.Count - 1);
+        trackLength = Random.Range(1, racingMap.racingLines.Count);
         startIndex = Random.Range(0, racingMap.racingLines.Count);
+        Debug.Log($"Track length: {trackLength}, Start index: {startIndex}");
         isSetStartLineIndex = true;
     }
     [PunRPC]
@@ -64,7 +66,7 @@ public class RacingSpawner : MonoBehaviour
         isSetStartLine = true;
     }
 
-    private void PlayerSpawn()
+    private void PlayerSpawn(RacingLine startLine)
     {
         isSpawned = true;
         
@@ -77,7 +79,8 @@ public class RacingSpawner : MonoBehaviour
             }
             playerIndex++;
         }
-        Transform spawnPos = racingMap.startLine.spawnPositions[playerIndex];
+        Transform spawnPos = startLine.spawnPositions[playerIndex];
+        Debug.Log($"player spawn index : {playerIndex}");
         PhotonNetwork.Instantiate("RacingPlayer", spawnPos.position, spawnPos.rotation);
     }
 }
