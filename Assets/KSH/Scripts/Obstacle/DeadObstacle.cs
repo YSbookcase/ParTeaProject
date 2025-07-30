@@ -37,6 +37,14 @@ namespace KSH
             
             Vector3 spawnPos = new Vector3(Random.Range(-1,5), 2, Random.Range(-1,5));
             player.transform.position = spawnPos;
+            
+            Rigidbody rb = player.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            
             pv.RPC("RPC_Dead", RpcTarget.AllBuffered, player.GetComponent<PhotonView>().ViewID, true);
             DeadPanel.SetActive(false);
         }
