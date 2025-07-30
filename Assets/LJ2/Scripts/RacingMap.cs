@@ -23,18 +23,6 @@ public class RacingMap : MonoBehaviour
         }
     }
 
-    //public int SetStartIndex(int length) 
-    //{
-    //    if (racingLines.Count < length)
-    //    {
-    //        Debug.LogError("Not enough racing lines to set the track length.");
-    //        return -1;
-    //    }
-    //    // 랜덤으로 시작 지점 선정
-    //    startIndex = Random.Range(0, racingLines.Count);
-        
-    //    return startIndex;
-    //}
     [PunRPC]
     public void SetTrack(int length, int startIndex)
     {

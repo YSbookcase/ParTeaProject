@@ -54,6 +54,7 @@ public class RacingSpawner : MonoBehaviour
     {
         trackLength = Random.Range(1, racingMap.racingLines.Count - 1);
         startIndex = Random.Range(0, racingMap.racingLines.Count);
+        isSetStartLineIndex = true;
     }
     [PunRPC]
     public void SetStartLine(int trackLength, int startIndex)
