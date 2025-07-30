@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 6069353883665965680}
   - component: {fileID: 3626992943772733478}
   - component: {fileID: 5434333078203524127}
+  - component: {fileID: -2535492496985650745}
   m_Layer: 0
   m_Name: Player_PJW
   m_TagString: Player
@@ -191,3 +192,18 @@ MonoBehaviour:
   m_SynchronizeRotation: 1
   m_SynchronizeScale: 0
   m_UseLocal: 1
+--- !u!114 &-2535492496985650745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2568167387124825028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eab5e5062e852f44f8b1d38b9a62ec59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nicknamePanelPrefab: {fileID: 5547496314670727736, guid: d2204dc4ee13fd5479faec1ed7614c55,
+    type: 3}
+  uiRootTransform: {fileID: 0}
