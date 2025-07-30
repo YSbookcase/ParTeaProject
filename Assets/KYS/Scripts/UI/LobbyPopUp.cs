@@ -85,6 +85,13 @@ namespace KYS
                 
                 // 상태 변경 로그 (디버깅용)
                 Debug.Log($"[LobbyPopUp] 네트워크 상태 변경: {currentState}");
+                
+                // PeerCreated 상태에서 멈춘 경우 처리
+                if (currentState == ClientState.PeerCreated)
+                {
+                    Debug.LogWarning("[LobbyPopUp] PeerCreated 상태 감지. 3초 후 재연결을 시도합니다.");
+                    StartCoroutine(HandlePeerCreatedState());
+                }
             }
 
             // 방 목록 상태 확인 (10초마다로 변경)
@@ -101,6 +108,8 @@ namespace KYS
             {
                 case ClientState.Disconnected:
                     return "연결 해제됨";
+                case ClientState.PeerCreated:
+                    return "연결 초기화 중...";
                 case ClientState.ConnectingToNameServer:
                     return "서버 연결 중...";
                 case ClientState.ConnectedToNameServer:
@@ -146,15 +155,31 @@ namespace KYS
                 // 닉네임 동기화
                 PhotonManager.Instance.SyncNicknameWithFirebase();
 
-                // Photon 연결 시작 (이미 연결되어 있지 않은 경우에만)
-                if (!PhotonNetwork.IsConnected)
+                // Photon 연결 상태 확인 및 연결
+                Debug.Log($"[LobbyPopUp] 현재 Photon 상태: {PhotonNetwork.NetworkClientState}, 연결됨: {PhotonNetwork.IsConnected}, 로비: {PhotonNetwork.InLobby}");
+                
+                // PeerCreated 상태에서 멈춘 경우 처리
+                if (PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+                {
+                    Debug.LogWarning("[LobbyPopUp] PeerCreated 상태에서 멈춤. PhotonManager에서 재연결을 시도합니다.");
+                    PhotonManager.Instance.ConnectToPhoton();
+                    return;
+                }
+                
+                if (!PhotonNetwork.IsConnected && PhotonNetwork.NetworkClientState == ClientState.Disconnected)
                 {
                     PhotonManager.Instance.ConnectToPhoton();
                     Debug.Log("[LobbyPopUp] Photon 연결 시작");
                 }
+                else if (PhotonNetwork.IsConnected && !PhotonNetwork.InLobby)
+                {
+                    // 연결되어 있지만 로비에 없는 경우 로비 참가
+                    Debug.Log("[LobbyPopUp] 이미 연결되어 있음. 로비 참가 시도");
+                    PhotonNetwork.JoinLobby();
+                }
                 else
                 {
-                    Debug.Log("[LobbyPopUp] 이미 Photon에 연결되어 있음");
+                    Debug.Log("[LobbyPopUp] 이미 Photon에 연결되어 있고 로비에도 있음");
                 }
 
                 Debug.Log("[LobbyPopUp] PhotonManager 이벤트 구독 완료");
@@ -590,6 +615,29 @@ namespace KYS
                 else
                 {
                     Debug.LogError("[LobbyPopUp] Photon 연결 상태가 이상합니다.");
+                }
+            }
+        }
+        
+        // PeerCreated 상태 처리 코루틴
+        private System.Collections.IEnumerator HandlePeerCreatedState()
+        {
+            yield return new WaitForSeconds(3f);
+            
+            // 3초 후에도 여전히 PeerCreated 상태인지 확인
+            if (PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+            {
+                Debug.LogWarning("[LobbyPopUp] PeerCreated 상태가 지속됨. 강제로 연결을 해제하고 재연결을 시도합니다.");
+                
+                // 강제로 연결 해제
+                PhotonNetwork.Disconnect();
+                
+                // 잠시 대기 후 재연결
+                yield return new WaitForSeconds(1f);
+                
+                if (PhotonManager.Instance != null)
+                {
+                    PhotonManager.Instance.ConnectToPhoton();
                 }
             }
         }
