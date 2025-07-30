@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class RacingController : MonoBehaviourPun, IPunObservable
 {
@@ -13,6 +14,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     [SerializeField] float acceleration;
     [SerializeField] float turnSpeed;
     [SerializeField] private float driftTurnSpeed;
+
+    [SerializeField] private Image arrow;
 
     [SerializeField] Rigidbody rigid;
 
@@ -32,6 +35,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
 
     public int linePassed;
     public bool isControllable;
+
 
     private void Awake()
     {
@@ -54,8 +58,11 @@ public class RacingController : MonoBehaviourPun, IPunObservable
                 virtualCamera.LookAt = transform;
             }
             previousPosition = transform.position;
-
             linePassed = 0;
+        }
+        else 
+        {
+            arrow.enabled = false; // 다른 플레이어의 화살표 비활성화
         }
     }
 
