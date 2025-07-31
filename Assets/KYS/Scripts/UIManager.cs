@@ -139,7 +139,7 @@ namespace KYS
             // NetworkScene으로 돌아올 때 RoomPopUp 표시 (게임 종료 후)
             if (scene.name == "NetworkScene" && PhotonNetwork.InRoom)
             {
-                Debug.Log("[UIManager] NetworkScene으로 돌아옴 - RoomPopUp 표시");
+                Debug.Log("[UIManager] NetworkScene으로 돌아옴 - RoomPopUp 표시 및 초기화");
                 // 약간의 지연을 두어 씬 로딩 완료 후 UI 표시
                 StartCoroutine(ShowRoomPopUpAfterDelay());
             }
@@ -150,10 +150,17 @@ namespace KYS
             yield return new WaitForSeconds(0.5f);
             
             // 이미 RoomPopUp이 표시되어 있는지 확인
-            if (FindActivePopUp<RoomPopUp>() == null)
+            RoomPopUp existingRoomPopUp = FindActivePopUp<RoomPopUp>();
+            if (existingRoomPopUp == null)
             {
                 ShowPopUp<RoomPopUp>();
                 Debug.Log("[UIManager] RoomPopUp 표시 완료");
+            }
+            else
+            {
+                // 기존 RoomPopUp이 있다면 초기화
+                Debug.Log("[UIManager] 기존 RoomPopUp 초기화");
+                existingRoomPopUp.InitializeRoomAfterGame();
             }
         }
 

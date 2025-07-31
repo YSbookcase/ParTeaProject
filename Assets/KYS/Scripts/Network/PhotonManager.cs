@@ -103,15 +103,22 @@ namespace KYS
 
             Debug.Log($"[PhotonManager] 방 생성 요청: {roomName}");
             
+            // 초기 방 속성 설정 (기본 게임: 점프)
+            Hashtable initialRoomProperties = new Hashtable();
+            initialRoomProperties["SelectedGame"] = 0; // 0: 점프 게임
+            
             // 방 옵션 설정 - 방이 보이고 열려있도록 설정
             RoomOptions roomOptions = new RoomOptions
             {
                 MaxPlayers = 4,
                 IsVisible = true,
                 IsOpen = true,
-                PublishUserId = true
+                PublishUserId = true,
+                CustomRoomProperties = initialRoomProperties,
+                CustomRoomPropertiesForLobby = new string[] { "SelectedGame" }
             };
             
+
             PhotonNetwork.CreateRoom(roomName, roomOptions);
         }
 
@@ -152,7 +159,31 @@ namespace KYS
 
         public void LeaveRoom()
         {
+            Debug.Log("[PhotonManager] 방 나가기 시작");
+            
+            // 방 나가기 전 초기화
+            InitializeBeforeLeaveRoom();
+            
             PhotonNetwork.LeaveRoom();
+        }
+
+        // 방 나가기 전 초기화
+        private void InitializeBeforeLeaveRoom()
+        {
+            Debug.Log("[PhotonManager] 방 나가기 전 초기화 시작");
+            
+            // 로컬 플레이어 속성 초기화
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                Hashtable playerProperties = new Hashtable();
+                playerProperties["Ready"] = false;
+                playerProperties["Color"] = null;
+                playerProperties["SelectedGame"] = null;
+                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+                Debug.Log("[PhotonManager] 로컬 플레이어 속성 초기화 완료");
+            }
+            
+            Debug.Log("[PhotonManager] 방 나가기 전 초기화 완료");
         }
 
         // 수동으로 Photon 연결 시작
@@ -287,14 +318,6 @@ namespace KYS
         public override void OnCreatedRoom()
         {
             Debug.Log($"[PhotonManager] 방 생성 완료: {PhotonNetwork.CurrentRoom.Name}");
-            
-            // 방 속성 설정 (기본 게임: 점프)
-            Hashtable roomProperty = new Hashtable();
-            roomProperty["SelectedGame"] = 0; // 0: 점프 게임
-            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
-            
-            // 방 상태 확인
-            Debug.Log($"[PhotonManager] 방 생성 후 상태 - 보임: {PhotonNetwork.CurrentRoom.IsVisible}, 열림: {PhotonNetwork.CurrentRoom.IsOpen}, 플레이어 수: {PhotonNetwork.CurrentRoom.PlayerCount}/{PhotonNetwork.CurrentRoom.MaxPlayers}");
         }
 
         public override void OnJoinedRoom()
@@ -385,38 +408,21 @@ namespace KYS
 
         public override void OnRoomListUpdate(List<RoomInfo> roomList)
         {
-            // 방 목록이 변경된 경우에만 간단한 로그 출력
-            if (roomList != null && roomList.Count > 0)
-            {
-                int visibleRooms = 0;
-                int removedRooms = 0;
-                
-                foreach (RoomInfo info in roomList)
-                {
-                    if (info.RemovedFromList)
-                    {
-                        removedRooms++;
-                    }
-                    else if (info.IsVisible)
-                    {
-                        visibleRooms++;
-                    }
-                }
-                
-                // 변경사항이 있을 때만 로그 출력
-                if (visibleRooms > 0 || removedRooms > 0)
-                {
-                    Debug.Log($"[PhotonManager] 방 목록 업데이트 - 보이는 방: {visibleRooms}개, 제거된 방: {removedRooms}개");
-                }
-            }
+            Debug.Log($"[PhotonManager] OnRoomListUpdate 호출됨 - 방 개수: {roomList?.Count ?? 0}");
             
+            // 방 목록 업데이트 이벤트만 호출 (로그 제거)
             OnRoomListUpdateEvent?.Invoke(roomList);
         }
 
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            // 방 속성 업데이트 로그는 제거 (너무 자주 호출됨)
-            // Debug.Log("방 속성 업데이트");
+            Debug.Log($"[PhotonManager] 방 속성 변경 감지: {string.Join(", ", propertiesThatChanged.Keys)}");
+            
+            // 각 변경된 속성의 값도 로깅
+            foreach (var kvp in propertiesThatChanged)
+            {
+                Debug.Log($"[PhotonManager] 속성 변경: {kvp.Key} = {kvp.Value}");
+            }
             
             // RoomPopUp이 활성화되어 있다면 게임 선택 UI 업데이트
             RoomPopUp roomPopUp = FindObjectOfType<RoomPopUp>();
@@ -425,27 +431,22 @@ namespace KYS
                 // 선택된 게임이 변경된 경우 UI 업데이트 (즉시 호출)
                 if (propertiesThatChanged.ContainsKey("SelectedGame"))
                 {
+                    Debug.Log("[PhotonManager] RoomPopUp에 게임 선택 UI 업데이트 요청");
                     roomPopUp.UpdateGameSelectionUI();
-                    Debug.Log($"[PhotonManager] 게임 변경 감지: {propertiesThatChanged["SelectedGame"]}");
                 }
+            }
+            else
+            {
+                Debug.Log("[PhotonManager] RoomPopUp을 찾을 수 없습니다 (방에 있지 않음)");
             }
             
-            // LobbyPopUp이 활성화되어 있다면 방 목록 업데이트
-            LobbyPopUp lobbyPopUp = FindObjectOfType<LobbyPopUp>();
-            if (lobbyPopUp != null)
-            {
-                // 방 속성이 변경되면 방 목록 즉시 업데이트
-                if (propertiesThatChanged.ContainsKey("SelectedGame"))
-                {
-                    lobbyPopUp.OnRoomPropertiesChanged(propertiesThatChanged);
-                    Debug.Log("[PhotonManager] 로비 방 목록 즉시 업데이트");
-                }
-            }
+            // OnRoomPropertiesUpdate는 방에 있는 클라이언트에게만 호출되므로
+            // 로비에 있는 클라이언트는 OnRoomListUpdate를 통해 변경사항을 감지합니다.
         }
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
         {
-            Debug.Log($"플레이어 속성 업데이트: {targetPlayer.NickName}");
+            // 플레이어 속성 업데이트 이벤트만 호출 (로그 제거)
             OnPlayerPropertiesUpdateEvent?.Invoke(targetPlayer, changedProps);
         }
 
@@ -472,7 +473,7 @@ namespace KYS
                 {
                     // GetCustomRoomList 제거 - Photon이 자동으로 방 목록 업데이트
                     // PhotonNetwork.GetCustomRoomList(TypedLobby.Default, "Map");
-                    Debug.Log("[PhotonManager] 주기적 방 목록 업데이트 완료");
+                    // 로그 제거 - 주기적 업데이트는 정상 동작
                 }
             }
         }

@@ -252,6 +252,19 @@ namespace KYS
                 playerPanels.Clear();
             }
 
+            // 로컬 플레이어 속성 초기화 (방에 처음 입장할 때)
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                // Ready 상태가 설정되지 않은 경우에만 초기화
+                if (!PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("Ready"))
+                {
+                    Hashtable playerProperties = new Hashtable();
+                    playerProperties["Ready"] = false;
+                    PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+                    Debug.Log("[RoomPopUp] 로컬 플레이어 Ready 상태 초기화");
+                }
+            }
+
             // 게임 선택 버튼들의 상태 설정
             UpdateGameSelectionButtonStates();
 
@@ -268,6 +281,64 @@ namespace KYS
             InitializeChat();
             
             Debug.Log("[RoomPopUp] 방 초기화 완료");
+        }
+
+        // 게임에서 돌아온 후 방 초기화
+        public void InitializeRoomAfterGame()
+        {
+            Debug.Log("[RoomPopUp] 게임 후 방 초기화 시작");
+            
+            // 마스터 클라이언트가 모든 플레이어의 Ready 상태를 초기화
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // RPC를 통해 모든 클라이언트에게 Ready 상태 초기화 요청
+                if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
+                    Debug.Log("[RoomPopUp] 모든 플레이어 Ready 상태 초기화 RPC 호출");
+                }
+            }
+            
+            // 채팅 초기화
+            ClearChat();
+            
+            // UI 상태 초기화
+            if (chatField != null)
+            {
+                chatField.text = "";
+            }
+            
+            // 게임 선택 버튼들의 상태 업데이트
+            UpdateGameSelectionButtonStates();
+            
+            Debug.Log("[RoomPopUp] 게임 후 방 초기화 완료");
+        }
+
+        // 모든 플레이어의 Ready 상태 초기화 (RPC)
+        [PunRPC]
+        private void ResetAllPlayersReadyState()
+        {
+            Debug.Log("[RoomPopUp] 모든 플레이어 Ready 상태 초기화 RPC 수신");
+            
+            // 로컬 플레이어의 Ready 상태 초기화
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                Hashtable playerProperties = new Hashtable();
+                playerProperties["Ready"] = false;
+                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+                Debug.Log("[RoomPopUp] 로컬 플레이어 Ready 상태 초기화");
+            }
+            
+            // 플레이어 패널 상태 초기화
+            foreach (var kvp in playerPanels)
+            {
+                if (kvp.Value != null)
+                {
+                    kvp.Value.ResetReadyState();
+                }
+            }
+            
+            Debug.Log("[RoomPopUp] 모든 플레이어 Ready 상태 초기화 완료");
         }
 
         // 플레이어 패널 생성
@@ -404,6 +475,9 @@ namespace KYS
                 return;
             }
             
+            // 게임 시작 전 초기화
+            InitializeGameStart();
+            
             // 선택된 게임에 따라 씬 이동
             string sceneName = GetSelectedGameScene();
             Debug.Log($"[RoomPopUp] 게임 시작: {sceneName}");
@@ -427,6 +501,34 @@ namespace KYS
             }
             
             UIManager.Instance.CleanAllUI();
+        }
+
+        // 게임 시작 시 초기화
+        private void InitializeGameStart()
+        {
+            Debug.Log("[RoomPopUp] 게임 시작 초기화 시작");
+            
+            // 마스터 클라이언트가 모든 플레이어의 Ready 상태를 초기화
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // RPC를 통해 모든 클라이언트에게 Ready 상태 초기화 요청
+                if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
+                    Debug.Log("[RoomPopUp] 게임 시작 시 모든 플레이어 Ready 상태 초기화 RPC 호출");
+                }
+            }
+            
+            // 채팅 초기화
+            ClearChat();
+            
+            // UI 상태 초기화
+            if (chatField != null)
+            {
+                chatField.text = "";
+            }
+            
+            Debug.Log("[RoomPopUp] 게임 시작 초기화 완료");
         }
 
         // 모든 플레이어 준비 상태 확인
@@ -466,6 +568,9 @@ namespace KYS
             // 별도로 권한을 넘길 필요 없음 (Photon이 자동 처리)
             Debug.Log("[RoomPopUp] 방을 나갑니다.");
 
+            // 방 나가기 전 초기화
+            InitializeRoomExit();
+
             foreach (Player player in PhotonNetwork.PlayerList)
             {
                 if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
@@ -480,6 +585,48 @@ namespace KYS
             UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
 
+        // 방 나가기 시 초기화
+        private void InitializeRoomExit()
+        {
+            Debug.Log("[RoomPopUp] 방 나가기 초기화 시작");
+            
+            // 마스터 클라이언트가 모든 플레이어의 Ready 상태를 초기화
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // RPC를 통해 모든 클라이언트에게 Ready 상태 초기화 요청
+                if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
+                    Debug.Log("[RoomPopUp] 방 나가기 시 모든 플레이어 Ready 상태 초기화 RPC 호출");
+                }
+            }
+            
+            // 로컬 플레이어 속성 초기화
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                Hashtable playerProperties = new Hashtable();
+                playerProperties["Ready"] = false;
+                playerProperties["Color"] = null;
+                playerProperties["SelectedGame"] = null;
+                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+                Debug.Log("[RoomPopUp] 로컬 플레이어 속성 초기화 완료");
+            }
+            
+            // 채팅 초기화
+            ClearChat();
+            
+            // 게임 선택 초기화
+            selectedGameIndex = 0;
+            
+            // UI 상태 초기화
+            if (chatField != null)
+            {
+                chatField.text = "";
+            }
+            
+            Debug.Log("[RoomPopUp] 방 나가기 초기화 완료");
+        }
+
 
 
         // 게임 선택 버튼들
@@ -492,15 +639,23 @@ namespace KYS
                 return;
             }
 
+            int oldIndex = selectedGameIndex;
             selectedGameIndex--;
             if (selectedGameIndex == -1)
             {
                 selectedGameIndex = availableGames.Length - 1;
             }
 
+            Debug.Log($"[RoomPopUp] 왼쪽 버튼 클릭: 게임 변경 {oldIndex} -> {selectedGameIndex} ({availableGames[selectedGameIndex].gameName})");
+
             Hashtable roomProperty = new Hashtable();
             roomProperty["SelectedGame"] = selectedGameIndex;
-            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+            Debug.Log($"[RoomPopUp] 방 속성 설정 시도: SelectedGame = {selectedGameIndex}");
+            bool setResult = PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+            Debug.Log($"[RoomPopUp] 방 속성 설정 결과: {setResult}");
+
+            // 로비에 있는 클라이언트들에게 게임 변경 알림 (즉시 호출)
+            NotifyLobbyGameChange(selectedGameIndex);
 
             UpdateGameSelectionUI();
         }
@@ -514,17 +669,43 @@ namespace KYS
                 return;
             }
 
+            int oldIndex = selectedGameIndex;
             selectedGameIndex++;
             if (selectedGameIndex >= availableGames.Length)
             {
                 selectedGameIndex = 0;
             }
 
+            Debug.Log($"[RoomPopUp] 오른쪽 버튼 클릭: 게임 변경 {oldIndex} -> {selectedGameIndex} ({availableGames[selectedGameIndex].gameName})");
+
             Hashtable roomProperty = new Hashtable();
             roomProperty["SelectedGame"] = selectedGameIndex;
-            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+            Debug.Log($"[RoomPopUp] 방 속성 설정 시도: SelectedGame = {selectedGameIndex}");
+            bool setResult = PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+            Debug.Log($"[RoomPopUp] 방 속성 설정 결과: {setResult}");
+
+            // 로비에 있는 클라이언트들에게 게임 변경 알림 (즉시 호출)
+            NotifyLobbyGameChange(selectedGameIndex);
 
             UpdateGameSelectionUI();
+        }
+
+        // 로비에 있는 클라이언트들에게 게임 변경 알림 (RPC)
+        private void NotifyLobbyGameChange(int newGameIndex)
+        {
+            Debug.Log($"[RoomPopUp] 게임 변경 완료: {PhotonNetwork.CurrentRoom.Name} -> {newGameIndex}");
+            Debug.Log("[RoomPopUp] 방 속성 변경으로 로비의 방 목록이 자동으로 업데이트됩니다.");
+            Debug.Log("[RoomPopUp] 로비에 있는 클라이언트들은 OnRoomListUpdate를 통해 변경사항을 감지합니다.");
+            
+            // 방 속성이 실제로 변경되었는지 확인
+            if (PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("SelectedGame", out object currentGame))
+            {
+                Debug.Log($"[RoomPopUp] 방 속성 확인 - SelectedGame: {currentGame}");
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] 방 속성에서 SelectedGame을 찾을 수 없습니다!");
+            }
         }
 
         // 게임 선택 UI 초기화
@@ -538,6 +719,15 @@ namespace KYS
             else
             {
                 selectedGameIndex = 0; // 기본값
+                Debug.LogWarning("[RoomPopUp] 방 속성에서 SelectedGame을 찾을 수 없어 기본값(0) 사용");
+                
+                // 방장인 경우 기본값을 방 속성에 설정 (방 생성 시 이미 설정되어야 함)
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    Hashtable roomProperty = new Hashtable();
+                    roomProperty["SelectedGame"] = selectedGameIndex;
+                    PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
+                }
             }
 
             UpdateGameSelectionUI();
@@ -546,10 +736,17 @@ namespace KYS
         // 게임 선택 UI 업데이트
         public void UpdateGameSelectionUI()
         {
+            Debug.Log("[RoomPopUp] 게임 선택 UI 업데이트 시작");
+            
             // 방 속성에서 현재 선택된 게임 가져오기
             if (PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("SelectedGame"))
             {
                 selectedGameIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["SelectedGame"];
+                Debug.Log($"[RoomPopUp] 방 속성에서 게임 인덱스 가져옴: {selectedGameIndex}");
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] 방 속성에서 SelectedGame을 찾을 수 없습니다.");
             }
             
             if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
@@ -559,6 +756,7 @@ namespace KYS
                 if (gameNameText != null)
                 {
                     gameNameText.text = selectedGame.gameName;
+                    Debug.Log($"[RoomPopUp] 게임 이름 텍스트 업데이트: {selectedGame.gameName}");
                 }
                 
                 if (gameImage != null)
@@ -568,10 +766,15 @@ namespace KYS
                     if (gameSprite != null)
                     {
                         gameImage.sprite = gameSprite;
+                        Debug.Log($"[RoomPopUp] 게임 이미지 업데이트: {selectedGame.sceneName}");
                     }
                 }
                 
                 Debug.Log($"[RoomPopUp] 선택된 게임: {selectedGame.gameName} ({selectedGame.sceneName})");
+            }
+            else
+            {
+                Debug.LogError($"[RoomPopUp] 게임 인덱스가 범위를 벗어남: {selectedGameIndex}");
             }
         }
 
@@ -970,5 +1173,7 @@ namespace KYS
                 }
             }
         }
+
+
     }
 }
