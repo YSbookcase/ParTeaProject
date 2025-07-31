@@ -35,12 +35,14 @@ namespace KYS
         // 게임 정보 (6개 게임)
         private GameInfo[] availableGames = new GameInfo[]
         {
-            new GameInfo("점프", "JumpGame", "점프 게임"),
-            new GameInfo("아레나", "ArenaGame", "아레나 게임"),
-            new GameInfo("타일", "TileGame", "타일 게임"),
-            new GameInfo("레이싱", "RacingGame", "레이싱 게임"),
-            new GameInfo("로프", "RopeGame", "로프 게임"),
-            new GameInfo("받기", "ReceiveGame", "물건받기 게임")
+            new GameInfo("점프", "JumpGame", "점프 게임", new List<int>()),
+            new GameInfo("아레나", "ArenaGame", "아레나 게임", new List<int>()),
+            new GameInfo("타일", "TileGame", "타일 게임", new List<int> { 2, 4 }),
+            new GameInfo("레이싱", "RacingGame", "레이싱 게임", new List<int>()),
+            new GameInfo("로프", "RopeGame", "로프 게임", new List<int>()),
+            new GameInfo("받기", "ReceiveGame", "물건받기 게임", new List<int>()),
+            new GameInfo("4G 릴레이", null, "4개의 랜덤 게임의 릴레이", new List<int>()),
+            new GameInfo("6G 릴레이", null, "6개의 랜덤 게임의 릴레이", new List<int>())
         };
 
         // 모든 클라이언트가 같은 ViewID를 사용하는 PhotonView
@@ -475,6 +477,23 @@ namespace KYS
                 return;
             }
             
+            // 선택된 게임의 플레이어 수 조건 확인
+            if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
+            {
+                GameInfo selectedGame = availableGames[selectedGameIndex];
+                int currentPlayerCount = PhotonNetwork.PlayerList.Length;
+
+                if (selectedGame.requiredPlayers != null && selectedGame.requiredPlayers.Count > 0)
+                {
+                    if (!selectedGame.requiredPlayers.Contains(currentPlayerCount))
+                    {
+                        string requiredPlayersText = string.Join("/", selectedGame.requiredPlayers);
+                        ShowErrorMessage($"{selectedGame.gameName}은(는) {requiredPlayersText}명의 플레이어가 필요합니다. (현재: {currentPlayerCount}명)");
+                        return;
+                    }
+                }
+            }
+            
             // 게임 시작 전 초기화
             InitializeGameStart();
             
@@ -487,11 +506,25 @@ namespace KYS
             roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
             
-            // JTW.GameManager의 GameStart 기능 사용 (씬 이름 전달)
+            // JTW.GameManager의 GameStart 기능 사용 (씬 이름과 maxGameCount 전달)
             if (Manager.game != null)
             {
-                Manager.game.GameStart(sceneName);
-                Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}");
+                // 4G 릴레이와 6G 릴레이에 따라 maxGameCount 설정
+                int maxGameCount = 1; // 기본값
+                
+                if (selectedGameIndex == 6) // 4G 릴레이
+                {
+                    maxGameCount = 4;
+                    Debug.Log($"[RoomPopUp] 4G 릴레이 시작 - maxGameCount: {maxGameCount}");
+                }
+                else if (selectedGameIndex == 7) // 6G 릴레이
+                {
+                    maxGameCount = 6;
+                    Debug.Log($"[RoomPopUp] 6G 릴레이 시작 - maxGameCount: {maxGameCount}");
+                }
+                
+                Manager.game.GameStart(sceneName, maxGameCount);
+                Debug.Log($"[RoomPopUp] JTW.GameManager.GameStart 호출: {sceneName}, maxGameCount: {maxGameCount}");
             }
             else
             {
@@ -752,11 +785,35 @@ namespace KYS
             if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
             {
                 GameInfo selectedGame = availableGames[selectedGameIndex];
-                
+                int currentPlayerCount = PhotonNetwork.PlayerList.Length; // Get current player count
+
                 if (gameNameText != null)
                 {
-                    gameNameText.text = selectedGame.gameName;
-                    Debug.Log($"[RoomPopUp] 게임 이름 텍스트 업데이트: {selectedGame.gameName}");
+                    // 플레이어 수 조건이 있는 경우 표시
+                    if (selectedGame.requiredPlayers != null && selectedGame.requiredPlayers.Count > 0)
+                    {
+                        string requiredPlayersText = string.Join("/", selectedGame.requiredPlayers);
+                        string displayText = $"{selectedGame.gameName} ({requiredPlayersText}명)";
+
+                        // 플레이어 수가 조건과 일치하는지 확인하여 색상 설정
+                        if (selectedGame.requiredPlayers.Contains(currentPlayerCount))
+                        {
+                            gameNameText.color = Color.green; // 조건 만족 시 초록색
+                        }
+                        else
+                        {
+                            gameNameText.color = Color.red; // 조건 불만족 시 빨간색
+                        }
+
+                        gameNameText.text = displayText;
+                        Debug.Log($"[RoomPopUp] 게임 이름 텍스트 업데이트: {displayText} (현재 플레이어: {currentPlayerCount}명)");
+                    }
+                    else
+                    {
+                        gameNameText.color = Color.white; // 기본 색상
+                        gameNameText.text = selectedGame.gameName;
+                        Debug.Log($"[RoomPopUp] 게임 이름 텍스트 업데이트: {selectedGame.gameName}");
+                    }
                 }
                 
                 if (gameImage != null)
@@ -980,6 +1037,9 @@ namespace KYS
                     panel.Init(newPlayer);
                 }
             }
+            
+            // 게임 선택 UI 업데이트 (플레이어 수 변경으로 인한 조건 표시 업데이트)
+            UpdateGameSelectionUI();
         }
 
         private void OnPlayerLeftRoom(Player otherPlayer)
@@ -1011,6 +1071,9 @@ namespace KYS
             }
             
             PlayerPanelDestroy(otherPlayer);
+            
+            // 게임 선택 UI 업데이트 (플레이어 수 변경으로 인한 조건 표시 업데이트)
+            UpdateGameSelectionUI();
         }
 
         private void OnLeftRoom()
@@ -1055,7 +1118,7 @@ namespace KYS
             ShowMasterClientChangeMessage(newMasterClient);
             
             // 채팅에 방장 변경 메시지 추가 (특별한 형식으로)
-            string masterChangeMessage = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다! 👑";
+            string masterChangeMessage = $"{newMasterClient.NickName}님이 새로운 방장이 되었습니다!";
             DisplayChatMessage("시스템", masterChangeMessage);
         }
 

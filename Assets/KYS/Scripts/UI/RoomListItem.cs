@@ -29,7 +29,7 @@ namespace KYS
         // 게임 이름 매핑 (RoomPopUp과 동일)
         private string[] gameNames = new string[]
         {
-            "점프", "아레나", "타일", "레이싱", "로프", "받기"
+            "점프", "아레나", "타일", "레이싱", "로프", "받기", "4G 릴레이", "6G 릴레이"// 추가 게임이 있다면 여기에 추가
         };
 
         private new void Awake()
