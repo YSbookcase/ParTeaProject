@@ -351,23 +351,23 @@ namespace KYS
         {
             if (changedProps.ContainsKey("isLoaded"))
             {
-                try
+                Debug.Log($"플레이어 {targetPlayer.NickName} UI 로드 완료");
+                
+                // 모든 플레이어가 로드되었는지 확인
+                bool allPlayersLoaded = true;
+                foreach (Player player in PhotonNetwork.PlayerList)
                 {
-                    if (Manager.game.isAllPlayerLoaded())
+                    if (!player.CustomProperties.ContainsKey("isLoaded") || !(bool)player.CustomProperties["isLoaded"])
                     {
-                        Debug.Log("모든 플레이어 로드 완료 - UI 초기화");
-                        InitializeScoreUI();
+                        allPlayersLoaded = false;
+                        break;
                     }
                 }
-                catch (System.Exception e)
+                
+                if (allPlayersLoaded)
                 {
-                    Debug.LogError($"Manager.game.isAllPlayerLoaded() 호출 중 오류: {e.Message}");
-                    // Manager가 없는 경우 단일 플레이어 모드로 시작
-                    if (PhotonNetwork.PlayerList.Length == 1)
-                    {
-                        Debug.Log("Manager 없음 - 단일 플레이어 UI 초기화");
-                        InitializeScoreUI();
-                    }
+                    Debug.Log("모든 플레이어 로드 완료 - UI 초기화");
+                    InitializeScoreUI();
                 }
             }
         }

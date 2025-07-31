@@ -148,31 +148,42 @@ namespace KYS
             if (itemRenderer == null) return;
             
             Color targetColor = normalColor;
+            float scaleMultiplier = 1f;
+            
             switch (itemType)
             {
                 case ReceiveGameManager.ItemType.Normal:
                     targetColor = normalColor;
                     pointValue = 1;
+                    scaleMultiplier = 1.5f;
                     break;
                 case ReceiveGameManager.ItemType.Bonus:
                     targetColor = bonusColor;
                     pointValue = 3;
+                    scaleMultiplier = 2.0f; // 보너스 아이템은 더 크게
                     break;
                 case ReceiveGameManager.ItemType.Speed:
                     targetColor = speedColor;
                     pointValue = 1;
+                    scaleMultiplier = 1.5f;
                     break;
                 case ReceiveGameManager.ItemType.Slow:
                     targetColor = slowColor;
                     pointValue = 1;
+                    scaleMultiplier = 1.2f; // 느린 아이템은 약간 작게
                     break;
                 case ReceiveGameManager.ItemType.Magnet:
                     targetColor = magnetColor;
                     pointValue = 1;
+                    scaleMultiplier = 1.5f;
                     break;
             }
             
+            // 색상 적용
             itemRenderer.material.color = targetColor;
+            
+            // 크기 적용
+            transform.localScale = Vector3.one * scaleMultiplier;
             
             // pointValue가 사용되었음을 명시적으로 표시 (컴파일러 경고 방지)
             if (pointValue > 0)

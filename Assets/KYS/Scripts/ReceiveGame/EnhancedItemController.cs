@@ -226,9 +226,31 @@ namespace KYS
             currentVisualPrefab = Instantiate(prefab, visualContainer);
             currentVisualPrefab.transform.localPosition = Vector3.zero;
             currentVisualPrefab.transform.localRotation = Quaternion.identity;
-            currentVisualPrefab.transform.localScale = Vector3.one;
             
-            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}");
+            // 아이템 타입별 크기 설정
+            float scaleMultiplier = GetItemTypeScale();
+            currentVisualPrefab.transform.localScale = Vector3.one * scaleMultiplier;
+            
+            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {scaleMultiplier}");
+        }
+        
+        private float GetItemTypeScale()
+        {
+            switch (itemType)
+            {
+                case ReceiveGameManager.ItemType.Normal:
+                    return 1.5f;
+                case ReceiveGameManager.ItemType.Bonus:
+                    return 2.0f; // 보너스 아이템은 더 크게
+                case ReceiveGameManager.ItemType.Speed:
+                    return 1.5f;
+                case ReceiveGameManager.ItemType.Slow:
+                    return 1.2f; // 느린 아이템은 약간 작게
+                case ReceiveGameManager.ItemType.Magnet:
+                    return 1.5f;
+                default:
+                    return 1.5f;
+            }
         }
         
         private void ClearVisualPrefab()

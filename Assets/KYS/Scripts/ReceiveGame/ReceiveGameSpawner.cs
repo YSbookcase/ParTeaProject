@@ -50,11 +50,8 @@ namespace KYS
                 return;
             }
             
-            // 테스트용: 단일 플레이어에서도 스폰
-            if (PhotonNetwork.PlayerList.Length == 1)
-            {
-                StartCoroutine(InitializeSpawner());
-            }
+            // 모든 플레이어 모드에서 스폰 시작
+            StartCoroutine(InitializeSpawner());
         }
         
         private void SetPlayerLoaded()

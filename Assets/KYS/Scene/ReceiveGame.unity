@@ -1714,8 +1714,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 851ac571cc61b3e4388d97922efef4dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableTestMode: 0
-  autoConnect: 0
+  enableTestMode: 1
+  autoConnect: 1
   roomName: ReceiveGame
   testStartKey: 32
   testItemSpawnKey: 105
@@ -1991,6 +1991,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1651402159}
   - component: {fileID: 1651402158}
+  - component: {fileID: 1651402160}
   m_Layer: 0
   m_Name: ReceiveGameManager
   m_TagString: Untagged
@@ -2005,7 +2006,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1651402157}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 575828f2ad9c9cf45bd21bc462683d17, type: 3}
   m_Name: 
@@ -2048,6 +2049,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1651402160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651402157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37b342b5d91abee40924a5f27b25d0a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameTime: 60
+  mapSize: {x: 20, y: 20}
+  wallHeight: 5
+  gameUI: {fileID: 2039940784}
+  wallPrefab: {fileID: 467265246584203265, guid: 76168dd25046d964e8bd1155ceb1903c,
+    type: 3}
+  obstaclePrefab: {fileID: 787015464994478546, guid: 87ab81f0aefbf2d4ea0f5372ce8e16b3,
+    type: 3}
+  powerUpPrefab: {fileID: 7504042543773716186, guid: aec07e2f0ad64274bb8780838cdc9c73,
+    type: 3}
+  spawnPoints:
+  - {fileID: 1178150025}
+  - {fileID: 1651939984}
+  - {fileID: 248304266}
+  - {fileID: 1409232532}
+  - {fileID: 438815105}
+  - {fileID: 212602705}
+  itemPoolSize: 40
+  itemSpawnInterval: 0.2
+  powerUpSpawnInterval: 5
+  obstacleSpawnInterval: 5
+  itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
+  useEnhancedItemController: 1
 --- !u!1 &1651939983
 GameObject:
   m_ObjectHideFlags: 0

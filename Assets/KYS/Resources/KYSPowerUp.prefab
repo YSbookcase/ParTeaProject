@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1508413594472215960
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5570065541120646242}
+  m_Layer: 0
+  m_Name: VisualContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5570065541120646242
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508413594472215960}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5717999210249982417}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7504042543773716186
 GameObject:
   m_ObjectHideFlags: 0
@@ -31,9 +62,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -6.706191, y: -9.569451, z: 1.1488155}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 5570065541120646242}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &9010395457404395592
@@ -51,7 +83,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7504042543773716186}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -146,7 +178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 812b98773d2ba9e47a2748e1266e539b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemConfiguration: {fileID: 0}
+  itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
   itemType: 0
   pointValue: 1
   effectDuration: 5
@@ -156,8 +188,8 @@ MonoBehaviour:
   rotationSpeed: 60
   bobSpeed: 1.5
   bobHeight: 0.3
-  visualContainer: {fileID: 0}
-  itemRenderer: {fileID: 0}
+  visualContainer: {fileID: 5570065541120646242}
+  itemRenderer: {fileID: 8099831343347958516}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   bonusColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   speedColor: {r: 0, g: 0, b: 1, a: 1}

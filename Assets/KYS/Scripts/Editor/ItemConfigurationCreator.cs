@@ -1,6 +1,6 @@
 using UnityEngine;
-#if UNITY_EDITOR
 using UnityEditor;
+using System.Reflection; // For BindingFlags
 
 namespace KYS
 {
@@ -9,10 +9,6 @@ namespace KYS
     /// </summary>
     public class ItemConfigurationCreator
     {
-
-
-
-
         [MenuItem("KYS/Create Item Configuration")]
         public static void CreateItemConfiguration()
         {
@@ -56,7 +52,7 @@ namespace KYS
             
             // 리플렉션을 사용하여 private 필드에 접근
             var field = typeof(ItemConfiguration).GetField("itemConfigs", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(config, configs);
         }
         
@@ -177,7 +173,7 @@ namespace KYS
             
             // 리플렉션을 사용하여 private 필드에 접근
             var field = typeof(ItemConfiguration).GetField("itemConfigs", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(config, configs);
         }
         
@@ -248,7 +244,4 @@ namespace KYS
             return config;
         }
     }
-
-}
-
-#endif
+} 

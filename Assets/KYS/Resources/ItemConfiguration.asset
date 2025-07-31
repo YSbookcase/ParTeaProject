@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemConfigs:
   - itemType: 0
-    visualPrefab: {fileID: 5189002227044462176, guid: be681692a047cee4baa286092a6f04e6,
+    visualPrefab: {fileID: 5189002227044462176, guid: 845fa1f7f9eff2844a30a8a63e485d66,
       type: 3}
     itemColor: {r: 1, g: 1, b: 1, a: 1}
     pointValue: 1
@@ -25,7 +25,7 @@ MonoBehaviour:
     bobSpeed: 1.5
     bobHeight: 0.3
   - itemType: 1
-    visualPrefab: {fileID: 8780654592860833253, guid: cd5c0226d9d4b554885c988834915042,
+    visualPrefab: {fileID: 8780654592860833253, guid: 863a3bbeaa1850f4dad75b9cccdabdf7,
       type: 3}
     itemColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
     pointValue: 3
@@ -36,7 +36,7 @@ MonoBehaviour:
     bobSpeed: 2
     bobHeight: 0.4
   - itemType: 2
-    visualPrefab: {fileID: 2199520570192686080, guid: 44b8404b36524d8498b3c9305721f977,
+    visualPrefab: {fileID: 2199520570192686080, guid: 36f36da7ed2d01042a8849c9b55afe87,
       type: 3}
     itemColor: {r: 0, g: 0, b: 1, a: 1}
     pointValue: 1
@@ -58,7 +58,7 @@ MonoBehaviour:
     bobSpeed: 1
     bobHeight: 0.2
   - itemType: 4
-    visualPrefab: {fileID: 7504042543773716186, guid: aec07e2f0ad64274bb8780838cdc9c73,
+    visualPrefab: {fileID: 8835592703282879395, guid: 346e2afa35d4a7e4e9dae1616ddd6772,
       type: 3}
     itemColor: {r: 0, g: 1, b: 0, a: 1}
     pointValue: 1
@@ -68,5 +68,5 @@ MonoBehaviour:
     rotationSpeed: 60
     bobSpeed: 1.5
     bobHeight: 0.3
-  defaultVisualPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
+  defaultVisualPrefab: {fileID: 9206591617620198387, guid: fe2d2f156fa000a4696f74c99b27129c,
     type: 3}

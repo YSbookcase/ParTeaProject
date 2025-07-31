@@ -78,12 +78,26 @@ namespace KYS
             UpdateUI();
             
             // 디버그 로그 추가
-            Debug.Log($"ReceiveGameManager 시작 - 플레이어 수: {PhotonNetwork.PlayerList.Length}");
+            Debug.Log($"ReceiveGameManager 시작 - 플레이어 수: {PhotonNetwork.PlayerList.Length}, Master Client: {PhotonNetwork.IsMasterClient}");
+            
+            // 모든 플레이어의 점수 초기화
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+                playerScores[player.ActorNumber] = 0;
+                alivePlayers.Add(player.ActorNumber);
+                Debug.Log($"플레이어 {player.NickName} (ActorNumber: {player.ActorNumber}) 초기화");
+            }
             
             // 테스트용: 단일 플레이어에서도 게임 시작
             if (PhotonNetwork.PlayerList.Length == 1 && PhotonNetwork.IsMasterClient)
             {
                 Debug.Log("단일 플레이어 모드로 게임 시작");
+                StartCoroutine(StartGameDelayed());
+            }
+            else if (PhotonNetwork.IsMasterClient)
+            {
+                // 멀티플레이어 모드에서도 바로 시작 (Manager 의존성 제거)
+                Debug.Log("멀티플레이어 모드로 게임 시작");
                 StartCoroutine(StartGameDelayed());
             }
         }
@@ -112,18 +126,11 @@ namespace KYS
                 CreateMap();
             }
             
-            // 모든 플레이어의 점수 초기화
-            foreach (Player player in PhotonNetwork.PlayerList)
+            // 플레이어 점수 초기화 (이미 Start에서 처리됨)
+            Debug.Log($"현재 플레이어 점수 상태: {playerScores.Count}명");
+            foreach (var score in playerScores)
             {
-                playerScores[player.ActorNumber] = 0;
-                alivePlayers.Add(player.ActorNumber);
-                
-                // 플레이어 속성에 점수 설정
-                Hashtable playerProps = new Hashtable();
-                playerProps["score"] = 0;
-                player.SetCustomProperties(playerProps);
-                
-                Debug.Log($"플레이어 {player.NickName} 초기화 완료");
+                Debug.Log($"플레이어 {score.Key}: {score.Value}점");
             }
             
             // 게임 시작을 Room Properties로 설정
@@ -156,37 +163,47 @@ namespace KYS
         
         private void UpdateGameTime()
         {
-            // 정확한 시간 계산
-            currentTime -= Time.deltaTime;
-            timeUpdateTimer += Time.deltaTime;
-            
-            // 시간이 0 이하가 되면 게임 종료
-            if (currentTime <= 0)
+            // Master Client만 시간을 감소시킴
+            if (PhotonNetwork.IsMasterClient)
             {
-                currentTime = 0;
-                EndGame();
-                return;
-            }
-            
-            // 0.1초마다 UI와 Room Properties 업데이트 (성능 최적화)
-            if (timeUpdateTimer >= timeUpdateInterval)
-            {
-                timeUpdateTimer = 0f;
+                currentTime -= Time.deltaTime;
+                timeUpdateTimer += Time.deltaTime;
                 
-                // Room Properties로 시간 업데이트
-                if (PhotonNetwork.IsMasterClient)
+                // 시간이 0 이하가 되면 게임 종료
+                if (currentTime <= 0)
                 {
+                    currentTime = 0;
+                    EndGame();
+                    return;
+                }
+                
+                // 0.1초마다 UI와 Room Properties 업데이트 (성능 최적화)
+                if (timeUpdateTimer >= timeUpdateInterval)
+                {
+                    timeUpdateTimer = 0f;
+                    
+                    // Room Properties로 시간 업데이트
                     Hashtable roomProps = new Hashtable();
                     roomProps[GAME_TIME_KEY] = currentTime;
                     PhotonNetwork.CurrentRoom.SetCustomProperties(roomProps);
+                    
+                    UpdateUI();
+                    
+                    // 디버그 로그 (1초마다)
+                    if (Mathf.FloorToInt(currentTime) % 10 == 0 && currentTime > 0)
+                    {
+                        Debug.Log($"게임 시간: {currentTime:F1}초");
+                    }
                 }
-                
-                UpdateUI();
-                
-                // 디버그 로그 (1초마다)
-                if (Mathf.FloorToInt(currentTime) % 10 == 0 && currentTime > 0)
+            }
+            else
+            {
+                // Non-Master Client는 UI만 업데이트
+                timeUpdateTimer += Time.deltaTime;
+                if (timeUpdateTimer >= timeUpdateInterval)
                 {
-                    Debug.Log($"게임 시간: {currentTime:F1}초");
+                    timeUpdateTimer = 0f;
+                    UpdateUI();
                 }
             }
         }
@@ -197,6 +214,16 @@ namespace KYS
             {
                 gameUI.UpdateTime(currentTime);
                 gameUI.UpdateScore(playerScores);
+                
+                // 디버그 로그 (1초마다)
+                if (Mathf.FloorToInt(Time.time) % 5 == 0)
+                {
+                    Debug.Log($"UI 업데이트 - 시간: {currentTime:F1}초, 플레이어 수: {playerScores.Count}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("gameUI가 null입니다!");
             }
         }
         
@@ -429,8 +456,17 @@ namespace KYS
         
         public void CollectItem(int playerActorNumber)
         {
+            Debug.Log($"CollectItem 호출됨 - 플레이어: {playerActorNumber}, Master Client: {PhotonNetwork.IsMasterClient}, 게임 시작: {isGameStarted}, 게임 종료: {isGameEnded}");
+            
             if (PhotonNetwork.IsMasterClient && isGameStarted && !isGameEnded)
             {
+                // 플레이어 점수 증가
+                if (!playerScores.ContainsKey(playerActorNumber))
+                {
+                    playerScores[playerActorNumber] = 0;
+                    Debug.Log($"새 플레이어 {playerActorNumber} 점수 초기화");
+                }
+                
                 playerScores[playerActorNumber]++;
                 
                 // 플레이어 속성으로 점수 업데이트
@@ -440,9 +476,17 @@ namespace KYS
                     Hashtable playerProps = new Hashtable();
                     playerProps["score"] = playerScores[playerActorNumber];
                     player.SetCustomProperties(playerProps);
+                    
+                    Debug.Log($"플레이어 {player.NickName} (ActorNumber: {playerActorNumber}) 아이템 수집! 점수: {playerScores[playerActorNumber]}");
                 }
-                
-                Debug.Log($"플레이어 {playerActorNumber} 아이템 수집! 점수: {playerScores[playerActorNumber]}");
+                else
+                {
+                    Debug.LogError($"플레이어 {playerActorNumber}를 찾을 수 없습니다!");
+                }
+            }
+            else
+            {
+                Debug.Log($"아이템 수집 조건 불만족 - Master Client: {PhotonNetwork.IsMasterClient}, 게임 시작: {isGameStarted}, 게임 종료: {isGameEnded}");
             }
         }
         
@@ -631,8 +675,8 @@ namespace KYS
             if (propertiesThatChanged.ContainsKey(GAME_TIME_KEY))
             {
                 float newTime = (float)propertiesThatChanged[GAME_TIME_KEY];
-                // 시간 차이가 0.5초 이상이면 동기화 (더 민감하게)
-                if (Mathf.Abs(currentTime - newTime) > 0.5f)
+                // 시간 차이가 0.1초 이상이면 동기화 (더 민감하게)
+                if (Mathf.Abs(currentTime - newTime) > 0.1f)
                 {
                     currentTime = newTime;
                     Debug.Log($"시간 동기화: {currentTime:F1}초");
@@ -661,29 +705,30 @@ namespace KYS
             {
                 int newScore = (int)changedProps["score"];
                 playerScores[targetPlayer.ActorNumber] = newScore;
+                Debug.Log($"플레이어 {targetPlayer.NickName} 점수 업데이트: {newScore}");
                 UpdateUI();
             }
             
-            // 기존 로드 완료 체크
+            // 기존 로드 완료 체크 (Manager 의존성 제거)
             if (changedProps.ContainsKey("isLoaded"))
             {
-                try
+                Debug.Log($"플레이어 {targetPlayer.NickName} 로드 완료");
+                
+                // 모든 플레이어가 로드되었는지 확인
+                bool allPlayersLoaded = true;
+                foreach (Player player in PhotonNetwork.PlayerList)
                 {
-                    if (Manager.game.isAllPlayerLoaded())
+                    if (!player.CustomProperties.ContainsKey("isLoaded") || !(bool)player.CustomProperties["isLoaded"])
                     {
-                        Debug.Log("모든 플레이어 로드 완료 - 게임 시작");
-                        InitializeGame();
+                        allPlayersLoaded = false;
+                        break;
                     }
                 }
-                catch (System.Exception e)
+                
+                if (allPlayersLoaded && PhotonNetwork.IsMasterClient && !isGameStarted)
                 {
-                    Debug.LogError($"Manager.game.isAllPlayerLoaded() 호출 중 오류: {e.Message}");
-                    // Manager가 없는 경우 단일 플레이어 모드로 시작
-                    if (PhotonNetwork.PlayerList.Length == 1)
-                    {
-                        Debug.Log("Manager 없음 - 단일 플레이어 모드로 시작");
-                        InitializeGame();
-                    }
+                    Debug.Log("모든 플레이어 로드 완료 - 게임 시작");
+                    InitializeGame();
                 }
             }
         }
