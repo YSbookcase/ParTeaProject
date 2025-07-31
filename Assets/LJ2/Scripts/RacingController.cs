@@ -36,7 +36,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     public int linePassed;
     public bool isControllable;
 
-
     private void Awake()
     {
         if (rigid == null)
