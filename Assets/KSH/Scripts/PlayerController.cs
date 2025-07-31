@@ -1,11 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 using TMPro;
-using UnityEngine.InputSystem;
-using UnityEngine.XR;
 
 namespace KSH
 {
@@ -46,7 +41,7 @@ namespace KSH
             playerAction.Disable();
         }
 
-        void Start()
+        private void Start()
         {
             if (photonView.IsMine)
             {
@@ -58,6 +53,7 @@ namespace KSH
             {
                 nickName.text = photonView.Owner.NickName;
             }
+            ColorManager.Instance.RegisterPlayer(this); //매니저에 플레이어를 등록
             ChangeColor();
             PlayerColor();
         }
@@ -121,15 +117,14 @@ namespace KSH
 
         public void ChangeColor()
         {
-            ColorManager.Instance.RegisterPlayer(this); //매니저에 플레이어를 등록
-        
-            //만약 포톤뷰를 소유한 플레이어의 커스텀프로퍼티에서 Color키를 찾으면
             if (photonView.Owner.CustomProperties.TryGetValue("TeamColor", out object value))
             {
-                //value가 문자열이고 Color타입으로 변환할 수 있다면
-                if (value is string colorHex && ColorUtility.TryParseHtmlString("#" + colorHex, out color))
+                if (value is string colorHex)
                 {
-                    SettingColor(color);
+                    if (ColorUtility.TryParseHtmlString("#" + colorHex, out color))
+                    {
+                        SettingColor(color);
+                    }
                 }
             }
         }

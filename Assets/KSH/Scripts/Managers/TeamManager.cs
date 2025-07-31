@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
@@ -25,27 +24,28 @@ namespace KSH
         
         public void SetTeam()
         {
+            teamDict.Clear(); //초기화
+            
             Player[] players = PhotonNetwork.PlayerList; //접속해있는 플레이어들의 배열로 저장
             List<Player> playerList = new List<Player>(players); //리스트로 변환
 
-            for (int i = 0; i < playerList.Count; i++)
+            for (int i = playerList.Count - 1; i > 0; i--) //Fisher-Yates Shuffle 알고리즘
             {
-                Player player = playerList[i];
-                int randomPlayer = Random.Range(0, playerList.Count);
-                playerList[i] = playerList[randomPlayer];
-                playerList[randomPlayer] = player;
+                int j = Random.Range(0, i + 1); //0에서 플레이어 수까지의 랜덤 지정
+                Player temp = playerList[i]; // 플레이어 기존 값을 저장
+                playerList[i] = playerList[j]; //랜덤으로 지정한 인덱스를 플레이어리스트 인덱스에 덮어씀
+                playerList[j] = temp; //저장해둔 기존 값을 j값에 넣기
             }
-
-            int teamSize = (playerList.Count == 2) ? 1 : 2;
             
             for (int i = 0; i < playerList.Count; i++)
             {
-                int team = (i < teamSize) ? 0 : 1; //인덱스가 0과 1이면 0팀, 2이상이면 1팀
+                int team = i % 2;
                 teamDict[playerList[i].ActorNumber] = team; //딕셔너리에 저장
                 
                 ExitGames.Client.Photon.Hashtable playerProperty = new ExitGames.Client.Photon.Hashtable();
                 playerProperty["Team"] = team; //Team 키에 팀 저장
                 playerList[i].SetCustomProperties(playerProperty);
+                Debug.Log($"{playerList[i].NickName} → 팀 {team}");
             }
         }
     }    

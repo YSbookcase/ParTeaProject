@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
@@ -17,7 +16,6 @@ namespace KSH
             if(Instance == null) // Instance가 null이면
             {
                 Instance = this; // 할당
-                DontDestroyOnLoad(gameObject); // 씬 전환에도 파괴되지 않도록 설정
             }
             else // 이미 존재한다면
             {
@@ -30,6 +28,7 @@ namespace KSH
             if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("Team"))
             {
                 int team = (int)PhotonNetwork.LocalPlayer.CustomProperties["Team"];
+               
                 SetColor(team);
             }
         }
@@ -53,18 +52,8 @@ namespace KSH
         }
 
         //플레이어의 속성이 바뀔 때 업데이트 되는 기능
-        public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
-        {
-            if (changedProps.ContainsKey("Team"))
-            {
-                int team = (int)changedProps["Team"];
-                
-                if (playerControllers.TryGetValue(targetPlayer.ActorNumber, out PlayerController pc))
-                {
-                    SetColor(team);
-                }
-            }
-            
+        public override void OnPlayerPropertiesUpdate(Photon.Realtime.Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+        { 
             if (changedProps.ContainsKey("TeamColor")) //만약 Color 키가 변경되었으면
             {
                 string colorHex = (string)changedProps["TeamColor"];  //Color 키를 문자열로 저장
@@ -77,6 +66,17 @@ namespace KSH
                     }
                 }
             }
+            
+            if (changedProps.ContainsKey("Team"))
+            {
+                int team = (int)changedProps["Team"];
+                
+                if (targetPlayer == Photon.Pun.PhotonNetwork.LocalPlayer)
+                {
+                    SetColor(team);
+                }
+            }
+            
         }
     }    
 }

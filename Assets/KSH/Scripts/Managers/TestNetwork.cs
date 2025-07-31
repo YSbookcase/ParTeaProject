@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
 using Photon.Realtime;
@@ -7,16 +5,13 @@ namespace KSH
 {
     public class TestNetwork : MonoBehaviourPunCallbacks
     {
-        void Awake()
-        {
-            PlayerSpawn();
-        }
         void Start()
         {
             if (!PhotonNetwork.IsConnected)
             {
                 PhotonNetwork.ConnectUsingSettings();
             }
+            PlayerSpawn();
         }
 
         public override void OnConnectedToMaster()
