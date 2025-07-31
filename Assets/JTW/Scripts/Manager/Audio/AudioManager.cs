@@ -1,4 +1,4 @@
-using DG.Tweening;
+Ôªøusing DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -7,62 +7,100 @@ using UnityEngine.Pool;
 
 public class AudioManager : Singleton<AudioManager>
 {
-    public ObjectPool<SfxController> SfxPool;
+    public ObjectPool<SfxController> sfxPool { get; private set; }
 
-    public float MasterVolume = 1f;
-    private float _bgmVolume = 1f;
-    public float BgmVolume
+    public float masterVolume = 1f;
+    private float bgmVolumePrivate = 1f;
+    public float bgmVolume
     {
-        get => _bgmVolume;
+        get => bgmVolumePrivate;
         set
         {
-            _bgmVolume = value;
-            _bgmSource.volume = MasterVolume * _bgmVolume * _bgmLocalVolume;
+            bgmVolumePrivate = value;
+            bgmSource.volume = masterVolume * bgmVolumePrivate * bgmLocalVolume;
         }
     }
-    private float _bgmLocalVolume;
-    public float SfxVolume = 1f;
+    private float bgmLocalVolume;
+    public float sfxVolume = 1f;
 
-    private AudioSource _bgmSource;
+    private AudioSource bgmSource;
 
-    //∑Á«¡ªÁøÓµÂ ∞¸∏Æ«œ¥¬ µÒº≈≥ ∏Æ
-    private Dictionary<string, SfxController> _loopingSfxDict = new Dictionary<string, SfxController>();
+    //Î£®ÌîÑÏÇ¨Ïö¥Îìú Í¥ÄÎ¶¨ÌïòÎäî ÎîïÏÖîÎÑàÎ¶¨
+    private Dictionary<string, SfxController> loopingSfxDict = new Dictionary<string, SfxController>();
+    private Dictionary<string, AudioData> loopingSfxDataDict = new Dictionary<string, AudioData>();
+
+    private AudioData curBgmData;
 
     private void Awake()
     {
-        _bgmSource = gameObject.GetOrAddComponent<AudioSource>();
-        _bgmSource.loop = true;
+        bgmSource = gameObject.GetOrAddComponent<AudioSource>();
+        bgmSource.loop = true;
 
-        SfxPool = new ObjectPool<SfxController>(CreateSfx, GetSfx, ReleaseSfx, DestroySfx);
+        sfxPool = new ObjectPool<SfxController>(CreateSfx, GetSfx, ReleaseSfx, DestroySfx);
     }
 
-    public void BgmPlay(AudioClip clip, float volume = 1f, float fadeDuration = 0)
+    public void BgmPlay(string clipName, float fadeDuration = 0)
     {
-        if(clip == null)
+        if (clipName == null)
         {
-            _bgmSource.Stop();
+            bgmSource.Stop();
+            if (curBgmData != null)
+            {
+                Resources.UnloadAsset(curBgmData);
+            }
         }
 
-        if (_bgmSource.clip == clip) return;
+        AudioData data = Resources.Load<AudioData>($"Audio/{clipName}");
 
-        _bgmLocalVolume = volume;
-        _bgmSource.DOKill();
-        _bgmSource.DOFade(0f, fadeDuration).OnComplete(() =>
+        if(data == null)
         {
-            _bgmSource.Stop();
-            _bgmSource.clip = clip;
-            _bgmSource.Play();
+            Debug.Log($"{clipName} AudioDataÎ•º Ï∞æÏùÑ Ïàò ÏóÜÏäµÎãàÎã§.");
+            return;
+        }
 
-            _bgmSource.DOFade(MasterVolume * BgmVolume * volume, fadeDuration);
+        AudioClip clip = data.clip;
+
+        if (bgmSource.clip == clip) return;
+
+        bgmLocalVolume = data.volume;
+        bgmSource.DOKill();
+        bgmSource.DOFade(0f, fadeDuration).OnComplete(() =>
+        {
+            bgmSource.Stop();
+            bgmSource.clip = clip;
+            bgmSource.Play();
+
+            bgmSource.DOFade(masterVolume * bgmVolume * data.volume, fadeDuration);
+
+            if(curBgmData != null)
+            {
+                Resources.UnloadAsset(curBgmData);
+            }
+            curBgmData = data;
         });
     }
 
-    public void SfxPlay(AudioClip clip, Transform parent, float volume = 1)
+
+
+    public void SfxPlay(string clipName, Transform parent = null)
     {
-        SfxController sfx = SfxPool.Get();
+        if(parent == null)
+        {
+            parent = Camera.main.transform;
+        }
+
+        AudioData data = Resources.Load<AudioData>($"Audio/{clipName}");
+
+        if (data == null)
+        {
+            Debug.Log($"{clipName} AudioDataÎ•º Ï∞æÏùÑ Ïàò ÏóÜÏäµÎãàÎã§.");
+            return;
+        }
+
+        SfxController sfx = sfxPool.Get();
         sfx.transform.parent = parent;
         sfx.transform.localPosition = Vector3.zero;
-        sfx.SfxPlay(clip, Mathf.Clamp01(MasterVolume * SfxVolume * volume));
+        sfx.SfxPlay(data, Mathf.Clamp01(masterVolume * sfxVolume * data.volume));
     }
 
     private SfxController CreateSfx()
@@ -95,52 +133,47 @@ public class AudioManager : Singleton<AudioManager>
         Destroy(sfx.gameObject);
     }
 
-
-    //∑Á«¡ªÁøÓµÂ «√∑π¿Ã
-    public void SfxPlayLoop(string key, AudioClip clip, Transform parent, float volume = 1)
+    public void SfxPlayLoop(string key, string clipName, Transform parent)
     {
-        if (_loopingSfxDict.ContainsKey(key))
+        if (loopingSfxDict.ContainsKey(key))
             return;
 
-        SfxController sfx = SfxPool.Get();
+        AudioData data = Resources.Load<AudioData>($"Audio/{clipName}");
+
+        if (data == null)
+        {
+            Debug.Log($"{clipName} AudioDataÎ•º Ï∞æÏùÑ Ïàò ÏóÜÏäµÎãàÎã§.");
+            return;
+        }
+
+        SfxController sfx = sfxPool.Get();
         sfx.transform.parent = parent;
         sfx.transform.localPosition = Vector3.zero;
 
         AudioSource source = sfx.GetComponent<AudioSource>();
-        source.clip = clip;
-        source.volume = Mathf.Clamp01(MasterVolume * SfxVolume * volume);
+        source.clip = data.clip;
+        source.volume = Mathf.Clamp01(masterVolume * sfxVolume * data.volume);
         source.loop = true;
         source.Play();
 
-        _loopingSfxDict[key] = sfx;
+        loopingSfxDict[key] = sfx;
+        loopingSfxDataDict[key] = data;
     }
 
-    //∑Á«¡ªÁøÓµÂ ∆‰¿ÃµÂæ∆øÙ«œ∏Èº≠ ∏ÿ√„
-    public void SfxStopLoop(string key, float fadeDuration = 0.5f)
+
+    public void SfxStopLoop(string key)
     {
-        if (!_loopingSfxDict.TryGetValue(key, out SfxController sfx))
-            return; // ¿ÃπÃ Releaseµ» ªÛ≈¬
+        if (!loopingSfxDict.TryGetValue(key, out SfxController sfx))
+            return; // Ïù¥ÎØ∏ ReleaseÎêú ÏÉÅÌÉú
 
         AudioSource source = sfx.GetComponent<AudioSource>();
-        source.DOKill();
-
-        source.DOFade(0f, fadeDuration).SetEase(Ease.Linear);
-
-        StartCoroutine(StopAndReleaseAfterFade(key, sfx, source, fadeDuration));
-    }
-
-    private IEnumerator StopAndReleaseAfterFade(string key, SfxController sfx, AudioSource source, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        // ¡ﬂ∫π Release πÊ¡ˆ
-        if (!_loopingSfxDict.ContainsKey(key))
-            yield break;
 
         source.Stop();
         source.loop = false;
-        source.volume = Mathf.Clamp01(MasterVolume * SfxVolume);
-        SfxPool.Release(sfx);
-        _loopingSfxDict.Remove(key);
+        source.volume = Mathf.Clamp01(masterVolume * sfxVolume);
+        sfxPool.Release(sfx);
+        loopingSfxDict.Remove(key);
+        Resources.UnloadAsset(loopingSfxDataDict[key]);
+        loopingSfxDataDict.Remove(key);
     }
 }

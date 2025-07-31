@@ -5,29 +5,32 @@ using UnityEngine;
 
 public class SfxController : MonoBehaviour
 {
-    private AudioSource _sfxSource;
+    private AudioSource sfxSource;
 
     public void Awake()
     {
-        _sfxSource = gameObject.GetOrAddComponent<AudioSource>();
+        sfxSource = gameObject.GetOrAddComponent<AudioSource>();
     }
 
-    public void SfxPlay(AudioClip clip, float volume)
+    public void SfxPlay(AudioData data, float volume)
     {
-        _sfxSource.Stop();
-        _sfxSource.clip = clip;
+        sfxSource.Stop();
+        sfxSource.clip = data.clip;
 
-        _sfxSource.volume = volume;
+        sfxSource.volume = volume;
 
-        _sfxSource.Play();
+        sfxSource.Play();
 
-        StartCoroutine(SfxPlayCoroutine(clip.length));
+        StartCoroutine(SfxPlayCoroutine(data.clip.length, data));
     }
 
-    private IEnumerator SfxPlayCoroutine(float time)
+    private IEnumerator SfxPlayCoroutine(float time, AudioData data)
     {
         yield return new WaitForSeconds(time);
 
-        Manager.Audio.SfxPool.Release(this);
+        sfxSource.Stop();
+        Resources.UnloadAsset(data);
+
+        Manager.Audio.sfxPool.Release(this);
     }
 }
