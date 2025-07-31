@@ -1,4 +1,4 @@
-using Photon.Pun;
+﻿using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using BaseUI = JTW_JumpGame.BaseUI;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace JTW_JumpGame
 {
@@ -45,6 +46,13 @@ namespace JTW_JumpGame
 
                 player.AddTotalGameScore(rankScore[player.GetRank()]);
                 startPositon.y -= 140;
+
+                // property가 초기화 되지 않아서 생기는 문제를 방지하기 위해 미리 초기화
+                Hashtable property = new Hashtable();
+                property["isLoaded"] = false;
+                property["rank"] = 0;
+
+                player.SetCustomProperties(property);
             }
 
             if (PhotonNetwork.IsMasterClient)
