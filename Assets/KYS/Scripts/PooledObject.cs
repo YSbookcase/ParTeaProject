@@ -7,11 +7,27 @@ namespace KYS
         public ObjectPool returnPool;
         public void ReturnToPool()
         {
-            returnPool.ReturnToPool(this);
+            if (returnPool != null)
+            {
+                returnPool.ReturnToPool(this);
+            }
+            else
+            {
+                Debug.LogWarning($"[PooledObject] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Destroy(gameObject);
+            }
         }
         public void ReturnToPool(float returnTime)
         {
-            returnPool.ReturnToPool(this, returnTime);
+            if (returnPool != null)
+            {
+                returnPool.ReturnToPool(this, returnTime);
+            }
+            else
+            {
+                Debug.LogWarning($"[PooledObject] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Destroy(gameObject);
+            }
         }
     }
 }

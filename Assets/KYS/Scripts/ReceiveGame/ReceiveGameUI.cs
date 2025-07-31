@@ -216,14 +216,54 @@ namespace KYS
                 rectTransform.anchoredPosition = new Vector2(0, -50 * player.ActorNumber);
                 rectTransform.sizeDelta = new Vector2(200, 40);
                 
-                TextMeshProUGUI scoreText = scoreUI.AddComponent<TextMeshProUGUI>();
-                scoreText.text = $"{player.NickName}: 0";
-                scoreText.fontSize = 16;
-                scoreText.color = Color.white;
-                scoreText.alignment = TextAlignmentOptions.Center;
+                // 배경 이미지 추가 (플레이어 색상용)
+                GameObject backgroundObj = new GameObject("Background");
+                backgroundObj.transform.SetParent(scoreUI.transform);
+                RectTransform bgRectTransform = backgroundObj.AddComponent<RectTransform>();
+                bgRectTransform.anchorMin = Vector2.zero;
+                bgRectTransform.anchorMax = Vector2.one;
+                bgRectTransform.offsetMin = Vector2.zero;
+                bgRectTransform.offsetMax = Vector2.zero;
                 
-                // 간단한 PlayerScoreUI 컴포넌트 추가
+                Image backgroundImage = backgroundObj.AddComponent<Image>();
+                backgroundImage.color = Color.white; // 기본 색상
+                
+                // 플레이어 이름 텍스트
+                GameObject nameObj = new GameObject("PlayerName");
+                nameObj.transform.SetParent(scoreUI.transform);
+                RectTransform nameRectTransform = nameObj.AddComponent<RectTransform>();
+                nameRectTransform.anchorMin = new Vector2(0, 0);
+                nameRectTransform.anchorMax = new Vector2(0.6f, 1);
+                nameRectTransform.offsetMin = Vector2.zero;
+                nameRectTransform.offsetMax = Vector2.zero;
+                
+                TextMeshProUGUI nameText = nameObj.AddComponent<TextMeshProUGUI>();
+                nameText.text = player.NickName;
+                nameText.fontSize = 14;
+                nameText.color = Color.black;
+                nameText.alignment = TextAlignmentOptions.Left;
+                
+                // 점수 텍스트
+                GameObject scoreObj = new GameObject("Score");
+                scoreObj.transform.SetParent(scoreUI.transform);
+                RectTransform scoreRectTransform = scoreObj.AddComponent<RectTransform>();
+                scoreRectTransform.anchorMin = new Vector2(0.6f, 0);
+                scoreRectTransform.anchorMax = new Vector2(1, 1);
+                scoreRectTransform.offsetMin = Vector2.zero;
+                scoreRectTransform.offsetMax = Vector2.zero;
+                
+                TextMeshProUGUI scoreText = scoreObj.AddComponent<TextMeshProUGUI>();
+                scoreText.text = "0";
+                scoreText.fontSize = 16;
+                scoreText.color = Color.black;
+                scoreText.alignment = TextAlignmentOptions.Right;
+                
+                // PlayerScoreUI 컴포넌트 추가 및 설정
                 PlayerScoreUI playerScoreUI = scoreUI.AddComponent<PlayerScoreUI>();
+                
+                // UI 요소들 설정
+                playerScoreUI.SetUIElements(nameText, scoreText, backgroundImage);
+                
                 playerScoreUI.Initialize(player.NickName, player.ActorNumber);
                 playerScoreUIs[player.ActorNumber] = playerScoreUI;
             }

@@ -147,6 +147,10 @@ MonoBehaviour:
   bobSpeed: 2
   bobHeight: 0.5
   pointValue: 1
+  groundLevel: 0.5
+  bounceForce: 3
+  maxFallSpeed: 15
+  returnDelay: 3
   collectParticle: {fileID: 0}
   collectSound: {fileID: 0}
 --- !u!54 &4394164773972101300

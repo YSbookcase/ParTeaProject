@@ -577,27 +577,10 @@ namespace KYS
                 int newGameIndex = (int)propertiesThatChanged["SelectedGame"];
                 Debug.Log($"[LobbyPopUp] 방 속성 변경 감지 - 게임 변경: {newGameIndex}");
                 
-                // 현재 방에 있는 경우에만 해당 방의 정보를 업데이트
-                if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null)
-                {
-                    string currentRoomName = PhotonNetwork.CurrentRoom.Name;
-                    if (currentRoomInfos.ContainsKey(currentRoomName))
-                    {
-                        // RoomInfo는 불변이므로 새로운 RoomInfo 객체를 생성해야 함
-                        // 하지만 Photon이 자동으로 방 목록을 업데이트하므로 
-                        // 여기서는 즉시 새로고침만 하고, Photon의 자동 업데이트를 기다림
-                        Debug.Log($"[LobbyPopUp] 현재 방 '{currentRoomName}'의 게임 정보 업데이트 대기 중");
-                        
-                        // 현재 방의 최신 정보로 currentRoomInfos 업데이트
-                        // RoomInfo는 불변이므로 새로운 RoomInfo 객체를 생성해야 하지만,
-                        // Photon이 자동으로 방 목록을 업데이트하므로 여기서는 기다림
-                    }
-                }
+                // 즉시 UI 새로고침 (기존 정보 기반)
+                RefreshRoomListUI();
                 
-                // 즉시 새로고침 시도 (Photon의 자동 업데이트를 기다리지 않고)
-                RefreshRoomListImmediate();
-                
-                // 추가로 0.5초 후에도 다시 새로고침 (Photon의 자동 업데이트를 기다림)
+                // 추가로 0.5초 후 로비 재참가를 통해 최신 정보 받아오기
                 StartCoroutine(RefreshRoomListAfterPropertyChange());
             }
         }
@@ -606,17 +589,78 @@ namespace KYS
         private System.Collections.IEnumerator RefreshRoomListAfterPropertyChange()
         {
             // Photon이 방 목록을 업데이트할 시간을 줌
-            yield return new WaitForSeconds(0.3f);
+            yield return new WaitForSeconds(0.5f);
             
-            Debug.Log("[LobbyPopUp] 방 속성 변경 후 방 목록 새로고침");
+            Debug.Log("[LobbyPopUp] 방 속성 변경 후 로비 재참가를 통한 최신 정보 수신");
             
-            // Photon에서 최신 방 목록을 요청
+            // 로비 재참가를 통해 최신 방 목록 받아오기
             if (PhotonNetwork.InLobby)
             {
-                // Photon이 자동으로 방 목록을 업데이트하므로 
-                // 여기서는 현재 저장된 정보를 기반으로 UI만 새로고침
                 RefreshRoomListImmediate();
             }
+        }
+        
+        // 기존 방 정보를 기반으로 UI만 새로고침하는 메서드
+        private void RefreshRoomListUI()
+        {
+            Debug.Log("[LobbyPopUp] 기존 방 정보를 기반으로 UI 새로고침");
+            
+            // 기존 UI 아이템 정리
+            foreach (var kvp in roomListItems)
+            {
+                if (kvp.Value != null)
+                {
+                    Destroy(kvp.Value);
+                }
+            }
+            roomListItems.Clear();
+            
+            // 기존 방 정보를 기반으로 UI 아이템 다시 생성
+            foreach (var kvp in currentRoomInfos)
+            {
+                RoomInfo info = kvp.Value;
+                
+                // 방 아이템 생성
+                GameObject roomListItem = Instantiate(roomListItemPrefab);
+                if (roomListItem == null)
+                {
+                    Debug.LogError($"[LobbyPopUp] RoomListItem 인스턴스 생성 실패: {info.Name}");
+                    continue;
+                }
+                
+                roomListItem.transform.SetParent(roomListContent, false);
+                
+                // Vertical Layout Group에 맞게 RectTransform 설정
+                RectTransform rectTransform = roomListItem.GetComponent<RectTransform>();
+                if (rectTransform != null)
+                {
+                    rectTransform.anchorMin = new Vector2(0, 1);
+                    rectTransform.anchorMax = new Vector2(1, 1);
+                    rectTransform.sizeDelta = new Vector2(0, 80f);
+                    rectTransform.pivot = new Vector2(0.5f, 1f);
+                }
+                
+                RoomListItem itemComponent = roomListItem.GetComponent<RoomListItem>();
+                if (itemComponent != null)
+                {
+                    itemComponent.Init(info);
+                    roomListItems.Add(info.Name, roomListItem);
+                }
+                else
+                {
+                    Debug.LogError($"[LobbyPopUp] RoomListItem 컴포넌트를 찾을 수 없습니다: {info.Name}");
+                    Destroy(roomListItem);
+                }
+            }
+            
+            // UI 레이아웃 강제 업데이트
+            Canvas.ForceUpdateCanvases();
+            if (roomListContent is RectTransform contentRectTransform)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
+            }
+            
+            Debug.Log($"[LobbyPopUp] UI 새로고침 완료 - 총 {currentRoomInfos.Count}개 방");
         }
         
         // 즉시 방 목록 새로고침
@@ -625,7 +669,11 @@ namespace KYS
             if (PhotonNetwork.InLobby)
             {
                 Debug.Log("[LobbyPopUp] 방 목록 즉시 새로고침 시작");
-                Debug.Log($"[LobbyPopUp] 현재 저장된 방 정보: {currentRoomInfos.Count}개");
+                
+                // Photon PUN2에서는 GetRoomList() 메서드가 없으므로
+                // 로비를 다시 참가하여 최신 방 목록을 받아옴
+                Debug.Log("[LobbyPopUp] 로비 재참가를 통한 방 목록 새로고침");
+                PhotonNetwork.JoinLobby();
                 
                 // 기존 UI 아이템 정리
                 foreach (var kvp in roomListItems)
@@ -637,57 +685,10 @@ namespace KYS
                 }
                 roomListItems.Clear();
                 
-                // 누적된 방 정보를 기반으로 UI 아이템 다시 생성
-                foreach (var kvp in currentRoomInfos)
-                {
-                    RoomInfo info = kvp.Value;
-                    Debug.Log($"[LobbyPopUp] 방 정보 처리: {info.Name}, 게임: {(info.CustomProperties.ContainsKey("SelectedGame") ? info.CustomProperties["SelectedGame"] : "없음")}");
-                    
-                    // 방 아이템 생성
-                    GameObject roomListItem = Instantiate(roomListItemPrefab);
-                    if (roomListItem == null)
-                    {
-                        Debug.LogError($"[LobbyPopUp] RoomListItem 인스턴스 생성 실패: {info.Name}");
-                        continue;
-                    }
-                    
-                    roomListItem.transform.SetParent(roomListContent, false);
-                    
-                    // Vertical Layout Group에 맞게 RectTransform 설정
-                    RectTransform rectTransform = roomListItem.GetComponent<RectTransform>();
-                    if (rectTransform != null)
-                    {
-                        rectTransform.anchorMin = new Vector2(0, 1);
-                        rectTransform.anchorMax = new Vector2(1, 1);
-                        rectTransform.sizeDelta = new Vector2(0, 80f);
-                        rectTransform.pivot = new Vector2(0.5f, 1f);
-                    }
-                    
-                    RoomListItem itemComponent = roomListItem.GetComponent<RoomListItem>();
-                    if (itemComponent != null)
-                    {
-                        itemComponent.Init(info);
-                        roomListItems.Add(info.Name, roomListItem);
-                    }
-                    else
-                    {
-                        Debug.LogError($"[LobbyPopUp] RoomListItem 컴포넌트를 찾을 수 없습니다: {info.Name}");
-                        Destroy(roomListItem);
-                    }
-                }
+                // currentRoomInfos도 초기화 (로비 재참가 후 새로운 정보로 업데이트됨)
+                currentRoomInfos.Clear();
                 
-                // UI 레이아웃 강제 업데이트
-                Canvas.ForceUpdateCanvases();
-                if (roomListContent is RectTransform contentRectTransform)
-                {
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
-                }
-                
-                Debug.Log($"[LobbyPopUp] 방 목록 새로고침 완료 - {roomListItems.Count}개 방");
-            }
-            else
-            {
-                Debug.LogWarning("[LobbyPopUp] 로비에 있지 않아 방 목록 새로고침을 할 수 없습니다.");
+                Debug.Log("[LobbyPopUp] 방 목록 새로고침 요청 완료 - 로비 재참가 대기 중");
             }
         }
 
