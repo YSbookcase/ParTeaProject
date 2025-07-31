@@ -10,6 +10,7 @@ public static class Manager
     public static KYS.UIManager UI => KYS.UIManager.GetInstance();
     public static PhotonManager Photon => PhotonManager.GetInstance();
     public static FirebaseManager Firebase => FirebaseManager.GetInstance();
+    public static AudioManager Audio => AudioManager.GetInstance();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initailize()
@@ -21,5 +22,6 @@ public static class Manager
             PhotonManager.CreateInstance();
         }
         FirebaseManager.CreateInstance();
+        AudioManager.CreateInstance();
     }
 }
