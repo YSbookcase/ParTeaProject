@@ -1,4 +1,5 @@
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
 
 namespace KYS
@@ -8,6 +9,10 @@ namespace KYS
     /// </summary>
     public class ItemConfigurationCreator
     {
+
+
+
+
         [MenuItem("KYS/Create Item Configuration")]
         public static void CreateItemConfiguration()
         {
@@ -243,4 +248,7 @@ namespace KYS
             return config;
         }
     }
-} 
+
+}
+
+#endif
