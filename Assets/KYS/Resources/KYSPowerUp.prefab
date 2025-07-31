@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8099831343347958516}
   - component: {fileID: 1130237692482665260}
   - component: {fileID: 489785461621386395}
-  - component: {fileID: 5370078826784397526}
+  - component: {fileID: 4832438291963456193}
   m_Layer: 0
   m_Name: KYSPowerUp
   m_TagString: Untagged
@@ -134,7 +134,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &5370078826784397526
+--- !u!114 &4832438291963456193
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143,9 +143,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 7504042543773716186}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f56f6219ea061da469c952ba03aa2b75, type: 3}
+  m_Script: {fileID: 11500000, guid: 812b98773d2ba9e47a2748e1266e539b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  itemConfiguration: {fileID: 0}
   itemType: 0
   pointValue: 1
   effectDuration: 5
@@ -155,6 +156,8 @@ MonoBehaviour:
   rotationSpeed: 60
   bobSpeed: 1.5
   bobHeight: 0.3
+  visualContainer: {fileID: 0}
+  itemRenderer: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   bonusColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   speedColor: {r: 0, g: 0, b: 1, a: 1}

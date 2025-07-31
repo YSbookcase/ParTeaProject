@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -95,11 +96,7 @@ namespace KYS
                 }
             }
 
-            // 방 목록 상태 확인 (10초마다로 변경)
-            if (Time.frameCount % 600 == 0) // 약 10초마다 (60fps 기준)
-            {
-                CheckAndRefreshRoomList();
-            }
+
         }
         
         // 사용자 친화적인 상태 이름 반환
@@ -301,14 +298,12 @@ namespace KYS
 
         private void OnRoomListUpdate(List<RoomInfo> roomList)
         {
-            // 방 목록이 변경된 경우에만 로그 출력
             if (roomList == null)
             {
                 Debug.LogError("[LobbyPopUp] PhotonManager에서 받은 roomList가 null입니다!");
                 return;
             }
 
-            // null 체크 추가
             if (roomListItemPrefab == null)
             {
                 Debug.LogError("[LobbyPopUp] RoomListItemPrefab이 null입니다.");
@@ -325,6 +320,7 @@ namespace KYS
             int addedRooms = 0;
             int removedRooms = 0;
             int updatedRooms = 0;
+            int gameChangedRooms = 0;
             
             // 새로운 방 목록으로 기존 방 정보 업데이트
             foreach (RoomInfo info in roomList)
@@ -342,23 +338,40 @@ namespace KYS
                 {
                     // 방이 추가되거나 업데이트된 경우
                     bool isNewRoom = !currentRoomInfos.ContainsKey(info.Name);
+                    bool gameChanged = false;
+                    
+                    // 기존 방 정보와 비교하여 게임 정보 변경 감지
+                    if (!isNewRoom && currentRoomInfos.ContainsKey(info.Name))
+                    {
+                        RoomInfo oldInfo = currentRoomInfos[info.Name];
+                        if (oldInfo.CustomProperties.TryGetValue("SelectedGame", out object oldGame) &&
+                            info.CustomProperties.TryGetValue("SelectedGame", out object newGame))
+                        {
+                            if (!oldGame.Equals(newGame))
+                            {
+                                gameChanged = true;
+                                gameChangedRooms++;
+                            }
+                        }
+                    }
+                    
                     currentRoomInfos[info.Name] = info;
                     
                     if (isNewRoom)
                     {
                         addedRooms++;
                     }
-                    else
+                    else if (gameChanged)
                     {
                         updatedRooms++;
                     }
                 }
             }
             
-            // 변경사항이 있을 때만 로그 출력
-            if (addedRooms > 0 || removedRooms > 0 || updatedRooms > 0)
+            // 중요한 변경사항이 있을 때만 로그 출력
+            if (addedRooms > 0 || removedRooms > 0 || gameChangedRooms > 0)
             {
-                Debug.Log($"[LobbyPopUp] 방 목록 업데이트 - 추가: {addedRooms}개, 제거: {removedRooms}개, 업데이트: {updatedRooms}개, 총: {currentRoomInfos.Count}개");
+                Debug.Log($"[LobbyPopUp] 방 목록 변경 - 추가: {addedRooms}개, 제거: {removedRooms}개, 게임변경: {gameChangedRooms}개");
             }
 
             // UI 업데이트 - 누적된 방 정보를 기반으로 전체 재생성
@@ -418,12 +431,6 @@ namespace KYS
             if (roomListContent is RectTransform contentRectTransform)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
-            }
-            
-            // 변경사항이 있을 때만 디버그 정보 출력
-            if (addedRooms > 0 || removedRooms > 0 || updatedRooms > 0)
-            {
-                DebugRoomListStatus();
             }
         }
 
@@ -567,44 +574,11 @@ namespace KYS
             }
         }
 
-        // 방 속성 변경 감지 메서드
-        public void OnRoomPropertiesChanged(Hashtable propertiesThatChanged)
-        {
-            Debug.Log($"[LobbyPopUp] OnRoomPropertiesChanged 호출됨 - 변경된 속성: {string.Join(", ", propertiesThatChanged.Keys)}");
-            
-            if (propertiesThatChanged.ContainsKey("SelectedGame"))
-            {
-                int newGameIndex = (int)propertiesThatChanged["SelectedGame"];
-                Debug.Log($"[LobbyPopUp] 방 속성 변경 감지 - 게임 변경: {newGameIndex}");
-                
-                // 즉시 UI 새로고침 (기존 정보 기반)
-                RefreshRoomListUI();
-                
-                // 추가로 0.5초 후 로비 재참가를 통해 최신 정보 받아오기
-                StartCoroutine(RefreshRoomListAfterPropertyChange());
-            }
-        }
-        
-        // 방 속성 변경 후 방 목록 새로고침을 위한 코루틴
-        private System.Collections.IEnumerator RefreshRoomListAfterPropertyChange()
-        {
-            // Photon이 방 목록을 업데이트할 시간을 줌
-            yield return new WaitForSeconds(0.5f);
-            
-            Debug.Log("[LobbyPopUp] 방 속성 변경 후 로비 재참가를 통한 최신 정보 수신");
-            
-            // 로비 재참가를 통해 최신 방 목록 받아오기
-            if (PhotonNetwork.InLobby)
-            {
-                RefreshRoomListImmediate();
-            }
-        }
+
         
         // 기존 방 정보를 기반으로 UI만 새로고침하는 메서드
         private void RefreshRoomListUI()
         {
-            Debug.Log("[LobbyPopUp] 기존 방 정보를 기반으로 UI 새로고침");
-            
             // 기존 UI 아이템 정리
             foreach (var kvp in roomListItems)
             {
@@ -659,8 +633,6 @@ namespace KYS
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(contentRectTransform);
             }
-            
-            Debug.Log($"[LobbyPopUp] UI 새로고침 완료 - 총 {currentRoomInfos.Count}개 방");
         }
         
         // 즉시 방 목록 새로고침
@@ -668,11 +640,8 @@ namespace KYS
         {
             if (PhotonNetwork.InLobby)
             {
-                Debug.Log("[LobbyPopUp] 방 목록 즉시 새로고침 시작");
-                
                 // Photon PUN2에서는 GetRoomList() 메서드가 없으므로
                 // 로비를 다시 참가하여 최신 방 목록을 받아옴
-                Debug.Log("[LobbyPopUp] 로비 재참가를 통한 방 목록 새로고침");
                 PhotonNetwork.JoinLobby();
                 
                 // 기존 UI 아이템 정리
@@ -687,29 +656,13 @@ namespace KYS
                 
                 // currentRoomInfos도 초기화 (로비 재참가 후 새로운 정보로 업데이트됨)
                 currentRoomInfos.Clear();
-                
-                Debug.Log("[LobbyPopUp] 방 목록 새로고침 요청 완료 - 로비 재참가 대기 중");
             }
         }
 
         // 수동으로 방 목록 새로고침하는 메서드 (디버깅용)
         public void RefreshRoomList()
         {
-            if (PhotonNetwork.InLobby)
-            {
-                Debug.Log("[LobbyPopUp] 수동 방 목록 새로고침 요청");
-                
-                // 현재 Photon 상태 확인
-                Debug.Log($"[LobbyPopUp] Photon 상태 - 연결됨: {PhotonNetwork.IsConnected}, 로비: {PhotonNetwork.InLobby}, 방: {PhotonNetwork.InRoom}");
-                
-                // 수동으로 방 목록 요청 (디버깅용)
-                if (PhotonNetwork.IsConnected && PhotonNetwork.Server == ServerConnection.MasterServer)
-                {
-                    Debug.Log("[LobbyPopUp] Photon 서버에 방 목록 재요청");
-                    // Photon이 자동으로 방 목록을 업데이트하므로 별도 요청 불필요
-                }
-            }
-            else
+            if (!PhotonNetwork.InLobby)
             {
                 Debug.LogError("[LobbyPopUp] 로비에 있지 않아 방 목록을 새로고침할 수 없습니다.");
             }
@@ -720,7 +673,6 @@ namespace KYS
         {
             if (roomListItems.Count == 0 && PhotonNetwork.InLobby)
             {
-                // 로그 제거 - 너무 자주 호출됨
                 StartCoroutine(AutoRefreshRoomList());
             }
         }

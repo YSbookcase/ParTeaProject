@@ -60,10 +60,11 @@ namespace KYS
             if (info.CustomProperties.TryGetValue("SelectedGame", out object gameValue))
             {
                 int gameIndex = (int)gameValue;
+                
                 if (gameIndex >= 0 && gameIndex < gameNames.Length)
                 {
-                    gameText.text = $"Game : {gameNames[gameIndex]}";
-                    Debug.Log($"[RoomListItem] 방 '{roomName}' 게임 정보 업데이트: {gameNames[gameIndex]} (인덱스: {gameIndex})");
+                    string gameName = gameNames[gameIndex];
+                    gameText.text = $"Game : {gameName}";
                 }
                 else
                 {
@@ -74,9 +75,11 @@ namespace KYS
             else
             {
                 gameText.text = "Game : 점프"; // 기본값
-                Debug.Log($"[RoomListItem] 방 '{roomName}' 게임 정보 없음 - 기본값 사용");
+                Debug.LogWarning($"[RoomListItem] 방 '{roomName}' SelectedGame 속성을 찾을 수 없음");
             }
         }
+
+
 
         private void JoinRoom(PointerEventData eventData)
         {

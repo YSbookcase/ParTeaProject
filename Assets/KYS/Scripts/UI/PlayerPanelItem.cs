@@ -178,6 +178,21 @@ namespace KYS
             }
         }
 
+        // Ready 상태 초기화
+        public void ResetReadyState()
+        {
+            isReady = false;
+            UpdateReadyUI();
+            
+            // 로컬 플레이어인 경우에만 PhotonManager를 통해 속성 업데이트
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                PhotonManager.Instance.SetPlayerReady(false);
+            }
+            
+            Debug.Log("[PlayerPanelItem] Ready 상태 초기화 완료");
+        }
+
         // ???? ?? ???? ??? (?? ??? ??)
         public void UpdatePlayerProperties(Player player)
         {
