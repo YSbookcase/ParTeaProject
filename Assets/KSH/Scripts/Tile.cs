@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using KSH;
 using Photon.Pun;
 using UnityEngine;
 
@@ -25,9 +22,20 @@ namespace KSH
         }
         private void OnCollisionEnter(Collision other)
         {
+            if (!GameManager.Instance.isGameStart) return; //게임 시작이 되지않으면 충돌 판정 X
             PlayerController player = other.gameObject.GetComponent<PlayerController>();
+
+            int team = 0;
+            if (player.photonView.Owner.CustomProperties.ContainsKey("Team"))
+            {
+                team = (int)player.photonView.Owner.CustomProperties["Team"];
+            }
+            else
+            {
+                return;
+            }
             
-            Color color = player.NickName.color; //플레이어의 컬러 저장
+            Color color = (team == 0) ? Color.red : Color.blue;
             if (color == curColor) return;
             
             string hexcolor = $"#{ColorUtility.ToHtmlStringRGB(color)}"; //플레이이의 색을 문자열로 변환

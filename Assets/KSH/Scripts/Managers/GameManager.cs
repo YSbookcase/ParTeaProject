@@ -1,13 +1,9 @@
 using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using System;
-using System.Data.SqlTypes;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine.Playables;
-using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 namespace KSH
 {
@@ -18,7 +14,7 @@ namespace KSH
         public float Timer { get => timer; set => timer = value; }
         [SerializeField] private PlayableDirector timeLine;
         
-        private bool isGameStart = false;
+        public bool isGameStart = false;
         private bool isTimeLine = false;
         public static GameManager Instance;
         public event Action OnGameStart;
@@ -41,7 +37,7 @@ namespace KSH
         }
         
 
-        private void Start()
+        private IEnumerator Start()
         {
             UIManager.Instance.OnCountDownEnd += StartGame; //카운트 다운이 끝나면 게임 시작
             
@@ -50,10 +46,14 @@ namespace KSH
                 timeLine.Play();
                 isTimeLine = true;
             }
+            
+            yield return null;
 
             if (PhotonNetwork.IsMasterClient)
-            {
-                TeamManager.Instance.SetTeam(); //팀 설정
+            { 
+                if(TeamManager.Instance != null)
+                    TeamManager.Instance.SetTeam(); //팀 설정
+                
                 photonView.RPC("StartCount", RpcTarget.All);
             }
         }
