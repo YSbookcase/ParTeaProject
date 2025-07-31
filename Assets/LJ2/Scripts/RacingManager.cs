@@ -111,11 +111,11 @@ public class RacingManager : MonoBehaviourPunCallbacks
         currentRank++;
         racingPlayers.RemoveAll(p => p.ActorNumber == actorNumber);
 
-        //if (racingPlayers.Count == 0)
-        //{
-        //    StopAllCoroutines(); // 모든 코루틴 중지
-        //    managerView.RPC(nameof(RacingFinish), RpcTarget.All);
-        //}
+        if (racingPlayers.Count == 0)
+        {
+            StopAllCoroutines(); // 모든 코루틴 중지
+            managerView.RPC(nameof(RacingFinish), RpcTarget.All);
+        }
     }
 
     private IEnumerator CountDown(int seconds)
