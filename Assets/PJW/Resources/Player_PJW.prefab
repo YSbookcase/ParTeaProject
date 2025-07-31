@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 3626992943772733478}
   - component: {fileID: 5434333078203524127}
   - component: {fileID: -2535492496985650745}
+  - component: {fileID: 73629489501205231}
   m_Layer: 0
   m_Name: Player_PJW
   m_TagString: Player
@@ -206,3 +207,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nicknamePanelPrefab: {fileID: 5547496314670727736, guid: d2204dc4ee13fd5479faec1ed7614c55,
     type: 3}
+--- !u!114 &73629489501205231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2568167387124825028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cb693bde8880884ba0f824f29dcefe0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorPalette:
+  - {r: 0.9528302, g: 0.049439307, b: 0.049439307, a: 0}
+  - {r: 0.0047169924, g: 0.24293853, b: 1, a: 0}
+  - {r: 0, g: 1, b: 0.14186502, a: 0}
+  - {r: 1, g: 0.94832873, b: 0, a: 0}
+  nickNameText: {fileID: 0}

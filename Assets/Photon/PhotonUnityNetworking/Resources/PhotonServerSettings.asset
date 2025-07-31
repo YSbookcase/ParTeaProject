@@ -33,7 +33,40 @@ MonoBehaviour:
   EnableSupportLogger: 0
   RunInBackground: 1
   StartInOfflineMode: 0
-  RpcList: []
+  RpcList:
+  - ArenaEndGame
+  - ArenaPlayerDied
+  - ArenaStartShrink
+  - ClickRpc
+  - DeleteJumpGamePlayer
+  - DestroyRpc
+  - DestroySpaceship
+  - Fire
+  - GoNextGame
+  - JumpGame_Jump
+  - JumpGamePlayerOut
+  - JumpGameStart
+  - PlayerArrive
+  - PunRPC_CountTile
+  - RacingCrash
+  - RacingFinish
+  - RacingStart
+  - RequestSpawnPlayer
+  - RespawnSpaceship
+  - RetireCount
+  - RPC_CanMove
+  - RPC_Dead
+  - RPC_DontMove
+  - RPCBeginCountdown
+  - RPCRopeNotifyDeath
+  - RPCRopeShowDeathPanel
+  - SendChatMessage
+  - SetColor
+  - SetControllable
+  - SetDollyCart
+  - SetStartLine
+  - SetTrack
+  - StartCount
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
