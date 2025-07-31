@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace KYS
 {
@@ -6,11 +7,17 @@ namespace KYS
     public class ItemConfig
     {
         [Header("Item Type")]
-        public ReceiveGameManager.ItemType itemType;
+        public ItemType itemType;
         
         [Header("Visual Settings")]
         public GameObject visualPrefab; // 각 아이템 타입별 고유한 시각적 프리팹
         public Color itemColor = Color.white; // 기본 색상 (프리팹이 없을 때 사용)
+        public Vector3 scale = Vector3.one; // 아이템 크기
+        
+        [Header("Emission Settings")]
+        public bool useEmission = false; // 발광 효과 사용 여부
+        public Color emissionColor = Color.white; // 발광 색상
+        public float emissionIntensity = 1f; // 발광 강도
         
         [Header("Gameplay Settings")]
         public int pointValue = 1;
@@ -28,7 +35,7 @@ namespace KYS
     public class ItemConfiguration : ScriptableObject
     {
         [Header("Item Configurations")]
-        [SerializeField] private ItemConfig[] itemConfigs;
+        public List<ItemConfig> itemConfigs = new List<ItemConfig>(); // 배열에서 List로 변경
         
         [Header("Default Settings")]
         [SerializeField] private GameObject defaultVisualPrefab; // 기본 시각적 프리팹
@@ -38,7 +45,7 @@ namespace KYS
         /// </summary>
         /// <param name="itemType">아이템 타입</param>
         /// <returns>아이템 설정, 없으면 null</returns>
-        public ItemConfig GetItemConfig(ReceiveGameManager.ItemType itemType)
+        public ItemConfig GetItemConfig(ItemType itemType)
         {
             foreach (var config in itemConfigs)
             {
@@ -58,7 +65,7 @@ namespace KYS
         /// <returns>모든 아이템 설정 배열</returns>
         public ItemConfig[] GetAllItemConfigs()
         {
-            return itemConfigs;
+            return itemConfigs.ToArray();
         }
         
         /// <summary>
@@ -76,14 +83,14 @@ namespace KYS
         /// <returns>유효하면 true</returns>
         public bool IsValid()
         {
-            if (itemConfigs == null || itemConfigs.Length == 0)
+            if (itemConfigs == null || itemConfigs.Count == 0)
             {
                 Debug.LogError("[ItemConfiguration] 아이템 설정이 없습니다.");
                 return false;
             }
             
             // 모든 아이템 타입이 설정되어 있는지 확인
-            foreach (ReceiveGameManager.ItemType itemType in System.Enum.GetValues(typeof(ReceiveGameManager.ItemType)))
+            foreach (ItemType itemType in System.Enum.GetValues(typeof(ItemType)))
             {
                 bool found = false;
                 foreach (var config in itemConfigs)

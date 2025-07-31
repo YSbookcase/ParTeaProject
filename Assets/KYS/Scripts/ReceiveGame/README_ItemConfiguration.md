@@ -92,7 +92,7 @@ ItemConfiguration에서 각 아이템 타입별로 다음을 설정:
 ```csharp
 // EnhancedItemController 사용
 EnhancedItemController itemController = GetComponent<EnhancedItemController>();
-itemController.SetItemType(ReceiveGameManager.ItemType.Speed);
+itemController.SetItemType(ItemType.Speed);
 ```
 
 ### 런타임에 시각적 프리팹 변경

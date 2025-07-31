@@ -8,8 +8,8 @@ namespace KYS
     /// </summary>
     public class ItemVisualPrefab : MonoBehaviour
     {
-        [Header("Visual Settings")]
-        [SerializeField] private ReceiveGameManager.ItemType itemType;
+        [Header("Item Type")]
+        [SerializeField] private ItemType itemType;
         [SerializeField] private Color itemColor = Color.white;
         [SerializeField] private Vector3 scale = Vector3.one;
         [SerializeField] private bool useEmission = false;
@@ -97,14 +97,14 @@ namespace KYS
         {
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
+                case ItemType.Normal:
                     itemColor = Color.white;
                     scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = false;
                     rotationSpeed = 60f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Bonus:
                     itemColor = Color.yellow;
                     scale = Vector3.one * 1.8f; // 보너스 아이템은 더 크게
                     useEmission = true;
@@ -113,7 +113,7 @@ namespace KYS
                     rotationSpeed = 90f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     itemColor = Color.blue;
                     scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = true;
@@ -122,7 +122,7 @@ namespace KYS
                     rotationSpeed = 120f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     itemColor = Color.red;
                     scale = Vector3.one * 1.2f; // 느린 아이템은 약간 작게
                     useEmission = true;
@@ -131,7 +131,7 @@ namespace KYS
                     rotationSpeed = 30f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     itemColor = Color.green;
                     scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = true;

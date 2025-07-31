@@ -13,7 +13,7 @@ namespace KYS
     {
         [Header("Player Settings")]
         [SerializeField] private float moveSpeed = 5f;
-        [SerializeField] private float collectionRadius = 1f;
+        [SerializeField] private float collectionRadius = 2f; // 1에서 2로 변경
         [SerializeField] private float baseMoveSpeed = 5f;
         [SerializeField] private float speedBoostMultiplier = 1.5f;
         [SerializeField] private float slowEffectMultiplier = 0.5f;
@@ -38,7 +38,7 @@ namespace KYS
         
         private Vector3 targetPosition;
         private bool isMoving = false;
-        private ReceiveGameManager gameManager;
+        private ReceiveGameManagerEnhanced gameManager;
         private ReceiveGameUI gameUI;
         private AudioSource audioSource;
         private GameObject nameTag;
@@ -71,7 +71,7 @@ namespace KYS
         {
             // 모든 플레이어가 색상과 이름 태그를 설정
             targetPosition = transform.position;
-            gameManager = FindObjectOfType<ReceiveGameManager>();
+            gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
             gameUI = FindObjectOfType<ReceiveGameUI>();
             
             // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
@@ -216,6 +216,7 @@ namespace KYS
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
+                    Debug.Log($"아이템 발견: {item.name}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}");
                     CollectItem(item);
                 }
             }
@@ -223,19 +224,37 @@ namespace KYS
         
         private void CollectItem(CollectibleItem item)
         {
-            if (gameManager != null)
+            if (!item.IsCollected)
             {
-                // 게임 매니저에 아이템 수집 알림
-                gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber);
+                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}가 아이템 수집 시도");
+                
+                // ReceiveGameManagerEnhanced 직접 찾기
+                ReceiveGameManagerEnhanced enhancedManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
+                if (enhancedManager != null)
+                {
+                    enhancedManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber);
+                    Debug.Log($"ReceiveGameManagerEnhanced에 아이템 수집 알림 전송");
+                }
+                else
+                {
+                    Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                }
                 
                 // 수집 효과 재생
                 PlayCollectEffect();
                 
-                // 아이템 제거
+                // 아이템 제거 (Collect 메서드에서 이미 처리됨)
                 item.Collect();
                 
-                // spawnedItems 리스트에서 제거
-                gameManager.RemoveItemFromList(item.gameObject);
+                // spawnedItems 리스트에서 제거 (중복 제거 방지)
+                if (enhancedManager != null && item.gameObject != null)
+                {
+                    enhancedManager.RemoveItemFromList(item.gameObject);
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"아이템이 이미 수집되었습니다: {item.name}");
             }
         }
         
@@ -562,7 +581,7 @@ namespace KYS
                 {
                     moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
                     isMoving = true;
-                    Debug.Log($"ReceiveGameUI 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
+                    //Debug.Log($"ReceiveGameUI 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
                 }
                 else
                 {

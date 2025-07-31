@@ -7,7 +7,7 @@ namespace KYS
     public class ItemController : MonoBehaviourPun
     {
         [Header("Item Settings")]
-        [SerializeField] private ReceiveGameManager.ItemType itemType = ReceiveGameManager.ItemType.Normal;
+        [SerializeField] private ItemType itemType = ItemType.Normal;
         [SerializeField] private int pointValue = 1;
         [SerializeField] private float effectDuration = 5f;
         
@@ -137,7 +137,7 @@ namespace KYS
             }
         }
         
-        public void SetItemType(ReceiveGameManager.ItemType type)
+        public void SetItemType(ItemType type)
         {
             itemType = type;
             UpdateVisual();
@@ -152,27 +152,27 @@ namespace KYS
             
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
+                case ItemType.Normal:
                     targetColor = normalColor;
                     pointValue = 1;
                     scaleMultiplier = 1.5f;
                     break;
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Bonus:
                     targetColor = bonusColor;
                     pointValue = 3;
                     scaleMultiplier = 2.0f; // 보너스 아이템은 더 크게
                     break;
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     targetColor = speedColor;
                     pointValue = 1;
                     scaleMultiplier = 1.5f;
                     break;
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     targetColor = slowColor;
                     pointValue = 1;
                     scaleMultiplier = 1.2f; // 느린 아이템은 약간 작게
                     break;
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     targetColor = magnetColor;
                     pointValue = 1;
                     scaleMultiplier = 1.5f;
@@ -188,7 +188,7 @@ namespace KYS
             // pointValue가 사용되었음을 명시적으로 표시 (컴파일러 경고 방지)
             if (pointValue > 0)
             {
-                // 이 값은 실제로는 ReceiveGameManager.CollectItem에서 사용됨
+                // 이 값은 실제로는 ReceiveGameManagerEnhanced.CollectItem에서 사용됨
                 // 여기서는 컴파일러 경고를 방지하기 위한 명시적 사용
             }
         }
@@ -216,15 +216,8 @@ namespace KYS
                     // 아이템 효과 적용
                     ApplyItemEffect(player);
                     
-                    // 점수 추가
-                    if (PhotonNetwork.IsMasterClient)
-                    {
-                        ReceiveGameManager gameManager = FindObjectOfType<ReceiveGameManager>();
-                        if (gameManager != null)
-                        {
-                            gameManager.CollectItem(player.GetPlayerActorNumber());
-                        }
-                    }
+                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
+                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
                 }
                 
                 // 아이템 제거
@@ -236,20 +229,20 @@ namespace KYS
         {
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Normal:
+                case ItemType.Bonus:
                     // 점수만 추가 (CollectItem에서 처리)
                     break;
                     
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     player.ApplySpeedBoost(effectDuration);
                     break;
                     
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     player.ApplySlowEffect(effectDuration);
                     break;
                     
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     player.ApplyMagnetEffect(effectDuration);
                     break;
             }

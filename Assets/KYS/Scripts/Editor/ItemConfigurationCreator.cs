@@ -1,247 +1,322 @@
 using UnityEngine;
 using UnityEditor;
-using System.Reflection; // For BindingFlags
+using System.Collections.Generic;
 
-namespace KYS
+namespace KYS.Editor
 {
-    /// <summary>
-    /// ItemConfiguration 에셋을 생성하기 위한 에디터 도구
-    /// </summary>
-    public class ItemConfigurationCreator
+    public class ItemConfigurationCreator : EditorWindow
     {
+        private ItemConfiguration itemConfiguration;
+        private Vector2 scrollPosition;
+        private bool showAdvancedSettings = false;
+        
         [MenuItem("KYS/Create Item Configuration")]
-        public static void CreateItemConfiguration()
+        public static void ShowWindow()
         {
-            // ItemConfiguration 에셋 생성
-            ItemConfiguration config = ScriptableObject.CreateInstance<ItemConfiguration>();
-            
-            // 기본 설정으로 초기화
-            InitializeDefaultConfig(config);
-            
-            // Resources 폴더에 저장
-            string path = "Assets/KYS/Resources/ItemConfiguration.asset";
-            
-            // 디렉토리가 없으면 생성
-            string directory = System.IO.Path.GetDirectoryName(path);
-            if (!System.IO.Directory.Exists(directory))
-            {
-                System.IO.Directory.CreateDirectory(directory);
-            }
-            
-            AssetDatabase.CreateAsset(config, path);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            
-            Debug.Log($"[ItemConfigurationCreator] ItemConfiguration이 생성되었습니다: {path}");
-            
-            // 생성된 에셋을 선택
-            Selection.activeObject = config;
+            GetWindow<ItemConfigurationCreator>("Item Configuration Creator");
         }
         
-        private static void InitializeDefaultConfig(ItemConfiguration config)
+        private void OnEnable()
         {
-            // 모든 아이템 타입에 대한 기본 설정 생성
-            var itemTypes = System.Enum.GetValues(typeof(ReceiveGameManager.ItemType));
-            var configs = new ItemConfig[itemTypes.Length];
+            // 기존 설정 파일 로드
+            itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
+            
+            if (itemConfiguration == null)
+            {
+                // 새 설정 파일 생성
+                itemConfiguration = CreateInstance<ItemConfiguration>();
+                
+                // Resources 폴더가 없으면 생성
+                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "Resources");
+                }
+                
+                // 파일 저장
+                AssetDatabase.CreateAsset(itemConfiguration, "Assets/Resources/ItemConfiguration.asset");
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                
+                Debug.Log("새로운 ItemConfiguration 파일이 생성되었습니다: Assets/Resources/ItemConfiguration.asset");
+            }
+        }
+        
+        private void OnGUI()
+        {
+            if (itemConfiguration == null)
+            {
+                EditorGUILayout.HelpBox("ItemConfiguration을 로드할 수 없습니다.", MessageType.Error);
+                return;
+            }
+            
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            
+            EditorGUILayout.LabelField("Item Configuration Creator", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            
+            // 기본 설정
+            EditorGUILayout.LabelField("기본 설정", EditorStyles.boldLabel);
+            
+            // 모든 아이템 타입에 대한 설정 생성
+            var itemTypes = System.Enum.GetValues(typeof(ItemType));
             
             for (int i = 0; i < itemTypes.Length; i++)
             {
-                ReceiveGameManager.ItemType itemType = (ReceiveGameManager.ItemType)itemTypes.GetValue(i);
-                configs[i] = CreateDefaultItemConfig(itemType);
+                ItemType itemType = (ItemType)itemTypes.GetValue(i);
+                CreateItemTypeSection(itemType);
             }
-            
-            // 리플렉션을 사용하여 private 필드에 접근
-            var field = typeof(ItemConfiguration).GetField("itemConfigs", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(config, configs);
-        }
-        
-        private static ItemConfig CreateDefaultItemConfig(ReceiveGameManager.ItemType itemType)
-        {
-            ItemConfig config = new ItemConfig();
-            config.itemType = itemType;
-            
-            // 아이템 타입별 기본 설정
-            switch (itemType)
-            {
-                case ReceiveGameManager.ItemType.Normal:
-                    config.itemColor = Color.white;
-                    config.pointValue = 1;
-                    config.effectDuration = 0f; // 일반 아이템은 효과 없음
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 60f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
-                    break;
-                    
-                case ReceiveGameManager.ItemType.Bonus:
-                    config.itemColor = Color.yellow;
-                    config.pointValue = 3;
-                    config.effectDuration = 0f; // 보너스 아이템은 효과 없음
-                    config.bounceForce = 2.5f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 90f;
-                    config.bobSpeed = 2f;
-                    config.bobHeight = 0.4f;
-                    break;
-                    
-                case ReceiveGameManager.ItemType.Speed:
-                    config.itemColor = Color.blue;
-                    config.pointValue = 1;
-                    config.effectDuration = 5f;
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 120f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
-                    break;
-                    
-                case ReceiveGameManager.ItemType.Slow:
-                    config.itemColor = Color.red;
-                    config.pointValue = 1;
-                    config.effectDuration = 5f;
-                    config.bounceForce = 1.5f;
-                    config.maxFallSpeed = 10f;
-                    config.rotationSpeed = 30f;
-                    config.bobSpeed = 1f;
-                    config.bobHeight = 0.2f;
-                    break;
-                    
-                case ReceiveGameManager.ItemType.Magnet:
-                    config.itemColor = Color.green;
-                    config.pointValue = 1;
-                    config.effectDuration = 5f;
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 60f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
-                    break;
-            }
-            
-            return config;
-        }
-    }
-    
-    /// <summary>
-    /// ItemConfiguration 에디터
-    /// </summary>
-    [CustomEditor(typeof(ItemConfiguration))]
-    public class ItemConfigurationEditor : Editor
-    {
-        public override void OnInspectorGUI()
-        {
-            DrawDefaultInspector();
-            
-            ItemConfiguration config = (ItemConfiguration)target;
             
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("도구", EditorStyles.boldLabel);
             
-            if (GUILayout.Button("기본 설정으로 초기화"))
+            // 고급 설정
+            showAdvancedSettings = EditorGUILayout.Foldout(showAdvancedSettings, "고급 설정");
+            if (showAdvancedSettings)
             {
-                InitializeDefaultConfig(config);
-                EditorUtility.SetDirty(config);
+                ShowAdvancedSettings();
             }
             
-            if (GUILayout.Button("설정 유효성 검사"))
+            EditorGUILayout.EndScrollView();
+            
+            // 저장 버튼
+            if (GUILayout.Button("설정 저장"))
             {
-                bool isValid = config.IsValid();
-                if (isValid)
-                {
-                    EditorUtility.DisplayDialog("유효성 검사", "모든 설정이 유효합니다!", "확인");
-                }
-                else
-                {
-                    EditorUtility.DisplayDialog("유효성 검사", "설정에 문제가 있습니다. 콘솔을 확인하세요.", "확인");
-                }
+                SaveConfiguration();
             }
         }
         
-        private void InitializeDefaultConfig(ItemConfiguration config)
+        private void CreateItemTypeSection(ItemType itemType)
         {
-            // 모든 아이템 타입에 대한 기본 설정 생성
-            var itemTypes = System.Enum.GetValues(typeof(ReceiveGameManager.ItemType));
-            var configs = new ItemConfig[itemTypes.Length];
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField($"{itemType} 아이템 설정", EditorStyles.boldLabel);
             
-            for (int i = 0; i < itemTypes.Length; i++)
+            // 해당 타입의 설정 찾기 또는 생성
+            ItemConfig config = GetOrCreateItemConfig(itemType);
+            
+            if (config != null)
             {
-                ReceiveGameManager.ItemType itemType = (ReceiveGameManager.ItemType)itemTypes.GetValue(i);
-                configs[i] = CreateDefaultItemConfig(itemType);
+                EditorGUI.BeginChangeCheck();
+                
+                // 시각적 설정
+                EditorGUILayout.LabelField("시각적 설정", EditorStyles.boldLabel);
+                config.itemColor = EditorGUILayout.ColorField("아이템 색상", config.itemColor);
+                config.scale = EditorGUILayout.Vector3Field("크기", config.scale);
+                config.useEmission = EditorGUILayout.Toggle("발광 효과", config.useEmission);
+                
+                if (config.useEmission)
+                {
+                    config.emissionColor = EditorGUILayout.ColorField("발광 색상", config.emissionColor);
+                    config.emissionIntensity = EditorGUILayout.Slider("발광 강도", config.emissionIntensity, 0f, 5f);
+                }
+                
+                // 게임플레이 설정
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("게임플레이 설정", EditorStyles.boldLabel);
+                config.pointValue = EditorGUILayout.IntField("점수", config.pointValue);
+                config.effectDuration = EditorGUILayout.FloatField("효과 지속시간", config.effectDuration);
+                
+                // 시각적 프리팹 설정
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("시각적 프리팹", EditorStyles.boldLabel);
+                config.visualPrefab = (GameObject)EditorGUILayout.ObjectField("시각적 프리팹", config.visualPrefab, typeof(GameObject), false);
+                
+                if (EditorGUI.EndChangeCheck())
+                {
+                    EditorUtility.SetDirty(itemConfiguration);
+                }
             }
-            
-            // 리플렉션을 사용하여 private 필드에 접근
-            var field = typeof(ItemConfiguration).GetField("itemConfigs", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(config, configs);
         }
         
-        private ItemConfig CreateDefaultItemConfig(ReceiveGameManager.ItemType itemType)
+        private ItemConfig GetOrCreateItemConfig(ItemType itemType)
+        {
+            // 기존 설정 찾기
+            foreach (var config in itemConfiguration.itemConfigs)
+            {
+                if (config.itemType == itemType)
+                {
+                    return config;
+                }
+            }
+            
+            // 새 설정 생성
+            ItemConfig newConfig = CreateDefaultItemConfig(itemType);
+            itemConfiguration.itemConfigs.Add(newConfig);
+            EditorUtility.SetDirty(itemConfiguration);
+            
+            return newConfig;
+        }
+        
+        private static ItemConfig CreateDefaultItemConfig(ItemType itemType)
         {
             ItemConfig config = new ItemConfig();
             config.itemType = itemType;
             
-            // 아이템 타입별 기본 설정
+            // 기본값 설정
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
+                case ItemType.Normal:
                     config.itemColor = Color.white;
+                    config.scale = Vector3.one * 1.5f;
                     config.pointValue = 1;
                     config.effectDuration = 0f;
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 60f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
+                    config.useEmission = false;
                     break;
                     
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Bonus:
                     config.itemColor = Color.yellow;
+                    config.scale = Vector3.one * 2.0f;
                     config.pointValue = 3;
                     config.effectDuration = 0f;
-                    config.bounceForce = 2.5f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 90f;
-                    config.bobSpeed = 2f;
-                    config.bobHeight = 0.4f;
+                    config.useEmission = true;
+                    config.emissionColor = Color.yellow;
+                    config.emissionIntensity = 2f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     config.itemColor = Color.blue;
+                    config.scale = Vector3.one * 1.5f;
                     config.pointValue = 1;
                     config.effectDuration = 5f;
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 120f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
+                    config.useEmission = true;
+                    config.emissionColor = Color.cyan;
+                    config.emissionIntensity = 1.5f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     config.itemColor = Color.red;
+                    config.scale = Vector3.one * 1.2f;
                     config.pointValue = 1;
                     config.effectDuration = 5f;
-                    config.bounceForce = 1.5f;
-                    config.maxFallSpeed = 10f;
-                    config.rotationSpeed = 30f;
-                    config.bobSpeed = 1f;
-                    config.bobHeight = 0.2f;
+                    config.useEmission = true;
+                    config.emissionColor = Color.red;
+                    config.emissionIntensity = 1.5f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     config.itemColor = Color.green;
+                    config.scale = Vector3.one * 1.5f;
                     config.pointValue = 1;
                     config.effectDuration = 5f;
-                    config.bounceForce = 2f;
-                    config.maxFallSpeed = 12f;
-                    config.rotationSpeed = 60f;
-                    config.bobSpeed = 1.5f;
-                    config.bobHeight = 0.3f;
+                    config.useEmission = true;
+                    config.emissionColor = Color.green;
+                    config.emissionIntensity = 1.5f;
                     break;
             }
             
             return config;
+        }
+        
+        private void ShowAdvancedSettings()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("고급 설정", EditorStyles.boldLabel);
+            
+            // 모든 설정 초기화
+            if (GUILayout.Button("모든 설정을 기본값으로 초기화"))
+            {
+                if (EditorUtility.DisplayDialog("초기화 확인", 
+                    "모든 아이템 설정을 기본값으로 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.", 
+                    "초기화", "취소"))
+                {
+                    ResetAllConfigurations();
+                }
+            }
+            
+            // 설정 검증
+            if (GUILayout.Button("설정 검증"))
+            {
+                ValidateConfiguration();
+            }
+        }
+        
+        private void ResetAllConfigurations()
+        {
+            itemConfiguration.itemConfigs.Clear();
+            
+            // 모든 아이템 타입에 대해 기본 설정 생성
+            var itemTypes = System.Enum.GetValues(typeof(ItemType));
+            
+            for (int i = 0; i < itemTypes.Length; i++)
+            {
+                ItemType itemType = (ItemType)itemTypes.GetValue(i);
+                ItemConfig config = CreateDefaultItemConfig(itemType);
+                itemConfiguration.itemConfigs.Add(config);
+            }
+            
+            EditorUtility.SetDirty(itemConfiguration);
+            Debug.Log("모든 아이템 설정이 기본값으로 초기화되었습니다.");
+        }
+        
+        private void ValidateConfiguration()
+        {
+            bool isValid = true;
+            List<string> errors = new List<string>();
+            
+            // 모든 아이템 타입이 설정되어 있는지 확인
+            var itemTypes = System.Enum.GetValues(typeof(ItemType));
+            
+            for (int i = 0; i < itemTypes.Length; i++)
+            {
+                ItemType itemType = (ItemType)itemTypes.GetValue(i);
+                bool found = false;
+                
+                foreach (var config in itemConfiguration.itemConfigs)
+                {
+                    if (config.itemType == itemType)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found)
+                {
+                    errors.Add($"{itemType} 타입의 설정이 없습니다.");
+                    isValid = false;
+                }
+            }
+            
+            // 설정값 검증
+            foreach (var config in itemConfiguration.itemConfigs)
+            {
+                if (config.pointValue < 0)
+                {
+                    errors.Add($"{config.itemType}의 점수가 음수입니다: {config.pointValue}");
+                    isValid = false;
+                }
+                
+                if (config.effectDuration < 0)
+                {
+                    errors.Add($"{config.itemType}의 효과 지속시간이 음수입니다: {config.effectDuration}");
+                    isValid = false;
+                }
+                
+                if (config.scale.x <= 0 || config.scale.y <= 0 || config.scale.z <= 0)
+                {
+                    errors.Add($"{config.itemType}의 크기가 잘못되었습니다: {config.scale}");
+                    isValid = false;
+                }
+            }
+            
+            if (isValid)
+            {
+                EditorUtility.DisplayDialog("검증 완료", "모든 설정이 올바릅니다.", "확인");
+            }
+            else
+            {
+                string errorMessage = "설정에 문제가 있습니다:\n\n" + string.Join("\n", errors);
+                EditorUtility.DisplayDialog("검증 실패", errorMessage, "확인");
+            }
+        }
+        
+        private void SaveConfiguration()
+        {
+            if (itemConfiguration != null)
+            {
+                EditorUtility.SetDirty(itemConfiguration);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                Debug.Log("ItemConfiguration이 저장되었습니다.");
+            }
         }
     }
 } 
