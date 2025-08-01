@@ -13,7 +13,7 @@ namespace KYS
     {
         [Header("Player Settings")]
         [SerializeField] private float moveSpeed = 5f;
-        [SerializeField] private float collectionRadius = 1f;
+        [SerializeField] private float collectionRadius = 2f; // 1에서 2로 변경
         [SerializeField] private float baseMoveSpeed = 5f;
         [SerializeField] private float speedBoostMultiplier = 1.5f;
         [SerializeField] private float slowEffectMultiplier = 0.5f;
@@ -34,11 +34,11 @@ namespace KYS
         [SerializeField] private UnityEngine.InputSystem.InputActionAsset inputActions;
         
         [Header("Mobile UI")]
-        [SerializeField] private MobileUIManager mobileUIManager;
+        // MobileUIManager 백업 시스템 제거 - ReceiveGameUI 조이스틱만 사용
         
         private Vector3 targetPosition;
         private bool isMoving = false;
-        private ReceiveGameManager gameManager;
+        private ReceiveGameManagerEnhanced gameManager;
         private ReceiveGameUI gameUI;
         private AudioSource audioSource;
         private GameObject nameTag;
@@ -71,7 +71,7 @@ namespace KYS
         {
             // 모든 플레이어가 색상과 이름 태그를 설정
             targetPosition = transform.position;
-            gameManager = FindObjectOfType<ReceiveGameManager>();
+            gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
             gameUI = FindObjectOfType<ReceiveGameUI>();
             
             // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
@@ -96,19 +96,7 @@ namespace KYS
                 // 플랫폼 감지
                 DetectPlatform();
                 
-                // MobileUIManager 자동 찾기
-                if (mobileUIManager == null)
-                {
-                    mobileUIManager = FindObjectOfType<MobileUIManager>();
-                    if (mobileUIManager != null)
-                    {
-                        Debug.Log("MobileUIManager를 자동으로 찾았습니다.");
-                    }
-                    else
-                    {
-                        Debug.LogWarning("MobileUIManager를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
-                    }
-                }
+                            // MobileUIManager 백업 시스템 제거됨 - ReceiveGameUI 조이스틱만 사용
                 
                 // Input System 초기화
                 InitializeInputSystem();
@@ -211,32 +199,81 @@ namespace KYS
             // 주변 아이템 검사
             Collider[] colliders = Physics.OverlapSphere(transform.position, collectionRadius);
             
+            if (colliders.Length > 0)
+            {
+                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber} 주변에 {colliders.Length}개의 콜라이더 발견");
+            }
+            
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
+                    Debug.Log($"아이템 발견: {item.name}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}, 수집 반경: {collectionRadius}");
                     CollectItem(item);
+                }
+                else if (item != null && item.IsCollected)
+                {
+                    Debug.Log($"이미 수집된 아이템: {item.name}");
+                }
+                else
+                {
+                    Debug.Log($"CollectibleItem 컴포넌트가 없는 오브젝트: {collider.name}");
                 }
             }
         }
         
         private void CollectItem(CollectibleItem item)
         {
-            if (gameManager != null)
+            if (!item.IsCollected)
             {
-                // 게임 매니저에 아이템 수집 알림
-                gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber);
+                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}가 아이템 수집 시도");
+                
+                // 아이템 타입 가져오기
+                ItemType itemType = GetItemType(item);
+                
+                // 아이템을 즉시 수집된 상태로 표시하여 중복 수집 방지
+                item.Collect();
+                
+                // ReceiveGameManagerEnhanced 직접 찾기
+                ReceiveGameManagerEnhanced enhancedManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
+                if (enhancedManager != null)
+                {
+                    // 로컬 플레이어만 점수 증가 요청 (중복 방지) - 아이템 타입 전달
+                    enhancedManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
+                    Debug.Log($"ReceiveGameManagerEnhanced에 아이템 수집 알림 전송 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 타입: {itemType}");
+                }
+                else
+                {
+                    Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                }
                 
                 // 수집 효과 재생
                 PlayCollectEffect();
                 
-                // 아이템 제거
-                item.Collect();
-                
-                // spawnedItems 리스트에서 제거
-                gameManager.RemoveItemFromList(item.gameObject);
+                // spawnedItems 리스트에서 제거 (중복 제거 방지)
+                if (enhancedManager != null && item.gameObject != null)
+                {
+                    enhancedManager.RemoveItemFromList(item.gameObject);
+                }
             }
+            else
+            {
+                Debug.LogWarning($"아이템이 이미 수집되었습니다: {item.name}");
+            }
+        }
+        
+        private ItemType GetItemType(CollectibleItem item)
+        {
+            // EnhancedItemController에서 아이템 타입 가져오기
+            EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
+            if (enhancedController != null)
+            {
+                return enhancedController.GetItemType();
+            }
+            
+            // 기본값
+            return ItemType.Normal;
         }
         
         private void PlayCollectEffect()
@@ -551,10 +588,9 @@ namespace KYS
             Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
         }
         
-        // 모바일 입력 처리 (한 손 조작용)
+        // 모바일 입력 처리 (ReceiveGameUI 조이스틱만 사용)
         private void HandleMobileInput(ref Vector3 moveDirection)
         {
-            // ReceiveGameUI의 조이스틱 입력을 우선적으로 사용
             if (gameUI != null)
             {
                 Vector2 joystickInput = gameUI.JoystickInput;
@@ -562,43 +598,15 @@ namespace KYS
                 {
                     moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
                     isMoving = true;
-                    Debug.Log($"ReceiveGameUI 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
                 }
                 else
                 {
                     isMoving = false;
-                }
-            }
-            // 기존 MobileUIManager도 백업으로 유지
-            else if (mobileUIManager != null)
-            {
-                // 조이스틱 입력 처리 (이동만)
-                Vector2 joystickInput = mobileUIManager.GetLeftJoystickInput();
-                if (joystickInput.magnitude > 0.1f)
-                {
-                    moveDirection = new Vector3(joystickInput.x, 0, joystickInput.y);
-                    isMoving = true;
-                    Debug.Log($"MobileUIManager 조이스틱 입력: {joystickInput}, 이동 방향: {moveDirection}");
-                }
-                else
-                {
-                    isMoving = false;
-                }
-                
-                // 액션 버튼 입력 처리 (필요시)
-                if (mobileUIManager.IsActionButtonPressed())
-                {
-                    actionPressed = true;
-                    Debug.Log("액션 버튼 눌림!");
-                }
-                else
-                {
-                    actionPressed = false;
                 }
             }
             else
             {
-                Debug.LogWarning("ReceiveGameUI와 MobileUIManager가 모두 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
+                Debug.LogWarning("ReceiveGameUI가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
             }
         }
         

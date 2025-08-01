@@ -1,10 +1,13 @@
 using System.Collections;
 using UnityEngine;
+using Photon.Pun;
 
 namespace KYS
 {
     public class CollectibleItem : PooledObject
     {
+        private PhotonView photonView;
+    
         [Header("Item Settings")]
         [SerializeField] private float rotationSpeed = 90f;
         [SerializeField] private float bobSpeed = 2f;
@@ -34,6 +37,14 @@ namespace KYS
         
         private void Start()
         {
+            // PhotonView 컴포넌트 확인 및 추가
+            photonView = GetComponent<PhotonView>();
+            if (photonView == null)
+            {
+                photonView = gameObject.AddComponent<PhotonView>();
+                Debug.Log("CollectibleItem에 PhotonView 컴포넌트를 추가했습니다.");
+            }
+            
             startPosition = transform.position;
             itemRenderer = GetComponent<Renderer>();
             audioSource = GetComponent<AudioSource>();
@@ -102,22 +113,10 @@ namespace KYS
             // 바운스 효과
             if (rb != null)
             {
-                // 수평 속도 감소
-                Vector3 horizontalVelocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-                horizontalVelocity *= 0.3f; // 수평 속도 70% 감소
-                
-                // 바운스 힘 적용
-                rb.velocity = horizontalVelocity + Vector3.up * bounceForce;
-                
-                // 회전 속도 감소
-                rb.angularVelocity *= 0.5f;
+                rb.velocity = new Vector3(rb.velocity.x, bounceForce, rb.velocity.z);
             }
             
-            // 일정 시간 후 오브젝트 풀로 리턴
-            if (returnCoroutine != null)
-            {
-                StopCoroutine(returnCoroutine);
-            }
+            // 일정 시간 후 오브젝트 풀로 반환
             returnCoroutine = StartCoroutine(ReturnToPoolAfterDelay());
         }
         
@@ -125,34 +124,29 @@ namespace KYS
         {
             yield return new WaitForSeconds(returnDelay);
             
-            if (!isCollected)
+            // 오브젝트 풀로 반환
+            if (returnPool != null)
             {
-                Debug.Log("아이템이 바닥에서 시간 초과로 리턴됩니다.");
-                if (returnPool != null)
-                {
-                    ReturnToPool(0f);
-                }
-                else
-                {
-                    Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
-                    Destroy(gameObject);
-                }
+                ReturnToPool();
+            }
+            else
+            {
+                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Destroy(gameObject);
             }
         }
         
         private IEnumerator ItemAnimation()
         {
-            while (!isCollected)
+            Vector3 originalPosition = transform.position;
+            
+            while (!isCollected && !hasHitGround)
             {
-                // 위아래 움직임 애니메이션
-                float time = 0f;
-                while (time < 1f && !isCollected)
-                {
-                    time += Time.deltaTime * bobSpeed;
-                    float yOffset = Mathf.Sin(time * Mathf.PI * 2) * bobHeight;
-                    transform.position = startPosition + Vector3.up * yOffset;
-                    yield return null;
-                }
+                // 위아래 움직임
+                float newY = originalPosition.y + Mathf.Sin(Time.time * bobSpeed) * bobHeight;
+                transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+                
+                yield return null;
             }
         }
         
@@ -160,7 +154,32 @@ namespace KYS
         {
             if (isCollected) return;
             
+            // 즉시 수집 상태로 변경하여 중복 수집 방지
             isCollected = true;
+            
+            // 네트워크 동기화를 위해 RPC 호출
+            if (photonView != null && photonView.IsMine)
+            {
+                photonView.RPC("CollectRPC", RpcTarget.All);
+            }
+            else if (photonView == null)
+            {
+                // PhotonView가 없는 경우 로컬에서만 처리
+                CollectLocal();
+            }
+        }
+        
+        [PunRPC]
+        private void CollectRPC()
+        {
+            CollectLocal();
+        }
+        
+        private void CollectLocal()
+        {
+            if (isCollected) return;
+            
+            // 이미 Collect()에서 isCollected = true로 설정했으므로 여기서는 중복 설정하지 않음
             
             // 리턴 코루틴 중지
             if (returnCoroutine != null)
@@ -180,7 +199,23 @@ namespace KYS
             else
             {
                 Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
-                Destroy(gameObject, 0.5f);
+                // 중복 파괴 방지를 위해 즉시 비활성화
+                gameObject.SetActive(false);
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    // 이미 파괴되었는지 확인 후 파괴
+                    if (gameObject != null)
+                    {
+                        PhotonNetwork.Destroy(gameObject);
+                    }
+                }
+                else
+                {
+                    if (gameObject != null)
+                    {
+                        Destroy(gameObject, 0.5f);
+                    }
+                }
             }
         }
         
@@ -226,15 +261,6 @@ namespace KYS
             // 효과 재생 후 비활성화
             yield return new WaitForSeconds(0.5f);
             gameObject.SetActive(false);
-        }
-        
-        private void OnTriggerEnter(Collider other)
-        {
-            // 플레이어와 충돌 시 자동 수집
-            if (!isCollected && other.CompareTag("Player"))
-            {
-                Collect();
-            }
         }
         
         public void ResetItem()

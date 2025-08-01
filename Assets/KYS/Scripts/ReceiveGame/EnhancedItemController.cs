@@ -10,7 +10,7 @@ namespace KYS
         [SerializeField] private ItemConfiguration itemConfiguration;
         
         [Header("Item Settings")]
-        [SerializeField] private ReceiveGameManager.ItemType itemType = ReceiveGameManager.ItemType.Normal;
+        [SerializeField] private ItemType itemType = ItemType.Normal;
         [SerializeField] private int pointValue = 1;
         [SerializeField] private float effectDuration = 5f;
         
@@ -79,7 +79,7 @@ namespace KYS
             startPosition = transform.position;
             
             // 아이템 타입이 설정되지 않은 경우 기본값 사용
-            if (itemType == ReceiveGameManager.ItemType.Normal)
+            if (itemType == ItemType.Normal)
             {
                 UpdateVisual();
             }
@@ -168,7 +168,7 @@ namespace KYS
             }
         }
         
-        public void SetItemType(ReceiveGameManager.ItemType type)
+        public void SetItemType(ItemType type)
         {
             itemType = type;
             UpdateVisual();
@@ -226,9 +226,31 @@ namespace KYS
             currentVisualPrefab = Instantiate(prefab, visualContainer);
             currentVisualPrefab.transform.localPosition = Vector3.zero;
             currentVisualPrefab.transform.localRotation = Quaternion.identity;
-            currentVisualPrefab.transform.localScale = Vector3.one;
             
-            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}");
+            // 아이템 타입별 크기 설정
+            float scaleMultiplier = GetItemTypeScale();
+            currentVisualPrefab.transform.localScale = Vector3.one * scaleMultiplier;
+            
+            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {scaleMultiplier}");
+        }
+        
+        private float GetItemTypeScale()
+        {
+            switch (itemType)
+            {
+                case ItemType.Normal:
+                    return 1.5f;
+                case ItemType.Bonus:
+                    return 2.0f; // 보너스 아이템은 더 크게
+                case ItemType.Speed:
+                    return 1.5f;
+                case ItemType.Slow:
+                    return 1.2f; // 느린 아이템은 약간 작게
+                case ItemType.Magnet:
+                    return 1.5f;
+                default:
+                    return 1.5f;
+            }
         }
         
         private void ClearVisualPrefab()
@@ -262,23 +284,23 @@ namespace KYS
             Color targetColor = normalColor;
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
+                case ItemType.Normal:
                     targetColor = normalColor;
                     pointValue = 1;
                     break;
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Bonus:
                     targetColor = bonusColor;
                     pointValue = 3;
                     break;
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     targetColor = speedColor;
                     pointValue = 1;
                     break;
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     targetColor = slowColor;
                     pointValue = 1;
                     break;
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     targetColor = magnetColor;
                     pointValue = 1;
                     break;
@@ -310,15 +332,8 @@ namespace KYS
                     // 아이템 효과 적용
                     ApplyItemEffect(player);
                     
-                    // 점수 추가
-                    if (PhotonNetwork.IsMasterClient)
-                    {
-                        ReceiveGameManager gameManager = FindObjectOfType<ReceiveGameManager>();
-                        if (gameManager != null)
-                        {
-                            gameManager.CollectItem(player.GetPlayerActorNumber());
-                        }
-                    }
+                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
+                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
                 }
                 
                 // 아이템 제거
@@ -330,26 +345,26 @@ namespace KYS
         {
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Normal:
+                case ItemType.Bonus:
                     // 점수만 추가 (CollectItem에서 처리)
                     break;
                     
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     player.ApplySpeedBoost(effectDuration);
                     break;
                     
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     player.ApplySlowEffect(effectDuration);
                     break;
                     
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     player.ApplyMagnetEffect(effectDuration);
                     break;
             }
         }
         
-        public ReceiveGameManager.ItemType GetItemType()
+        public ItemType GetItemType()
         {
             return itemType;
         }

@@ -66,8 +66,6 @@ namespace KYS
                 
                 rectTransform.anchorMin = anchorMin;
                 rectTransform.anchorMax = anchorMax;
-                
-                Debug.Log($"Safe Area 적용: {safeArea}, Anchor: {anchorMin} ~ {anchorMax}");
             }
             #endif
         }
@@ -77,6 +75,25 @@ namespace KYS
             if (joystickPanel != null)
             {
                 joystickPanel.SetActive(true);
+                PositionJoystickAtBottomCenter();
+            }
+        }
+        
+        private void PositionJoystickAtBottomCenter()
+        {
+            if (joystickPanel != null)
+            {
+                RectTransform joystickRect = joystickPanel.GetComponent<RectTransform>();
+                if (joystickRect != null)
+                {
+                    // 중앙 하단에 위치하도록 설정
+                    joystickRect.anchorMin = new Vector2(0.5f, 0f);
+                    joystickRect.anchorMax = new Vector2(0.5f, 0f);
+                    joystickRect.pivot = new Vector2(0.5f, 0f);
+                    
+                    // 하단에서 약간 위로 올림 (100px)
+                    joystickRect.anchoredPosition = new Vector2(0f, 100f);
+                }
             }
         }
         
@@ -351,23 +368,23 @@ namespace KYS
         {
             if (changedProps.ContainsKey("isLoaded"))
             {
-                try
+                Debug.Log($"플레이어 {targetPlayer.NickName} UI 로드 완료");
+                
+                // 모든 플레이어가 로드되었는지 확인
+                bool allPlayersLoaded = true;
+                foreach (Player player in PhotonNetwork.PlayerList)
                 {
-                    if (Manager.game.isAllPlayerLoaded())
+                    if (!player.CustomProperties.ContainsKey("isLoaded") || !(bool)player.CustomProperties["isLoaded"])
                     {
-                        Debug.Log("모든 플레이어 로드 완료 - UI 초기화");
-                        InitializeScoreUI();
+                        allPlayersLoaded = false;
+                        break;
                     }
                 }
-                catch (System.Exception e)
+                
+                if (allPlayersLoaded)
                 {
-                    Debug.LogError($"Manager.game.isAllPlayerLoaded() 호출 중 오류: {e.Message}");
-                    // Manager가 없는 경우 단일 플레이어 모드로 시작
-                    if (PhotonNetwork.PlayerList.Length == 1)
-                    {
-                        Debug.Log("Manager 없음 - 단일 플레이어 UI 초기화");
-                        InitializeScoreUI();
-                    }
+                    Debug.Log("모든 플레이어 로드 완료 - UI 초기화");
+                    InitializeScoreUI();
                 }
             }
         }

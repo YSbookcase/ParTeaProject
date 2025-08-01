@@ -3,12 +3,13 @@ using UnityEngine;
 namespace KYS
 {
     /// <summary>
-    /// 아이템 시각적 프리팹을 생성하기 위한 헬퍼 클래스
+    /// 아이템 시각적 프리팹을 위한 헬퍼 스크립트
+    /// 각 아이템 타입별 고유한 외형을 설정할 수 있습니다.
     /// </summary>
     public class ItemVisualPrefab : MonoBehaviour
     {
-        [Header("Visual Settings")]
-        [SerializeField] private ReceiveGameManager.ItemType itemType;
+        [Header("Item Type")]
+        [SerializeField] private ItemType itemType;
         [SerializeField] private Color itemColor = Color.white;
         [SerializeField] private Vector3 scale = Vector3.one;
         [SerializeField] private bool useEmission = false;
@@ -47,7 +48,7 @@ namespace KYS
             itemRenderer = GetComponent<Renderer>();
             if (itemRenderer == null)
             {
-                Debug.LogError($"[ItemVisualPrefab] {itemType} 아이템에 Renderer가 없습니다.");
+                Debug.LogWarning($"[ItemVisualPrefab] {itemType} 프리팹에 Renderer가 없습니다.");
                 return;
             }
             
@@ -56,25 +57,28 @@ namespace KYS
             instanceMaterial = new Material(originalMaterial);
             itemRenderer.material = instanceMaterial;
             
-            // 색상 설정
+            // 색상 적용
             instanceMaterial.color = itemColor;
             
-            // 발광 설정
+            // Emission 설정
             if (useEmission)
             {
                 instanceMaterial.EnableKeyword("_EMISSION");
                 instanceMaterial.SetColor("_EmissionColor", emissionColor * emissionIntensity);
             }
             
-            // 스케일 설정
+            // 스케일 적용
             transform.localScale = scale;
             
-            // 파티클 효과 설정
+            // 파티클 효과 추가
             if (useParticles && particlePrefab != null)
             {
-                GameObject particles = Instantiate(particlePrefab, transform);
-                particles.transform.localPosition = Vector3.zero;
+                GameObject particleInstance = Instantiate(particlePrefab, transform);
+                particleInstance.transform.localPosition = Vector3.zero;
             }
+            
+            // 기본 설정 적용
+            ApplyDefaultSettings();
         }
         
         private void OnDestroy()
@@ -87,51 +91,78 @@ namespace KYS
         }
         
         /// <summary>
-        /// 아이템 타입에 따른 기본 설정을 적용합니다.
+        /// 아이템 타입에 따른 기본 설정 적용
         /// </summary>
         public void ApplyDefaultSettings()
         {
             switch (itemType)
             {
-                case ReceiveGameManager.ItemType.Normal:
+                case ItemType.Normal:
                     itemColor = Color.white;
+                    scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = false;
+                    rotationSpeed = 60f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Bonus:
+                case ItemType.Bonus:
                     itemColor = Color.yellow;
+                    scale = Vector3.one * 1.8f; // 보너스 아이템은 더 크게
                     useEmission = true;
                     emissionColor = Color.yellow;
-                    emissionIntensity = 2f;
+                    emissionIntensity = 0.5f;
+                    rotationSpeed = 90f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Speed:
+                case ItemType.Speed:
                     itemColor = Color.blue;
+                    scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = true;
                     emissionColor = Color.cyan;
-                    emissionIntensity = 1.5f;
+                    emissionIntensity = 0.8f;
+                    rotationSpeed = 120f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Slow:
+                case ItemType.Slow:
                     itemColor = Color.red;
+                    scale = Vector3.one * 1.2f; // 느린 아이템은 약간 작게
                     useEmission = true;
                     emissionColor = Color.red;
-                    emissionIntensity = 1.5f;
+                    emissionIntensity = 0.3f;
+                    rotationSpeed = 30f;
                     break;
                     
-                case ReceiveGameManager.ItemType.Magnet:
+                case ItemType.Magnet:
                     itemColor = Color.green;
+                    scale = Vector3.one * 1.5f; // 기본 크기 증가
                     useEmission = true;
                     emissionColor = Color.green;
-                    emissionIntensity = 1.5f;
+                    emissionIntensity = 0.6f;
+                    rotationSpeed = 60f;
                     break;
             }
+            
+            // 설정 적용
+            if (itemRenderer != null && instanceMaterial != null)
+            {
+                instanceMaterial.color = itemColor;
+                
+                if (useEmission)
+                {
+                    instanceMaterial.EnableKeyword("_EMISSION");
+                    instanceMaterial.SetColor("_EmissionColor", emissionColor * emissionIntensity);
+                }
+                else
+                {
+                    instanceMaterial.DisableKeyword("_EMISSION");
+                }
+            }
+            
+            transform.localScale = scale;
         }
         
         /// <summary>
-        /// 런타임에 색상을 변경합니다.
+        /// 런타임에 색상 변경
         /// </summary>
-        /// <param name="newColor">새로운 색상</param>
         public void SetColor(Color newColor)
         {
             itemColor = newColor;
@@ -142,11 +173,8 @@ namespace KYS
         }
         
         /// <summary>
-        /// 런타임에 발광을 설정합니다.
+        /// 런타임에 Emission 설정 변경
         /// </summary>
-        /// <param name="enabled">발광 활성화 여부</param>
-        /// <param name="color">발광 색상</param>
-        /// <param name="intensity">발광 강도</param>
         public void SetEmission(bool enabled, Color color, float intensity)
         {
             useEmission = enabled;

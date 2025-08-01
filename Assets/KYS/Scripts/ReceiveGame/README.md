@@ -30,7 +30,7 @@
 
 ### 3. 게임 매니저 설정
 1. 빈 GameObject를 생성하고 이름을 "GameManager"로 설정합니다
-2. `ReceiveGameManager` 스크립트를 추가합니다
+2. `ReceiveGameManagerEnhanced` 스크립트를 추가합니다
 3. 설정값:
    - Game Time: 60
    - Max Players: 4
