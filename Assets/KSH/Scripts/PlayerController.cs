@@ -12,11 +12,13 @@ namespace KSH
         public bool isMove = true;
         [Header("색깔 관련")]
         [SerializeField] private Material body;
-        [SerializeField] private Renderer bodyRenderer;
+        [SerializeField] private SkinnedMeshRenderer bodyRenderer;
         public Color color;
         [SerializeField] private TextMeshProUGUI nickName;
+        [SerializeField] private Texture2D[] textures;
         public TextMeshProUGUI NickName => nickName;
 
+        private Animator animator;
         private Rigidbody rigid;
         private Vector3 moveVec;
         private Vector2 inputDir;
@@ -29,20 +31,29 @@ namespace KSH
             rigid = GetComponent<Rigidbody>();
             isMove = true;
             curSpeed = moveSpeed;
+            
+            if (photonView.IsMine)
+            {
+                playerAction = new PlayerAction();
+            }
         }
         
         private void OnEnable()
         {
-            playerAction.Enable();
+            if (photonView.IsMine && playerAction != null)
+                playerAction.Enable();
         }
 
         private void OnDisable()
         {
-            playerAction.Disable();
+            if (photonView.IsMine && playerAction != null)
+                playerAction.Disable();
         }
 
         private void Start()
         {
+            animator = GetComponent<Animator>();
+            
             if (photonView.IsMine)
             {
                 nickName.text = PhotonNetwork.NickName;
@@ -61,6 +72,12 @@ namespace KSH
         void Update()
         {
             inputDir = playerAction.Player.Move.ReadValue<Vector2>();
+
+            if (photonView.IsMine)
+            {
+                float currentSpeed = inputDir.magnitude;
+                animator.SetFloat("Speed", currentSpeed);
+            }
         }
 
         void FixedUpdate()
@@ -134,17 +151,10 @@ namespace KSH
             if(photonView.Owner.CustomProperties.TryGetValue("Color", out object value))
             {
                 int colorIndex = (int)value;
-                
-                Color[] colors = {
-                    Color.red,
-                    Color.blue,
-                    Color.green,
-                    Color.yellow
-                };
 
-                if (colorIndex >= 0 && colorIndex < colors.Length)
+                if (colorIndex >= 0 && colorIndex < textures.Length)
                 {
-                    GetComponent<Renderer>().material.color = colors[colorIndex];
+                    bodyRenderer.material.mainTexture = textures[colorIndex];
                 }
             }
         }
