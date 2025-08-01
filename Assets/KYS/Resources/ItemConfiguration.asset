@@ -17,6 +17,10 @@ MonoBehaviour:
     visualPrefab: {fileID: 5189002227044462176, guid: 845fa1f7f9eff2844a30a8a63e485d66,
       type: 3}
     itemColor: {r: 1, g: 1, b: 1, a: 1}
+    scale: {x: 2, y: 2, z: 2}
+    useEmission: 0
+    emissionColor: {r: 1, g: 1, b: 1, a: 1}
+    emissionIntensity: 1
     pointValue: 1
     effectDuration: 0
     bounceForce: 2
@@ -28,6 +32,10 @@ MonoBehaviour:
     visualPrefab: {fileID: 8780654592860833253, guid: 863a3bbeaa1850f4dad75b9cccdabdf7,
       type: 3}
     itemColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+    scale: {x: 2, y: 2, z: 2}
+    useEmission: 0
+    emissionColor: {r: 1, g: 1, b: 1, a: 1}
+    emissionIntensity: 1
     pointValue: 3
     effectDuration: 0
     bounceForce: 2.5
@@ -39,6 +47,10 @@ MonoBehaviour:
     visualPrefab: {fileID: 2199520570192686080, guid: 36f36da7ed2d01042a8849c9b55afe87,
       type: 3}
     itemColor: {r: 0, g: 0, b: 1, a: 1}
+    scale: {x: 2, y: 2, z: 2}
+    useEmission: 0
+    emissionColor: {r: 1, g: 1, b: 1, a: 1}
+    emissionIntensity: 1
     pointValue: 1
     effectDuration: 5
     bounceForce: 2
@@ -50,6 +62,10 @@ MonoBehaviour:
     visualPrefab: {fileID: 5296646555204626939, guid: 685c0fc5fa8b9c04ca226db350611cc7,
       type: 3}
     itemColor: {r: 1, g: 0, b: 0, a: 1}
+    scale: {x: 2, y: 2, z: 2}
+    useEmission: 0
+    emissionColor: {r: 1, g: 1, b: 1, a: 1}
+    emissionIntensity: 1
     pointValue: 1
     effectDuration: 5
     bounceForce: 1.5
@@ -61,6 +77,10 @@ MonoBehaviour:
     visualPrefab: {fileID: 8835592703282879395, guid: 346e2afa35d4a7e4e9dae1616ddd6772,
       type: 3}
     itemColor: {r: 0, g: 1, b: 0, a: 1}
+    scale: {x: 2, y: 2, z: 2}
+    useEmission: 0
+    emissionColor: {r: 1, g: 1, b: 1, a: 1}
+    emissionIntensity: 1
     pointValue: 1
     effectDuration: 5
     bounceForce: 2

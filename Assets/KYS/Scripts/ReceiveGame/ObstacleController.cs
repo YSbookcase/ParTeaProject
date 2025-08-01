@@ -3,66 +3,100 @@ using Photon.Pun;
 
 namespace KYS
 {
+    /// <summary>
+    /// 방해물의 충돌 효과를 처리하는 컴포넌트
+    /// </summary>
     public class ObstacleController : MonoBehaviourPun
     {
         [Header("Obstacle Settings")]
-        [SerializeField] private float knockbackForce = 5f;
-        [SerializeField] private float stunDuration = 2f;
+        [SerializeField] private float slowEffectDuration = 3f; // 느려지는 효과 지속 시간
+        [SerializeField] private float slowEffectMultiplier = 0.5f; // 느려지는 효과 배율
+        [SerializeField] private int damagePoints = -2; // 점수 감점
         
-        [Header("Visual Effects")]
-        [SerializeField] private Color obstacleColor = Color.red;
-        [SerializeField] private float rotationSpeed = 50f;
+        [Header("Effects")]
+        [SerializeField] private GameObject hitEffect;
+        [SerializeField] private AudioClip hitSound;
         
-        private Renderer obstacleRenderer;
-        private bool hasHitPlayer = false;
+        private bool isHit = false;
+        private AudioSource audioSource;
         
         private void Start()
         {
-            obstacleRenderer = GetComponent<Renderer>();
-            if (obstacleRenderer != null)
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
             {
-                obstacleRenderer.material.color = obstacleColor;
+                audioSource = gameObject.AddComponent<AudioSource>();
             }
         }
         
-        private void Update()
+        private void OnCollisionEnter(Collision collision)
         {
-            // 장애물 회전
-            transform.Rotate(0, rotationSpeed * Time.deltaTime, 0);
-        }
-        
-        private void OnTriggerEnter(Collider other)
-        {
-            if (hasHitPlayer) return;
+            // 이미 충돌한 방해물이면 무시
+            if (isHit) return;
             
             // 플레이어와 충돌했는지 확인
-            if (other.CompareTag("Player"))
+            ReceiveGamePlayer player = collision.gameObject.GetComponent<ReceiveGamePlayer>();
+            if (player != null && player.photonView.IsMine)
             {
-                hasHitPlayer = true;
-                
-                // 플레이어의 ReceiveGamePlayer 컴포넌트 찾기
-                ReceiveGamePlayer player = other.GetComponent<ReceiveGamePlayer>();
-                if (player != null)
-                {
-                    // 장애물 효과 적용
-                    ApplyObstacleEffect(player, other.transform.position);
-                }
-                
-                // 장애물 제거
-                Destroy(gameObject);
+                // 로컬 플레이어만 처리
+                HandlePlayerCollision(player);
             }
         }
         
-        private void ApplyObstacleEffect(ReceiveGamePlayer player, Vector3 hitPosition)
+        private void HandlePlayerCollision(ReceiveGamePlayer player)
         {
-            // 넉백 효과
-            Vector3 knockbackDirection = (player.transform.position - hitPosition).normalized;
-            player.transform.position += knockbackDirection * knockbackForce;
+            // 이미 충돌한 방해물이면 무시
+            if (isHit) return;
             
-            // 슬로우 효과 적용 (ReceiveGamePlayer의 메서드 사용)
-            player.ApplySlowEffect(stunDuration);
+            isHit = true;
             
-            Debug.Log($"플레이어가 장애물에 부딪혔습니다! 슬로우 효과 {stunDuration}초 적용");
+            Debug.Log($"[ObstacleController] 플레이어 {player.GetPlayerActorNumber()}가 방해물과 충돌!");
+            
+            // 부정적인 효과는 현재 제외
+            // player.ApplySlowEffect(slowEffectDuration);
+            // gameManager.ApplyObstaclePenalty(player.GetPlayerActorNumber(), damagePoints);
+            
+            // 충돌 효과만 재생
+            PlayHitEffect();
+            
+            // 방해물은 사라지지 않고 계속 존재
+            // StartCoroutine(DeactivateObstacle()); // 제거됨
+        }
+        
+        private void PlayHitEffect()
+        {
+            // 충돌 파티클 효과
+            if (hitEffect != null)
+            {
+                Instantiate(hitEffect, transform.position, Quaternion.identity);
+            }
+            
+            // 충돌 사운드
+            if (hitSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(hitSound);
+            }
+        }
+        
+        // 방해물 비활성화 메서드 - 현재 사용하지 않음
+        /*
+        private System.Collections.IEnumerator DeactivateObstacle()
+        {
+            // 방해물을 비활성화하여 중복 충돌 방지
+            gameObject.SetActive(false);
+            
+            // 2초 후 다시 활성화 (선택사항)
+            yield return new WaitForSeconds(2f);
+            
+            // 방해물을 다시 활성화하거나 완전히 제거
+            // gameObject.SetActive(true); // 다시 활성화하려면 주석 해제
+        }
+        */
+        
+        public void ResetObstacle()
+        {
+            isHit = false;
+            gameObject.SetActive(true);
         }
     }
 } 

@@ -154,6 +154,9 @@ namespace KYS
         {
             if (isCollected) return;
             
+            // 즉시 수집 상태로 변경하여 중복 수집 방지
+            isCollected = true;
+            
             // 네트워크 동기화를 위해 RPC 호출
             if (photonView != null && photonView.IsMine)
             {
@@ -176,7 +179,7 @@ namespace KYS
         {
             if (isCollected) return;
             
-            isCollected = true;
+            // 이미 Collect()에서 isCollected = true로 설정했으므로 여기서는 중복 설정하지 않음
             
             // 리턴 코루틴 중지
             if (returnCoroutine != null)
@@ -184,8 +187,6 @@ namespace KYS
                 StopCoroutine(returnCoroutine);
                 returnCoroutine = null;
             }
-            
-            // ReceiveGameManagerEnhanced 호출은 ReceiveGamePlayer에서 처리하므로 여기서는 제거
             
             // 수집 효과 재생
             PlayCollectEffect();
@@ -260,16 +261,6 @@ namespace KYS
             // 효과 재생 후 비활성화
             yield return new WaitForSeconds(0.5f);
             gameObject.SetActive(false);
-        }
-        
-        private void OnTriggerEnter(Collider other)
-        {
-            // 플레이어와 충돌 시 자동 수집 (중복 방지)
-            if (!isCollected && !hasHitGround && other.CompareTag("Player"))
-            {
-                Debug.Log($"아이템 {gameObject.name}이 플레이어 {other.name}와 충돌하여 수집됨");
-                Collect();
-            }
         }
         
         public void ResetItem()

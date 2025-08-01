@@ -49,7 +49,7 @@ GameObject:
   - component: {fileID: -1891285017182407933}
   m_Layer: 0
   m_Name: KYSPowerUp
-  m_TagString: Untagged
+  m_TagString: Item
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 1

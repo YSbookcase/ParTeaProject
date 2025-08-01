@@ -187,7 +187,6 @@ MonoBehaviour:
   collectSound: {fileID: 0}
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
     type: 3}
-  mobileUIManager: {fileID: 0}
 --- !u!82 &5217782142364872667
 AudioSource:
   m_ObjectHideFlags: 0

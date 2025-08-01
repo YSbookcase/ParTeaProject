@@ -66,8 +66,6 @@ namespace KYS
                 
                 rectTransform.anchorMin = anchorMin;
                 rectTransform.anchorMax = anchorMax;
-                
-                Debug.Log($"Safe Area 적용: {safeArea}, Anchor: {anchorMin} ~ {anchorMax}");
             }
             #endif
         }
@@ -77,6 +75,25 @@ namespace KYS
             if (joystickPanel != null)
             {
                 joystickPanel.SetActive(true);
+                PositionJoystickAtBottomCenter();
+            }
+        }
+        
+        private void PositionJoystickAtBottomCenter()
+        {
+            if (joystickPanel != null)
+            {
+                RectTransform joystickRect = joystickPanel.GetComponent<RectTransform>();
+                if (joystickRect != null)
+                {
+                    // 중앙 하단에 위치하도록 설정
+                    joystickRect.anchorMin = new Vector2(0.5f, 0f);
+                    joystickRect.anchorMax = new Vector2(0.5f, 0f);
+                    joystickRect.pivot = new Vector2(0.5f, 0f);
+                    
+                    // 하단에서 약간 위로 올림 (100px)
+                    joystickRect.anchoredPosition = new Vector2(0f, 100f);
+                }
             }
         }
         
