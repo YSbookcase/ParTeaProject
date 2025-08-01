@@ -12,7 +12,9 @@ public class JumpPlayerController : MonoBehaviourPun
 
     [SerializeField] private GameObject nicknamePanel;
     [SerializeField] private float jumpPower = 7f;
+
     private Rigidbody rigid;
+    private Animator animator;
 
     private bool isGround = true;
 
@@ -24,6 +26,7 @@ public class JumpPlayerController : MonoBehaviourPun
     private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
+        animator = GetComponent<Animator>();
 
         GameObject gameCanvas = GameObject.Find("JumpGameUI");
 
@@ -44,6 +47,7 @@ public class JumpPlayerController : MonoBehaviourPun
         if (!photonView.IsMine) return;
         if (!isGround) return;
 
+        animator.SetTrigger("Jump");
         photonView.RPC("JumpGame_Jump", RpcTarget.All);
         isGround = false;
     }
@@ -62,10 +66,11 @@ public class JumpPlayerController : MonoBehaviourPun
 
     private void OnCollisionEnter(Collision other)
     {
-        if (!photonView.IsMine) return;
+        if (!photonView.IsMine || isGround) return;
 
         if (other.gameObject.CompareTag("Finish"))
         {
+            animator.SetTrigger("Ground");
             isGround = true;
         }
     }

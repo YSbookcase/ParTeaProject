@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 771729986154943288}
   - component: {fileID: 2887499827973074501}
   - component: {fileID: 3135536927612595682}
+  - component: {fileID: 4883099044861133480}
   - component: {fileID: 6828105157694564880}
   - component: {fileID: 8899398630577338760}
   - component: {fileID: 454199759710235573}
@@ -110,6 +111,27 @@ MonoBehaviour:
   m_DefaultActionMap: JumpGame
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!95 &4883099044861133480
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7116687505103148613}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: cabeaf0214bc4974997ebc93152265b5, type: 3}
+  m_Controller: {fileID: 9100000, guid: 02239a49209684f4783def4b66fc07a9, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!33 &6828105157694564880
 MeshFilter:
   m_ObjectHideFlags: 0
