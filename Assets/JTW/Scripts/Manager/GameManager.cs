@@ -104,6 +104,9 @@ public class GameManager : Singleton<GameManager>
 
         if(sceneName != null)
         {
+            remainingGameList.Remove(sceneName);
+            remainingTeamGameList.Remove(sceneName);
+
             PhotonNetwork.LoadLevel(sceneName);
             return;
         }

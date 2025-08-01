@@ -60,6 +60,6 @@ public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
     [PunRPC]
     private void GoNextGame()
     {
-        Manager.game.GoNextMiniGame("JumpGame");
+        Manager.game.GoNextMiniGame(null);
     }
 }
