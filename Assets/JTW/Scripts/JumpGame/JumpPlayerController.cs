@@ -47,14 +47,13 @@ public class JumpPlayerController : MonoBehaviourPun
         if (!photonView.IsMine) return;
         if (!isGround) return;
 
-        animator.SetTrigger("Jump");
         photonView.RPC("JumpGame_Jump", RpcTarget.All);
-        isGround = false;
     }
 
     [PunRPC]
     private void JumpGame_Jump(PhotonMessageInfo info)
     {
+        animator.SetTrigger("Jump");
         float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
 
         rigid.velocity = Vector3.up * jumpPower;
@@ -62,11 +61,13 @@ public class JumpPlayerController : MonoBehaviourPun
         // 지연 보상을 위해 위치와 속도 값 계산 및 반영
         rigid.position += 0.5f * Physics.gravity * lag * lag + rigid.velocity * lag;
         rigid.velocity += Physics.gravity * lag;
+
+        isGround = false;
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        if (!photonView.IsMine || isGround) return;
+        if (isGround) return;
 
         if (other.gameObject.CompareTag("Finish"))
         {
