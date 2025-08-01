@@ -15,7 +15,7 @@ namespace JTW_JumpGame
         [SerializeField] private GameObject jumpScorePanelPrefab;
 
         [SerializeField] private Canvas gameCanvas;
-        [SerializeField] private Transform obstacleSpawnPoint;
+        [SerializeField] private List<Transform> obstacleSpawnPoints;
 
         private GameObject localPlayer;
 
@@ -79,8 +79,14 @@ namespace JTW_JumpGame
 
             while (timer <= 60)
             {
-                GameObject obstacle = Instantiate(obstaclePrefab, obstacleSpawnPoint.position, Quaternion.Euler(new Vector3(90, 0, 0)));
-                obstacle.GetComponent<ObstacleHandler>().Init(Vector3.right, obstacleSpeed);
+                GameObject obstacle = null;
+
+                foreach(Transform trans in obstacleSpawnPoints)
+                {
+                    obstacle = Instantiate(obstaclePrefab, trans.position, Quaternion.Euler(new Vector3(90, 0, 0)));
+                    obstacle.GetComponent<ObstacleHandler>().Init(Vector3.right, obstacleSpeed);
+                }
+
                 obstacleSpeed += 0.5f;
 
                 while (true)
