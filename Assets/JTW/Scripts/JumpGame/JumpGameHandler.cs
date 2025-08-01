@@ -15,16 +15,18 @@ namespace JTW_JumpGame
         [SerializeField] private GameObject jumpScorePanelPrefab;
 
         [SerializeField] private Canvas gameCanvas;
-        [SerializeField] private Transform obstacleSpawnPoint;
+        [SerializeField] private List<Transform> obstacleLeftSpawnPoints;
+        [SerializeField] private List<Transform> obstacleRightSpawnPoints;
 
         private GameObject localPlayer;
 
         private List<int> alivePlayers = new List<int>();
         private List<JumpScorePanel> jumpScorePanels = new List<JumpScorePanel>();
 
-        private Vector3 playerSpawnPoint = new Vector3(-3f, 0, 0);
+        private Vector3 playerSpawnPoint = new Vector3(-1f, 6f, 0);
         private bool isGameStarted;
 
+        private bool isLeft;
 
         [PunRPC]
         private void JumpGameStart(PhotonMessageInfo info)
@@ -42,7 +44,12 @@ namespace JTW_JumpGame
                 playerNum++;
             }
 
-            playerSpawnPoint.x += 2f * (playerNum);
+            if(playerNum > 1)
+            {
+                playerSpawnPoint.y = 0;
+            }
+
+            playerSpawnPoint.x += 2f * (playerNum % 2);
 
             localPlayer = PhotonNetwork.Instantiate("JTW_JumpPlayer", playerSpawnPoint, Quaternion.identity);
 
@@ -79,9 +86,24 @@ namespace JTW_JumpGame
 
             while (timer <= 60)
             {
-                GameObject obstacle = Instantiate(obstaclePrefab, obstacleSpawnPoint.position, Quaternion.Euler(new Vector3(90, 0, 0)));
-                obstacle.GetComponent<ObstacleHandler>().Init(Vector3.right, obstacleSpeed);
+                GameObject obstacle = null;
+
+                List<Transform> obstacleSpawnPoints = isLeft ? obstacleLeftSpawnPoints : obstacleRightSpawnPoints;
+                Vector3 direction = isLeft ? Vector3.right : Vector3.left;
+
+                foreach (Transform trans in obstacleSpawnPoints)
+                {
+                    obstacle = Instantiate(obstaclePrefab, trans.position, Quaternion.Euler(new Vector3(90, 0, 0)));
+                    obstacle.GetComponent<ObstacleHandler>().Init(direction, obstacleSpeed);
+                }
+
                 obstacleSpeed += 0.5f;
+
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    bool result = Random.value < 0.5f;
+                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
+                }
 
                 while (true)
                 {
@@ -114,6 +136,12 @@ namespace JTW_JumpGame
                 GameEnd();
             }
 
+        }
+
+        [PunRPC]
+        private void SetIsLeft(bool value)
+        {
+            isLeft = value;
         }
 
         [PunRPC]
@@ -174,6 +202,8 @@ namespace JTW_JumpGame
                     {
                         alivePlayers.Add(player.ActorNumber);
                         player.SetJumpGameScore(0);
+                        bool result = Random.value < 0.5f;
+                        photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
                     }
 
                     photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);

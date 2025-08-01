@@ -10,6 +10,7 @@ namespace JTW_JumpGame
 
         private Vector3 direction = Vector3.zero;
         private float speed;
+        private int rotationInt = -1;
 
         private void Start()
         {
@@ -19,13 +20,22 @@ namespace JTW_JumpGame
         private void Update()
         {
             rigid.velocity = direction * speed;
-            rigid.angularVelocity = Vector3.forward * -(speed / 0.5f);
+            rigid.angularVelocity = Vector3.forward * (speed / 0.5f * rotationInt);
         }
 
         public void Init(Vector3 direction, float speed)
         {
             this.direction = direction;
             this.speed = speed;
+
+            if(direction == Vector3.right)
+            {
+                rotationInt = -1;
+            }
+            else
+            {
+                rotationInt = 1;
+            }
         }
 
         private void OnTriggerEnter(Collider other)
