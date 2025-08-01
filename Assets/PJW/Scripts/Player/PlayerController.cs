@@ -10,6 +10,7 @@ namespace PJW
     {
         [SerializeField] private float jumpForce;
         [SerializeField] private float bounceForce;
+        [SerializeField] private Animator animator;
 
         private Rigidbody playerRigidbody;
         private bool isGrounded;
@@ -56,6 +57,8 @@ namespace PJW
             velocity.y = jumpForce;
             playerRigidbody.velocity = velocity;
             isGrounded = false;
+
+            animator.SetBool("IsJumping", true);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -65,6 +68,7 @@ namespace PJW
             if (collision.gameObject.CompareTag("Ground"))
             {
                 isGrounded = true;
+                animator.SetBool("IsJumping", false);
             }
             else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {
