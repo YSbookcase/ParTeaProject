@@ -109,6 +109,7 @@ MonoBehaviour:
   cameraSpeed: 1
   linePassed: 0
   isControllable: 0
+  crashDuration: 0.5
 --- !u!114 &-1325575301692957695
 MonoBehaviour:
   m_ObjectHideFlags: 0
