@@ -22,7 +22,7 @@ namespace JTW_JumpGame
         private List<int> alivePlayers = new List<int>();
         private List<JumpScorePanel> jumpScorePanels = new List<JumpScorePanel>();
 
-        private Vector3 playerSpawnPoint = new Vector3(-3f, 0, 0);
+        private Vector3 playerSpawnPoint = new Vector3(-0f, 6f, 0);
         private bool isGameStarted;
 
 
@@ -42,7 +42,12 @@ namespace JTW_JumpGame
                 playerNum++;
             }
 
-            playerSpawnPoint.x += 2f * (playerNum);
+            if(playerNum > 1)
+            {
+                playerSpawnPoint.y = 0;
+            }
+
+            playerSpawnPoint.x += 2f * (playerNum % 2);
 
             localPlayer = PhotonNetwork.Instantiate("JTW_JumpPlayer", playerSpawnPoint, Quaternion.identity);
 

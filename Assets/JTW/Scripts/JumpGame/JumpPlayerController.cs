@@ -4,9 +4,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using JTW_JumpGame;
+using System.Linq;
 
 public class JumpPlayerController : MonoBehaviourPun
 {
+    [SerializeField] private List<Renderer> colorRenderers;
+
     [SerializeField] private GameObject nicknamePanel;
     [SerializeField] private float jumpPower = 7f;
     private Rigidbody rigid;
@@ -32,7 +35,7 @@ public class JumpPlayerController : MonoBehaviourPun
         object colorIndex;
         if(photonView.Owner.CustomProperties.TryGetValue("Color", out colorIndex))
         {
-            GetComponent<MeshRenderer>().material.color = playerColors[(int)colorIndex];
+            colorRenderers.ForEach(r => r.material.color = playerColors[(int)colorIndex]);
         }
     }
 
