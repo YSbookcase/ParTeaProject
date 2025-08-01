@@ -7117,7 +7117,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7da7dca9e7f57034f81f6b9253a12e84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpForce: 10
+  jumpForce: 8
 --- !u!1001 &249901768
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23599,8 +23599,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 765491756}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.20821676, y: 0.5569066, z: 0.7841142, w: -0.17794849}
-  m_LocalPosition: {x: -9816.838, y: -336.5448, z: 5816.2793}
+  m_LocalRotation: {x: 0.20245315, y: 0.58618563, z: 0.7622195, w: -0.1855279}
+  m_LocalPosition: {x: -11861.468, y: -396.55145, z: 7022.464}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -28746,7 +28746,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7da7dca9e7f57034f81f6b9253a12e84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpForce: 10
+  jumpForce: 8
 --- !u!1001 &1006829753
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36970,6 +36970,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timer: 60
   timeLine: {fileID: 765491763}
+  isGameStart: 0
   readyCount: 0
 --- !u!4 &1311501458
 Transform:

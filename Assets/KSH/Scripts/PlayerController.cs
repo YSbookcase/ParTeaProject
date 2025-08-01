@@ -154,8 +154,7 @@ namespace KSH
 
                 if (colorIndex >= 0 && colorIndex < textures.Length)
                 {
-                    var renderer = GetComponent<SkinnedMeshRenderer>();
-                    renderer.material.mainTexture = textures[colorIndex];
+                    bodyRenderer.material.mainTexture = textures[colorIndex];
                 }
             }
         }
