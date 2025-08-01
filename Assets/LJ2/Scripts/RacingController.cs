@@ -105,7 +105,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     {
         if (photonView.IsMine && isControllable)
         {
-            //SetRotation();
             SetRotationByCam();
             DollyCartMove();
         }
@@ -120,7 +119,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10);
             rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
