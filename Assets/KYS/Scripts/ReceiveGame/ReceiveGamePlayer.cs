@@ -63,7 +63,9 @@ namespace KYS
         // 네트워크 동기화용 변수들
         private Vector3 networkPosition;
         private Quaternion networkRotation;
+        private Vector3 networkVelocity; // 속도 정보 추가
         private float lag;
+        // private float interpolationBackTime = 0.1f; // 보간 시간 - 사용되지 않음
         private int playerColorIndex = -1; // 플레이어 색상 인덱스
         private bool isColorSet = false; // 색상이 설정되었는지 확인
         
@@ -119,9 +121,8 @@ namespace KYS
             }
             else
             {
-                // 다른 플레이어의 위치 보간
-                transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
+                // 다른 플레이어의 위치 보간 (고스트 무빙 방지)
+                InterpolateOtherPlayerMovement();
             }
             
             // 파워업 효과 체크
@@ -457,11 +458,22 @@ namespace KYS
         {
             if (stream.IsWriting)
             {
-                // 데이터 전송
+                // 데이터 전송 (속도 정보 추가)
                 stream.SendNext(transform.position);
                 stream.SendNext(transform.rotation);
                 stream.SendNext(isMoving);
                 stream.SendNext(playerColorIndex); // 색상 인덱스 전송
+                
+                // 속도 정보 전송 (고스트 무빙 방지)
+                if (isMoving)
+                {
+                    Vector3 velocity = transform.forward * moveSpeed;
+                    stream.SendNext(velocity);
+                }
+                else
+                {
+                    stream.SendNext(Vector3.zero);
+                }
             }
             else
             {
@@ -470,6 +482,7 @@ namespace KYS
                 networkRotation = (Quaternion)stream.ReceiveNext();
                 isMoving = (bool)stream.ReceiveNext();
                 int receivedColorIndex = (int)stream.ReceiveNext();
+                networkVelocity = (Vector3)stream.ReceiveNext(); // 속도 정보 수신
                 
                 // 색상 동기화
                 if (receivedColorIndex != playerColorIndex && !isColorSet)
@@ -493,6 +506,28 @@ namespace KYS
             // 수집 반경 시각화
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(transform.position, collectionRadius);
+        }
+        
+        // 고스트 무빙 방지를 위한 보간 메서드
+        private void InterpolateOtherPlayerMovement()
+        {
+            // 네트워크 지연을 고려한 예측 위치 계산
+            Vector3 predictedPosition = networkPosition + networkVelocity * lag;
+            
+            // 부드러운 보간 (고스트 무빙 방지)
+            float interpolationSpeed = 15f; // 보간 속도 증가
+            transform.position = Vector3.Lerp(transform.position, predictedPosition, Time.deltaTime * interpolationSpeed);
+            
+            // 회전도 부드럽게 보간
+            transform.rotation = Quaternion.Slerp(transform.rotation, networkRotation, Time.deltaTime * interpolationSpeed);
+            
+            // 애니메이션 동기화
+            if (playerAnimator != null)
+            {
+                bool isNetworkMoving = networkVelocity.magnitude > 0.1f;
+                playerAnimator.SetBool("IsMoving", isNetworkMoving);
+                playerAnimator.SetFloat("MoveSpeed", networkVelocity.magnitude / moveSpeed);
+            }
         }
         
         private void OnDestroy()

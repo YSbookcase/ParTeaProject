@@ -624,7 +624,7 @@ namespace KYS
                     }
                     else
                     {
-                        gameNameText.color = Color.white;
+                        gameNameText.color = Color.black;
                         gameNameText.text = selectedGame.gameName;
                     }
                 }
@@ -774,13 +774,10 @@ namespace KYS
         #region Photon Event Handlers
         private void OnPlayerEnteredRoom(Player newPlayer)
         {
-            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
-            }
-            else
-            {
-                DisplayChatMessage("시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
             }
             
             if (!playerPanels.ContainsKey(newPlayer.ActorNumber))
@@ -800,26 +797,16 @@ namespace KYS
 
         private void OnPlayerLeftRoom(Player otherPlayer)
         {
-            if (otherPlayer.IsMasterClient)
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
-                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                if (otherPlayer.IsMasterClient)
                 {
                     photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
                 }
                 else
                 {
-                    DisplayChatMessage("시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
-                }
-            }
-            else
-            {
-                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
-                {
                     photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
-                }
-                else
-                {
-                    DisplayChatMessage("시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
                 }
             }
             
@@ -848,8 +835,9 @@ namespace KYS
             UpdateAllPlayerPanelsMasterClientStatus();
             ShowMasterClientChangeMessage(newMasterClient);
             
-            string masterChangeMessage = $"{newMasterClient.NickName}님이 새로운 방장이 되었습니다!";
-            DisplayChatMessage("시스템", masterChangeMessage);
+            // 중복 메시지 제거 - ShowMasterClientChangeMessage에서 처리
+            // string masterChangeMessage = $"{newMasterClient.NickName}님이 새로운 방장이 되었습니다!";
+            // DisplayChatMessage("시스템", masterChangeMessage);
         }
 
         private void UpdateAllPlayerPanelsMasterClientStatus()
@@ -876,13 +864,10 @@ namespace KYS
                 message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
             }
             
-            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", message);
-            }
-            else
-            {
-                DisplayChatMessage("시스템", message);
             }
         }
         #endregion
