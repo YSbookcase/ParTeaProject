@@ -31,7 +31,7 @@ namespace JTW_JumpGame
 
 
 
-            Vector3 position = Camera.main.WorldToScreenPoint(player.position + (Vector3.up * 2));
+            Vector3 position = Camera.main.WorldToScreenPoint(player.position + (Vector3.up * 3));
 
             rect.position = position;
         }
