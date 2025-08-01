@@ -119,8 +119,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
-            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
+            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 5);
+            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 5);
         }
     }
 
@@ -164,7 +164,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
 
             float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
-            if (directionDot < -0.5f) // 방향이 너무 반대에 가까우면
+            if (directionDot < -0.85f) // 방향이 너무 반대에 가까우면
             {
                 inputDirection = Vector3.zero; // 입력 무시
             }
