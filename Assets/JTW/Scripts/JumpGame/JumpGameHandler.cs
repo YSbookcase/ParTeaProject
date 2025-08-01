@@ -15,16 +15,18 @@ namespace JTW_JumpGame
         [SerializeField] private GameObject jumpScorePanelPrefab;
 
         [SerializeField] private Canvas gameCanvas;
-        [SerializeField] private List<Transform> obstacleSpawnPoints;
+        [SerializeField] private List<Transform> obstacleLeftSpawnPoints;
+        [SerializeField] private List<Transform> obstacleRightSpawnPoints;
 
         private GameObject localPlayer;
 
         private List<int> alivePlayers = new List<int>();
         private List<JumpScorePanel> jumpScorePanels = new List<JumpScorePanel>();
 
-        private Vector3 playerSpawnPoint = new Vector3(-0f, 6f, 0);
+        private Vector3 playerSpawnPoint = new Vector3(-1f, 6f, 0);
         private bool isGameStarted;
 
+        private bool isLeft;
 
         [PunRPC]
         private void JumpGameStart(PhotonMessageInfo info)
@@ -86,13 +88,22 @@ namespace JTW_JumpGame
             {
                 GameObject obstacle = null;
 
-                foreach(Transform trans in obstacleSpawnPoints)
+                List<Transform> obstacleSpawnPoints = isLeft ? obstacleLeftSpawnPoints : obstacleRightSpawnPoints;
+                Vector3 direction = isLeft ? Vector3.right : Vector3.left;
+
+                foreach (Transform trans in obstacleSpawnPoints)
                 {
                     obstacle = Instantiate(obstaclePrefab, trans.position, Quaternion.Euler(new Vector3(90, 0, 0)));
-                    obstacle.GetComponent<ObstacleHandler>().Init(Vector3.right, obstacleSpeed);
+                    obstacle.GetComponent<ObstacleHandler>().Init(direction, obstacleSpeed);
                 }
 
                 obstacleSpeed += 0.5f;
+
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    bool result = Random.value < 0.5f;
+                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
+                }
 
                 while (true)
                 {
@@ -125,6 +136,12 @@ namespace JTW_JumpGame
                 GameEnd();
             }
 
+        }
+
+        [PunRPC]
+        private void SetIsLeft(bool value)
+        {
+            isLeft = value;
         }
 
         [PunRPC]
@@ -185,6 +202,8 @@ namespace JTW_JumpGame
                     {
                         alivePlayers.Add(player.ActorNumber);
                         player.SetJumpGameScore(0);
+                        bool result = Random.value < 0.5f;
+                        photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
                     }
 
                     photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
