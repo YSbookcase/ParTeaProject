@@ -31,16 +31,23 @@ namespace KSH
             rigid = GetComponent<Rigidbody>();
             isMove = true;
             curSpeed = moveSpeed;
+            
+            if (photonView.IsMine)
+            {
+                playerAction = new PlayerAction();
+            }
         }
         
         private void OnEnable()
         {
-            playerAction.Enable();
+            if (photonView.IsMine && playerAction != null)
+                playerAction.Enable();
         }
 
         private void OnDisable()
         {
-            playerAction.Disable();
+            if (photonView.IsMine && playerAction != null)
+                playerAction.Disable();
         }
 
         private void Start()
