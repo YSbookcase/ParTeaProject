@@ -4,6 +4,7 @@ using Photon.Pun.Demo.PunBasics;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -36,6 +37,10 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     public int linePassed;
     public bool isControllable;
 
+    private Coroutine crashCoroutine;
+    [SerializeField][Range( 0f, 1f )] private float crashDuration;
+    private YieldInstruction crashDelay;
+
     private void Awake()
     {
         if (rigid == null)
@@ -44,6 +49,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
 
         dollyCart = FindObjectOfType<CinemachineDollyCart>();
+        crashDelay = new WaitForSeconds(crashDuration);
     }
 
     private void Start()
@@ -99,7 +105,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     {
         if (photonView.IsMine && isControllable)
         {
-            //SetRotation();
             SetRotationByCam();
             DollyCartMove();
         }
@@ -114,9 +119,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10);
-            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 10);
-            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
+            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 5);
+            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 5);
         }
     }
 
@@ -160,7 +164,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
 
             float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
-            if (directionDot < -0.5f) // 방향이 너무 반대에 가까우면
+            if (directionDot < -0.85f) // 방향이 너무 반대에 가까우면
             {
                 inputDirection = Vector3.zero; // 입력 무시
             }
@@ -216,19 +220,20 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            // 중간 충돌은 약간의 반동
+            // 강한 충돌은 약간의 반동
             rigid.AddForce(-collision.relativeVelocity.normalized * impactForce * 0.5f, ForceMode.Impulse);
         }
 
         Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
-        float strength = Mathf.Clamp(impactForce * 0.5f , 5f, 20f); // 충돌 강도에 따라 힘 조절
+        float strength = Mathf.Clamp(impactForce * 0.8f , 5f, 20f); // 충돌 강도에 따라 힘 조절
 
         if (collision.gameObject.CompareTag("Player"))
         {
             PhotonView targetView = collision.gameObject.GetComponent<PhotonView>();
             if (targetView != null && targetView.IsMine == false)
             {
-                photonView.RPC("RacingCrash", RpcTarget.All, pushDirection * strength, targetView.ViewID);
+                Debug.Log($"[RacingController] {photonView.ViewID} collided with {targetView.ViewID} with force {strength}");
+                photonView.RPC("RacingCrash", RpcTarget.MasterClient, pushDirection * strength, targetView.ViewID);
             }
         }
     }
@@ -244,10 +249,31 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     [PunRPC]
     public void RacingCrash(Vector3 direction, int targetViewID)
     {
-        if(photonView.ViewID != targetViewID) return; // 자신의 뷰 ID가 아니면 무시
+        // if(photonView.ViewID != targetViewID) return; // 자신의 뷰 ID가 아니면 무시
+        RacingController targetController = PhotonView.Find(targetViewID)?.GetComponent<RacingController>();
+        Debug.Log($"{targetViewID} with direction {direction}");
 
-        rigid.AddForce(direction, ForceMode.Impulse);
-        rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
+        if(targetController.crashCoroutine != null)
+        {
+            targetController.StopCoroutine(targetController.crashCoroutine);
+            targetController.crashCoroutine = null;
+        }
+        targetController.crashCoroutine = targetController.StartCoroutine(CrashRoutine());
+        targetController.rigid.AddForce(direction, ForceMode.Impulse);
+        targetController.rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
+    }
+
+    private IEnumerator CrashRoutine()
+    {
+        isControllable = false;
+        Debug.Log($"[Crash] {photonView.ViewID} is crashing isControllable = {isControllable}");
+        yield return crashDelay;
+
+        isControllable = true;
+        Debug.Log($"[Crash] {photonView.ViewID} crash finished isControllable = {isControllable}");
+        crashCoroutine = null;
+
+        yield return null;
     }
 
 }
