@@ -928,7 +928,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: d6e35103687f1cf4c9ecee611542412a, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -964,7 +964,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jumpForce: 5
   bounceForce: 100
-  animator: {fileID: 0}
+  animator: {fileID: 2248395775607911161}
 --- !u!114 &5122650022559313422
 MonoBehaviour:
   m_ObjectHideFlags: 0
