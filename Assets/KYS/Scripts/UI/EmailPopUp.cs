@@ -14,6 +14,8 @@ namespace KYS
         private TMP_Text emailText => GetUI<TMP_Text>("EmailText");
 
         private Coroutine emailVerificationRoutine;
+        private bool canResend = true;
+        private float resendCooldown = 60f; // 60초 쿨다운
 
         private new void Awake()
         {
@@ -75,8 +77,14 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"인증 이메일 전송 실패, 인증 이메일 전송 후 얼마 되지 않았습니다.");
-                        Debug.Log($"인즌 이메일 전송 실패 로그 : {task.Exception}");
+                        // Firebase에서 재전송 제한 에러인 경우 더 친화적인 메시지 표시
+                        string errorMessage = "인증 이메일이 이미 전송되었습니다. 이메일함을 확인해주세요.";
+
+                        // 에러 로그는 디버그용으로만 출력
+                        Debug.Log($"인증 이메일 전송 실패 로그 : {task.Exception}");
+
+                        // 에러 팝업 대신 상태 텍스트로 표시
+                        UpdateStatusText(errorMessage);
                         return;
                     }
 
@@ -90,6 +98,12 @@ namespace KYS
 
         private void ResendEmail(PointerEventData eventData)
         {
+            if (!canResend)
+            {
+                UpdateStatusText("잠시 후 다시 시도해주세요.");
+                return;
+            }
+
             // 기존 코루틴 정리
             if (emailVerificationRoutine != null)
             {
@@ -98,7 +112,20 @@ namespace KYS
 
             UpdateStatusText("인증 이메일을 다시 전송합니다...");
             SendVerificationEmail();
+
+            // 쿨다운 시작
+            StartCoroutine(ResendCooldown());
         }
+
+
+        private IEnumerator ResendCooldown()
+        {
+            canResend = false;
+            yield return new WaitForSeconds(resendCooldown);
+            canResend = true;
+            UpdateStatusText("재송신 버튼을 다시 사용할 수 있습니다.");
+        }
+
 
         private IEnumerator EmailVerificationRoutine()
         {
@@ -115,7 +142,16 @@ namespace KYS
                     break;
                 }
 
-                user.ReloadAsync();
+                // 비동기 ReloadAsync를 제대로 처리
+                bool reloadCompleted = false;
+                user.ReloadAsync().ContinueWithOnMainThread(task =>
+                {
+                    reloadCompleted = true;
+                });
+
+                // 리로드 완료까지 대기
+                yield return new WaitUntil(() => reloadCompleted);
+
                 if (user.IsEmailVerified)
                 {
                     Debug.Log("이메일 인증 완료");
@@ -137,6 +173,7 @@ namespace KYS
                 }
             }
         }
+        
 
         private void Back(PointerEventData eventData)
         {

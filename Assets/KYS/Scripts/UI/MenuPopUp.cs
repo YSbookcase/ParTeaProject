@@ -239,11 +239,50 @@ namespace KYS
         // Firebase 관련 메서드들 (기존 코드 유지)
         private void LogOut(PointerEventData eventData)
         {
-            // 로그아웃 로직
+            // 로그아웃 확인 팝업 표시
+            UIManager.Instance.ShowConfirmPopUp(
+                "정말 로그아웃 하시겠습니까?",
+                "로그아웃",
+                "취소",
+                () => {
+                    // 확인 시 실제 로그아웃 처리
+                    PerformLogout();
+                },
+                () => {
+                    // 취소 시 아무것도 하지 않음
+                    Debug.Log("로그아웃이 취소되었습니다.");
+                }
+            );
+        }
+
+        // 실제 로그아웃 처리 메서드
+        private void PerformLogout()
+        {
+            Debug.Log("로그아웃 처리 시작");
+
+            // Firebase 로그아웃
             FirebaseManager.Auth.SignOut();
-            Debug.Log("로그아웃 완료");
-            UIManager.Instance.CleanAllUI();
-            UIManager.Instance.ShowPopUp<LoginPopUp>();
+
+            // 모든 팝업 정리
+            UIManager.Instance.CleanPopUp();
+
+            // 로그인 패널로 이동
+            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
+            if (loginPanel != null)
+            {
+                // 로그인 패널을 비활성화했다가 다시 활성화하여 OnEnable 호출 보장
+                loginPanel.SetActive(false);
+                loginPanel.SetActive(true);
+
+                // 추가로 LoginPanel의 ResetInputs 메서드를 직접 호출
+                LoginPopUp loginPanelScript = loginPanel.GetComponent<LoginPopUp>();
+                if (loginPanelScript != null)
+                {
+                    loginPanelScript.ResetInputs();
+                }
+            }
+
+            Debug.Log("로그아웃 처리 완료");
         }
 
         private void EditProfile(PointerEventData eventData)

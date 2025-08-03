@@ -116,7 +116,7 @@ namespace KYS
             }
 
             // SFX가 포함된 MenuButton 이벤트 등록
-            var MenuButton = GetEventWithSFX("PassConfirmButton", "SFX_ButtonClick");
+            var MenuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
             if (MenuButton != null)
             {
                 MenuButton.Click -= OnMenu;
@@ -216,6 +216,9 @@ namespace KYS
                     ShowSuccessMessage("비밀번호가 성공적으로 변경되었습니다.");
                     Debug.Log("비밀번호 변경 성공");
                 });
+
+            // 비밀번호 변경 성공 후 입력 필드 초기화
+            ClearPasswordFields();
         }
 
         private void Back(PointerEventData eventData)
@@ -262,6 +265,22 @@ namespace KYS
             nameInput.text = user.DisplayName ?? "";
 
             Debug.Log($"[EditPopUp] 사용자 정보 로드 완료 - Email: {user.Email}, Name: {user.DisplayName}, UID: {user.UserId}");
+        }
+
+        // 비밀번호 입력 필드 초기화
+        private void ClearPasswordFields()
+        {
+            if (passInput != null)
+            {
+                passInput.text = "";
+            }
+
+            if (passConfirmInput != null)
+            {
+                passConfirmInput.text = "";
+            }
+
+            Debug.Log("[EditPopUp] 비밀번호 입력 필드가 초기화되었습니다.");
         }
 
         // 방 삭제 버튼 클릭 시

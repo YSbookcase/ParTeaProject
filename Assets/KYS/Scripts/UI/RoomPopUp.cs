@@ -1024,7 +1024,8 @@ namespace KYS
                 Player player = PhotonNetwork.CurrentRoom.GetPlayer(kvp.Key);
                 if (player != null)
                 {
-                    kvp.Value.UpdatePlayerProperties(player);
+                    // 마스터 클라이언트 상태만 업데이트하고 Ready 상태는 건드리지 않음
+                    kvp.Value.UpdateMasterClientDisplay(player.IsMasterClient);
                 }
             }
         }

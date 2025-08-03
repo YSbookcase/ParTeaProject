@@ -1,11 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using TMPro;
-using UnityEngine.UI;
-using Firebase.Extensions;
 using Firebase.Auth;
-using KYS;
+using Firebase.Extensions;
+using System.Collections;
+using TMPro;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace KYS
@@ -49,7 +46,7 @@ namespace KYS
             //Debug.Log("[LoginPanel] OnEnable 호출됨 - 입력 필드 초기화 시작");
             // 패널이 활성화될 때마다 입력 필드 초기화
             ResetInputs();
-            
+
             // 로그인 화면 진입 시 BGM 시작 (안전한 체크 포함)
             StartCoroutine(StartLoginBGMWithDelay());
         }
@@ -59,7 +56,7 @@ namespace KYS
         {
             // 오디오 매니저가 생성될 때까지 대기
             yield return new WaitForSeconds(0.1f);
-            
+
             // 오디오 매니저 존재 확인
             if (Manager.Audio != null)
             {
@@ -86,31 +83,33 @@ namespace KYS
             KYS.FirebaseManager.Auth.SignInWithEmailAndPasswordAsync(idInput.text, passInput.text)
             .ContinueWithOnMainThread(task =>
             {
-                if (task.IsCanceled)
-                {
-                    Debug.Log("로그인이 취소됨");
-                    ShowLoginFailMessage("로그인이 취소되었습니다.");
-                    return;
-                }
-                if (task.IsFaulted)
-                {
-                    Debug.LogError("로그인 오류: " + task.Exception);
-                    ShowLoginFailMessage("로그인 중 오류가 발생했습니다.");
-                    return;
-                }
+            if (task.IsCanceled)
+            {
+                Debug.Log("로그인이 취소됨");
+                ShowLoginFailMessage("로그인이 취소되었습니다.");
+                return;
+            }
+            if (task.IsFaulted)
+            {
+                Debug.LogError("로그인 오류: " + task.Exception);
+                ShowLoginFailMessage("로그인 중 오류가 발생했습니다.");
+                return;
+            }
 
-                var authResult = task.Result;
-                if (authResult != null && authResult.User != null)
-                {
-                    Debug.Log("로그인 성공: " + authResult.User.UserId);
-                    ShowLoginSuccessMessage();
-                    UIManager.Instance.ShowPopUp<LobbyPopUp>();
-                }
-                else
-                {
-                    Debug.Log("로그인 실패: 결과가 null");
-                    ShowLoginFailMessage("로그인에 실패했습니다.");
-                }
+            var authResult = task.Result;
+            if (authResult != null && authResult.User != null)
+            {
+                Debug.Log("로그인 성공: " + authResult.User.UserId);
+
+                // 로그인 성공 후 검증 진행
+                CheckUserVerification(authResult.User);
+            }
+            else
+            {
+                Debug.Log("로그인 실패: 결과가 null");
+                ShowLoginFailMessage("로그인에 실패했습니다.");
+
+            }
             });
         }
 
@@ -123,6 +122,36 @@ namespace KYS
         private void OnTitleMenu(PointerEventData eventData)
         {
             UIManager.Instance.ShowPopUp<TitleMenuPopUp>();
+        }
+
+
+        // 사용자 검증 확인
+        private void CheckUserVerification(FirebaseUser user)
+        {
+            Debug.Log($"[LoginPopUp] 사용자 검증 시작 - 이메일 인증: {user.IsEmailVerified}, 닉네임: {user.DisplayName}");
+
+            // 이메일 인증 확인
+            if (!user.IsEmailVerified)
+            {
+                Debug.Log("[LoginPopUp] 이메일 인증이 필요합니다.");
+                ShowLoginSuccessMessage(); // 로그인 성공 메시지는 표시
+                UIManager.Instance.ShowPopUp<EmailPopUp>();
+                return;
+            }
+
+            // 닉네임 설정 확인
+            if (string.IsNullOrEmpty(user.DisplayName))
+            {
+                Debug.Log("[LoginPopUp] 닉네임 설정이 필요합니다.");
+                ShowLoginSuccessMessage(); // 로그인 성공 메시지는 표시
+                UIManager.Instance.ShowPopUp<NicknamePopUp>();
+                return;
+            }
+
+            // 모든 검증 통과 - 로비로 이동
+            Debug.Log("[LoginPopUp] 모든 검증 통과. 로비로 이동합니다.");
+            ShowLoginSuccessMessage();
+            UIManager.Instance.ShowPopUp<LobbyPopUp>();
         }
 
 
@@ -178,7 +207,7 @@ namespace KYS
 
             // 기본 볼륨 설정 (PlayerPrefs에 저장된 값이 없으면 기본값 설정)
             InitializeDefaultAudioSettings();
-            
+
             // 로그인 BGM 재생
             if (!string.IsNullOrEmpty(loginBgmName))
             {
@@ -206,12 +235,12 @@ namespace KYS
                 PlayerPrefs.Save();
                 Debug.Log("[LoginPopUp] 기본 오디오 설정 완료 (0.5)");
             }
-            
+
             // 설정 로드 (기본값 0.5)
             // float masterVol = PlayerPrefs.GetFloat("MasterVolume", 0.5f); // 주석 처리
             float bgmVol = PlayerPrefs.GetFloat("BGMVolume", 0.5f);
             float sfxVol = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
-            
+
             // 오디오 매니저에 적용
             // Manager.Audio.masterVolume = masterVol; // 주석 처리
             Manager.Audio.bgmVolume = bgmVol;
