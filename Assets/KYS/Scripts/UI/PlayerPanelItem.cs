@@ -54,11 +54,6 @@ namespace KYS
             if (readyButtonEvent != null)
             {
                 readyButtonEvent.Click += ReadyButtonClick;
-                Debug.Log($"[PlayerPanelItem] Ready 버튼 이벤트 등록 성공 - 플레이어: {player.NickName}, ActorNumber: {player.ActorNumber}");
-            }
-            else
-            {
-                Debug.LogError($"[PlayerPanelItem] Ready 버튼을 찾을 수 없습니다! - 플레이어: {player.NickName}");
             }
 
             // 기존 Ready 상태 로드
@@ -179,11 +174,8 @@ namespace KYS
             // 로컬 플레이어의 패널에서만 처리
             if (!currentPlayer.IsLocal)
             {
-                Debug.Log($"[PlayerPanelItem] 다른 플레이어의 Ready 버튼 클릭 무시 - 플레이어: {currentPlayer.NickName}");
                 return;
             }
-
-            Debug.Log($"[PlayerPanelItem] Ready 버튼 클릭 - 플레이어: {currentPlayer.NickName}, 현재 상태: {isReady}");
             
             // Ready 상태 토글
             isReady = !isReady;
@@ -193,8 +185,6 @@ namespace KYS
             
             // UI 업데이트
             UpdateReadyUI();
-            
-            Debug.Log($"[PlayerPanelItem] Ready 상태 변경 완료 - 플레이어: {currentPlayer.NickName}, 새 상태: {isReady}");
         }
 
         public void ReadyPropertyUpdate()
@@ -223,8 +213,6 @@ namespace KYS
             {
                 PhotonManager.Instance.SetPlayerReady(false);
             }
-
-            Debug.Log("[PlayerPanelItem] Ready 상태 초기화 완료");
         }
 
         // 플레이어 속성 업데이트 (다른 플레이어의 속성 변경 시)
@@ -233,11 +221,8 @@ namespace KYS
             // 해당 플레이어의 패널에서만 업데이트
             if (player.ActorNumber != currentPlayerActorNumber)
             {
-                Debug.Log($"[PlayerPanelItem] 다른 플레이어 속성 업데이트 무시 - 현재: {currentPlayerActorNumber}, 요청: {player.ActorNumber}");
                 return;
             }
-
-            Debug.Log($"[PlayerPanelItem] 플레이어 속성 업데이트 - 플레이어: {player.NickName}, ActorNumber: {player.ActorNumber}");
 
             // Ready 상태 업데이트
             if (player.CustomProperties.TryGetValue("Ready", out object readyValue))
@@ -247,7 +232,6 @@ namespace KYS
                 {
                     isReady = newReadyState;
                     UpdateReadyUI();
-                    Debug.Log($"[PlayerPanelItem] Ready 상태 업데이트: {isReady}");
                 }
             }
 
@@ -258,13 +242,11 @@ namespace KYS
                 {
                     int colorIndex = (int)colorValue;
                     UpdatePlayerColor(colorIndex);
-                    Debug.Log($"[PlayerPanelItem] 색상 업데이트: {colorIndex}");
                 }
                 else
                 {
                     // 색상이 취소된 경우 (null)
                     UpdatePlayerColor(-1);
-                    Debug.Log($"[PlayerPanelItem] 색상 취소됨");
                 }
                 
                 // 모든 플레이어의 색상 버튼 UI 업데이트 (색상 중복 방지를 위해)
@@ -276,7 +258,6 @@ namespace KYS
             {
                 int gameIndex = (int)gameValue;
                 UpdateSelectedGame(gameIndex);
-                Debug.Log($"[PlayerPanelItem] 선택된 게임 업데이트: {gameIndex}");
             }
         }
 
@@ -299,8 +280,6 @@ namespace KYS
                     myColorIndex = (int)myColorValue;
                 }
             }
-
-            Debug.Log($"[PlayerPanelItem] 모든 색상 버튼 UI 업데이트 - 내 색상: {myColorIndex}");
 
             // 모든 색상 버튼 업데이트
             for (int i = 0; i < colorButtons.Length; i++)
@@ -363,8 +342,6 @@ namespace KYS
                 }
             }
 
-            Debug.Log($"[PlayerPanelItem] 색상 버튼 클릭: {colorIndex}, 현재 색상: {currentColorIndex}");
-
             // 같은 색상을 다시 클릭한 경우 - 색상 취소
             if (currentColorIndex == colorIndex)
             {
@@ -372,32 +349,27 @@ namespace KYS
                 if (currentPlayer.IsLocal && playerPanelBackground != null)
                 {
                     playerPanelBackground.color = Color.white;
-                    Debug.Log($"[PlayerPanelItem] 로컬 플레이어 패널 배경색을 흰색으로 변경");
                 }
                 
                 // 해당 색상 버튼만 흰색으로 변경
                 if (colorButtons[colorIndex] != null)
                 {
                     colorButtons[colorIndex].GetComponent<Image>().color = Color.white;
-                    Debug.Log($"[PlayerPanelItem] 색상 버튼 {colorIndex}을 흰색으로 변경");
                 }
                 
                 // PhotonManager를 통해 색상 취소
                 PhotonManager.Instance.ClearPlayerColor();
-                Debug.Log($"[PlayerPanelItem] 색상 취소 요청: {colorIndex}");
                 return;
             }
 
             // 이미 다른 플레이어가 선택한 색상인지 확인
             if (IsColorAlreadySelected(colorIndex))
             {
-                Debug.LogWarning($"[PlayerPanelItem] 이미 선택된 색상입니다: {colorIndex}");
                 return;
             }
 
             // PhotonManager를 통해 색상 변경
             PhotonManager.Instance.SetPlayerColor(colorIndex);
-            Debug.Log($"[PlayerPanelItem] 색상 선택 요청: {colorIndex}");
         }
 
         // 색상이 이미 다른 플레이어에 의해 선택되었는지 확인
@@ -441,8 +413,6 @@ namespace KYS
 
                 // 색상 버튼들 업데이트 (선택된 색상 강조)
                 UpdateColorButtonUI(colorIndex);
-
-                Debug.Log($"[PlayerPanelItem] 플레이어 색상 변경: {colorIndex} -> {colors[colorIndex]}");
             }
             else
             {
@@ -450,21 +420,16 @@ namespace KYS
                 if (playerPanelBackground != null)
                 {
                     playerPanelBackground.color = Color.white; // 기본 색상으로 변경
-                    Debug.Log($"[PlayerPanelItem] 플레이어 패널 배경색을 흰색으로 변경");
                 }
 
                 // 색상 버튼들 업데이트 (선택 해제)
                 UpdateColorButtonUI(-1);
-
-                Debug.Log($"[PlayerPanelItem] 플레이어 색상 취소됨 (colorIndex: {colorIndex})");
             }
         }
 
         // 색상 버튼 UI 업데이트
         private void UpdateColorButtonUI(int selectedColorIndex)
         {
-            Debug.Log($"[PlayerPanelItem] 색상 버튼 UI 업데이트 - 선택된 색상: {selectedColorIndex}");
-
             for (int i = 0; i < colorButtons.Length; i++)
             {
                 if (colorButtons[i] != null)
@@ -481,21 +446,18 @@ namespace KYS
                         // 내가 선택한 색상 - 강조 (선택된 상태)
                         colorButtons[i].GetComponent<Image>().color = Color.yellow; // 선택된 색상은 노란색으로 강조
                         colorButtons[i].interactable = true;
-                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 내가 선택한 색상 (강조)");
                     }
                     else if (isColorTaken)
                     {
                         // 다른 플레이어가 선택한 색상 - 비활성화
                         colorButtons[i].GetComponent<Image>().color = Color.gray;
                         colorButtons[i].interactable = false;
-                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 다른 플레이어가 선택한 색상 (비활성화)");
                     }
                     else
                     {
                         // 선택 가능한 색상 - 활성화 (색상 취소 시에도 이 상태로 변경됨)
                         colorButtons[i].GetComponent<Image>().color = Color.white;
                         colorButtons[i].interactable = true;
-                        Debug.Log($"[PlayerPanelItem] 색상 버튼 {i} - 선택 가능한 색상 (활성화)");
                     }
                 }
             }
@@ -504,7 +466,6 @@ namespace KYS
             if (selectedColorIndex == -1)
             {
                 UpdateAllColorButtonsUI();
-                Debug.Log($"[PlayerPanelItem] 색상 취소로 인한 모든 색상 버튼 UI 업데이트 완료");
             }
         }
 
@@ -515,7 +476,7 @@ namespace KYS
             string[] games = { "테트리스", "스네이크", "퀴즈", "레이싱", "점프", "아레나" };
             if (gameIndex >= 0 && gameIndex < games.Length)
             {
-                Debug.Log($"[PlayerPanelItem] 개인 게임 선택 변경: {games[gameIndex]}");
+                // 게임 선택 로직 구현 예정
             }
         }
     }

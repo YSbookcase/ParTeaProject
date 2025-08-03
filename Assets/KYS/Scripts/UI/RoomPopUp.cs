@@ -16,6 +16,7 @@ namespace KYS
         [SerializeField] private string roomBgmName = "BGM_ParTeaRoom";
         // 애플리케이션 종료 플래그
         private bool isApplicationQuitting = false;
+        private bool isGameStarting = false; // 게임 시작 플래그 추가
 
         #region UI References
         // 방 관련 UI
@@ -77,10 +78,20 @@ namespace KYS
 
         private void OnEnable()
         {
+            Debug.Log($"[RoomPopUp] OnEnable 호출됨 - isGameStarting: {isGameStarting}");
             InitializePhotonViewID();
             SubscribePhotonEvents();
             InitializeRoom();
-            StartCoroutine(StartRoomBGMWithDelay());
+            
+            // 게임에서 돌아온 상황이 아니라면 BGM 시작
+            if (!isGameStarting)
+            {
+                StartCoroutine(StartRoomBGMWithDelay());
+            }
+            else
+            {
+                Debug.Log("[RoomPopUp] 게임에서 돌아온 상황이므로 OnEnable에서 BGM 시작을 건너뜁니다.");
+            }
         }
 
         // 지연된 BGM 시작 (오디오 매니저 생성 대기)
@@ -94,49 +105,134 @@ namespace KYS
         }
 
         // 방 BGM 시작
-        private void StartRoomBGM()
+        public void StartRoomBGM()
         {
+            Debug.Log($"[RoomPopUp] StartRoomBGM 호출됨 - roomBgmName: {roomBgmName}");
             if (Manager.Audio == null)
             {
                 Debug.LogWarning("[RoomPopUp] AudioManager가 null입니다. BGM 시작을 건너뜁니다.");
                 return;
             }
 
+            // AudioManager 상태 확인
+            Debug.Log($"[RoomPopUp] AudioManager 상태 - masterVolume: {Manager.Audio.masterVolume}, bgmVolume: {Manager.Audio.bgmVolume}, sfxVolume: {Manager.Audio.sfxVolume}");
+            Debug.Log($"[RoomPopUp] AudioListener.volume: {AudioListener.volume}");
+
+            // 볼륨이 0인지 확인
+            if (Manager.Audio.masterVolume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] masterVolume이 0입니다. 소리가 나지 않을 수 있습니다.");
+            }
+            if (Manager.Audio.bgmVolume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] bgmVolume이 0입니다. BGM이 나지 않을 수 있습니다.");
+            }
+            if (AudioListener.volume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] AudioListener.volume이 0입니다. 모든 소리가 나지 않을 수 있습니다.");
+            }
+
             if (!string.IsNullOrEmpty(roomBgmName))
             {
-                Manager.Audio.BgmPlay(roomBgmName, 1f);
-                Debug.Log($"[RoomPopUp] 방 BGM 시작: {roomBgmName}");
+                Debug.Log($"[RoomPopUp] BGM 재생 시도: {roomBgmName}");
+                
+                // AudioManager 상태 강제 리셋 시도
+                Debug.Log("[RoomPopUp] AudioManager 상태 강제 리셋 시도");
+                Manager.Audio.BgmPlay(null, 0f); // 기존 BGM 완전 중지
+                
+                // 잠시 대기 후 새 BGM 재생
+                StartCoroutine(PlayBGMAfterReset());
             }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] roomBgmName이 null이거나 비어있습니다.");
+            }
+        }
+
+        // AudioManager 리셋 후 BGM 재생
+        private IEnumerator PlayBGMAfterReset()
+        {
+            yield return new WaitForSeconds(0.1f); // AudioManager 리셋 대기
+            
+            Debug.Log($"[RoomPopUp] 새 BGM 재생 시도: {roomBgmName}");
+            
+            // AudioData 로드 확인
+            AudioData data = Resources.Load<AudioData>($"Audio/{roomBgmName}");
+            if (data != null)
+            {
+                Debug.Log($"[RoomPopUp] AudioData 로드 성공 - clip: {data.clip?.name}, volume: {data.volume}");
+            }
+            else
+            {
+                Debug.LogError($"[RoomPopUp] AudioData 로드 실패: {roomBgmName}");
+            }
+            
+            Manager.Audio.BgmPlay(roomBgmName, 0f);
+            
+            // AudioSource 상태 확인
+            if (Manager.Audio != null)
+            {
+                var audioSource = Manager.Audio.GetComponent<AudioSource>();
+                if (audioSource != null)
+                {
+                    Debug.Log($"[RoomPopUp] AudioSource 상태 - clip: {audioSource.clip?.name}, volume: {audioSource.volume}, isPlaying: {audioSource.isPlaying}");
+                }
+            }
+            
+            Debug.Log($"[RoomPopUp] 방 BGM 시작 완료: {roomBgmName}");
         }
 
         private void OnDisable()
         {
+            Debug.Log($"[RoomPopUp] OnDisable 호출됨 - isGameStarting: {isGameStarting}, isApplicationQuitting: {isApplicationQuitting}");
             UnsubscribePhotonEvents();
 
+            // 게임 시작 중이면 BGM 변경하지 않음
+            if (isGameStarting)
+            {
+                Debug.Log("[RoomPopUp] 게임 시작 중이므로 BGM 변경을 건너뜁니다.");
+                return;
+            }
 
-    // MenuPopUp이 열려있는지 확인
-    if (UIManager.Instance.FindActivePopUp<MenuPopUp>() != null)
-    {
-        // MenuPopUp이 열려있으면 BGM 변경하지 않음
-        Debug.Log("[RoomPopUp] MenuPopUp이 열려있어 BGM 변경을 건너뜁니다.");
-        return;
-    }
-    
-    // 애플리케이션이 종료 중이 아니고 게임오브젝트가 활성화되어 있을 때만 코루틴 시작
-    if (!isApplicationQuitting && gameObject.activeInHierarchy)
-    {
-        // 방에서 나갈 때 BGM을 메인으로 자연스럽게 전환
-        StartCoroutine(TransitionToMainBGM());
-    }
-    else
-    {
-        // 애플리케이션 종료 중이거나 게임오브젝트가 비활성화된 경우 직접 BGM 변경
-        if (Manager.Audio != null)
-        {
-            Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f);
-            Debug.Log("[RoomPopUp] 메인 BGM으로 즉시 전환: BGM_ParTeaMain");
-        }
-    }
+            // MenuPopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<MenuPopUp>() != null)
+            {
+                // MenuPopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] MenuPopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // MessagePopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<MessagePopUp>() != null)
+            {
+                // MessagePopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] MessagePopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // CheckPopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<CheckPopUp>() != null)
+            {
+                // CheckPopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] CheckPopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // 애플리케이션이 종료 중이 아니고 게임오브젝트가 활성화되어 있을 때만 코루틴 시작
+            if (!isApplicationQuitting && gameObject.activeInHierarchy)
+            {
+                // 방에서 나갈 때 BGM을 메인으로 자연스럽게 전환
+                StartCoroutine(TransitionToMainBGM());
+            }
+            else
+            {
+                // 애플리케이션 종료 중이거나 게임오브젝트가 비활성화된 경우 직접 BGM 변경
+                if (Manager.Audio != null)
+                {
+                    Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f);
+                    Debug.Log("[RoomPopUp] 메인 BGM으로 즉시 전환: BGM_ParTeaMain");
+                }
+            }
         }
 
         
@@ -151,10 +247,11 @@ namespace KYS
         // 메인 BGM으로 자연스럽게 전환
         private IEnumerator TransitionToMainBGM()
         {
+            Debug.Log("[RoomPopUp] TransitionToMainBGM 코루틴 시작");
             if (Manager.Audio != null)
             {
                 // 현재 BGM을 페이드 아웃하면서 메인 BGM으로 전환
-                Manager.Audio.BgmPlay("BGM_ParTeaMain", 1f);
+                Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f); // fadeDuration을 0으로 설정하여 즉시 재생
                 Debug.Log("[RoomPopUp] 메인 BGM으로 전환: BGM_ParTeaMain");
             }
             yield return null;
@@ -313,6 +410,10 @@ namespace KYS
 
         public void InitializeRoomAfterGame()
         {
+            // 게임 시작 플래그 리셋 (게임에서 돌아왔을 때)
+            isGameStarting = false;
+            Debug.Log("[RoomPopUp] InitializeRoomAfterGame - isGameStarting 플래그 리셋됨");
+
             if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
@@ -326,6 +427,31 @@ namespace KYS
             }
 
             UpdateGameSelectionButtonStates();
+            
+            // BGM 재시작 (지연 포함)
+            StartCoroutine(StartRoomBGMAfterGameReturn());
+        }
+        
+
+        
+        // 게임에서 돌아왔을 때 BGM 시작 (지연 포함)
+        private IEnumerator StartRoomBGMAfterGameReturn()
+        {
+            Debug.Log("[RoomPopUp] StartRoomBGMAfterGameReturn 코루틴 시작");
+            yield return new WaitForSeconds(1f); // AudioManager 준비 대기 (1초로 증가)
+            
+            Debug.Log($"[RoomPopUp] AudioManager 상태 확인: {Manager.Audio != null}");
+            if (Manager.Audio != null)
+            {
+                Debug.Log("[RoomPopUp] StartRoomBGM() 호출 직전");
+                StartRoomBGM();
+                Debug.Log("[RoomPopUp] StartRoomBGM() 호출 완료");
+                Debug.Log("[RoomPopUp] 게임에서 돌아온 후 BGM 시작 완료");
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] AudioManager가 null입니다. BGM 시작을 건너뜁니다.");
+            }
         }
 
         private void ClearExistingPanels()
@@ -376,6 +502,20 @@ namespace KYS
                 {
                     kvp.Value.ResetReadyState();
                 }
+            }
+        }
+
+        [PunRPC]
+        private void StopBGMForAllClients()
+        {
+            // 게임 시작 시 BGM 중지 (게임별 BGM이 재생될 예정)
+            isGameStarting = true; // 모든 클라이언트에서 게임 시작 플래그 설정
+            Debug.Log($"[RoomPopUp] 게임 시작 - BGM 중지 (RPC 호출됨) - isGameStarting: {isGameStarting}");
+            
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
+                Debug.Log("[RoomPopUp] 게임 시작 - BGM 중지 완료");
             }
         }
 
@@ -501,6 +641,10 @@ namespace KYS
                 return;
             }
 
+            // 게임 시작 플래그 설정
+            isGameStarting = true;
+            Debug.Log("[RoomPopUp] GameStart - isGameStarting 플래그 설정됨");
+
             InitializeGameStart();
 
             string sceneName = GetSelectedGameScene();
@@ -509,11 +653,10 @@ namespace KYS
             roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
 
-            // 게임 시작 시 BGM 중지 (게임별 BGM이 재생될 예정)
-            if (Manager.Audio != null)
+            // 모든 클라이언트에게 BGM 중지 RPC 호출
+            if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
-                Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
-                Debug.Log("[RoomPopUp] 게임 시작 - BGM 중지");
+                photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
             }
 
             if (Manager.game != null)
@@ -610,7 +753,7 @@ namespace KYS
             // 방을 나가기 전에 BGM을 메인으로 전환
             if (Manager.Audio != null)
             {
-                Manager.Audio.BgmPlay("BGM_ParTeaMain", 1f);
+                Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f); // fadeDuration을 0으로 설정하여 즉시 재생
                 Debug.Log("[RoomPopUp] 방 나가기 - 메인 BGM으로 전환");
             }
 

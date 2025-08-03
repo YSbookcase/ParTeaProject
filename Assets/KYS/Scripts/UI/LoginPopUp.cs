@@ -211,7 +211,7 @@ namespace KYS
             // 로그인 BGM 재생
             if (!string.IsNullOrEmpty(loginBgmName))
             {
-                Manager.Audio.BgmPlay(loginBgmName, 1f);
+                Manager.Audio.BgmPlay(loginBgmName, 0f); // fadeDuration을 0으로 설정하여 즉시 재생
                 Debug.Log($"[LoginPopUp] 로그인 BGM 시작: {loginBgmName}");
             }
         }
