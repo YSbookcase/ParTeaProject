@@ -11,15 +11,13 @@ using Photon.Realtime;
 namespace KYS
 {
 
-    public class MenuPopUp : BaseUI
+    public class TitleMenuPopUp : BaseUI
     {
         private new void Awake()
         {
             base.Awake();
 
             // SFX가 포함된 이벤트 등록
-            GetEventWithSFX("LogOutButton", "SFX_ButtonClick").Click += LogOut;
-            GetEventWithSFX("EditProfileButton", "SFX_ButtonClick").Click += EditProfile;
             GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
 
             // 볼륨 슬라이더 이벤트 등록
@@ -45,19 +43,7 @@ namespace KYS
 
         private void OnDisable()
         {
-            // Firebase 이벤트 해제
-            var logoutButton = GetEvent("LogOutButton");
-            var editProfileButton = GetEvent("EditProfileButton");
 
-            if (logoutButton != null)
-            {
-                logoutButton.Click -= LogOut;
-            }
-
-            if (editProfileButton != null)
-            {
-                editProfileButton.Click -= EditProfile;
-            }
         }
 
         private void InitializePanel()
@@ -68,21 +54,7 @@ namespace KYS
 
         private void RegisterEvents()
         {
-            // 기존 이벤트 해제 후 다시 등록 (중복 방지)
-            var logoutButton = GetEvent("LogOutButton");
-            var editProfileButton = GetEvent("EditProfileButton");
 
-            if (logoutButton != null)
-            {
-                logoutButton.Click -= LogOut; // 기존 이벤트 해제
-                logoutButton.Click += LogOut;
-            }
-
-            if (editProfileButton != null)
-            {
-                editProfileButton.Click -= EditProfile; // 기존 이벤트 해제
-                editProfileButton.Click += EditProfile;
-            }
         }
 
         // 볼륨 슬라이더 이벤트 등록
@@ -102,11 +74,11 @@ namespace KYS
                 Debug.LogError("[MenuPopUp] MasterVolumeSlider를 찾을 수 없습니다!");
             }
             */
-            
+
             // BGM 볼륨 슬라이더
             GetEvent("BGMVolumeSlider").Down += OnBGMVolumeStartDrag;
             GetEvent("BGMVolumeSlider").Up += OnBGMVolumeEndDrag;
-            
+
             // SFX 볼륨 슬라이더
             GetEvent("SFXVolumeSlider").Down += OnSFXVolumeStartDrag;
             GetEvent("SFXVolumeSlider").Up += OnSFXVolumeEndDrag;
@@ -119,16 +91,16 @@ namespace KYS
             // float masterVol = PlayerPrefs.GetFloat("MasterVolume", 0.5f); // 주석 처리
             float bgmVol = PlayerPrefs.GetFloat("BGMVolume", 0.5f);
             float sfxVol = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
-            
+
             // UI 업데이트
             // Slider masterSlider = GetUI<Slider>("MasterVolumeSlider"); // 주석 처리
             Slider bgmSlider = GetUI<Slider>("BGMVolumeSlider");
             Slider sfxSlider = GetUI<Slider>("SFXVolumeSlider");
-            
+
             // if (masterSlider != null) masterSlider.value = masterVol; // 주석 처리
             if (bgmSlider != null) bgmSlider.value = bgmVol;
             if (sfxSlider != null) sfxSlider.value = sfxVol;
-            
+
             // 오디오 매니저에 적용
             ApplyAudioSettings(0.5f, bgmVol, sfxVol); // masterVol 대신 기본값 0.5f 사용
         }
@@ -139,11 +111,11 @@ namespace KYS
             // Slider masterSlider = GetUI<Slider>("MasterVolumeSlider"); // 주석 처리
             Slider bgmSlider = GetUI<Slider>("BGMVolumeSlider");
             Slider sfxSlider = GetUI<Slider>("SFXVolumeSlider");
-            
+
             // float masterVol = masterSlider != null ? masterSlider.value : 0.5f; // 주석 처리
             float bgmVol = bgmSlider != null ? bgmSlider.value : 0.5f;
             float sfxVol = sfxSlider != null ? sfxSlider.value : 0.5f;
-            
+
             // PlayerPrefs.SetFloat("MasterVolume", masterVol); // 주석 처리
             PlayerPrefs.SetFloat("BGMVolume", bgmVol);
             PlayerPrefs.SetFloat("SFXVolume", sfxVol);
@@ -234,22 +206,6 @@ namespace KYS
             }
         }
 
-
-
-        // Firebase 관련 메서드들 (기존 코드 유지)
-        private void LogOut(PointerEventData eventData)
-        {
-            // 로그아웃 로직
-            FirebaseManager.Auth.SignOut();
-            Debug.Log("로그아웃 완료");
-            UIManager.Instance.CleanAllUI();
-            UIManager.Instance.ShowPopUp<LoginPopUp>();
-        }
-
-        private void EditProfile(PointerEventData eventData)
-        {
-            UIManager.Instance.ShowPopUp<EditPopUp>();
-        }
 
         private void Back(PointerEventData eventData)
         {

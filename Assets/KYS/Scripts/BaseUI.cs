@@ -1,14 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class BaseUI : MonoBehaviour
 {
     [SerializeField] protected bool canCloseWithESC = true; // ESC로 닫을 수 있는지
+    [Header("Audio Settings")]
+    [SerializeField] protected string defaultClickSound = "SFX_ButtonClick";
+    [SerializeField] protected string defaultBackSound = "SFX_ButtonClickBack";
+    [SerializeField] protected bool enableSFX = true;
 
     public bool CanCloseWithESC => canCloseWithESC;
 
     private Dictionary<string, GameObject> goDict;
     private Dictionary<string, Component> compDict;
+    
     protected void Awake()
     {
         RectTransform[] transforms = GetComponentsInChildren<RectTransform>(true);
@@ -24,6 +30,51 @@ public class BaseUI : MonoBehaviour
         {
             compDict.TryAdd($"{comp.gameObject.name}_{comp.GetType().Name}", comp);
         }
+    }
+
+    // SFX 재생 메서드들
+    protected void PlayClickSound(string soundName = null)
+    {
+        if (!enableSFX) return;
+        
+        string soundToPlay = soundName ?? defaultClickSound;
+        if (!string.IsNullOrEmpty(soundToPlay) && Manager.Audio != null)
+        {
+            Manager.Audio.SfxPlay(soundToPlay);
+        }
+    }
+
+    protected void PlayBackSound(string soundName = null)
+    {
+        if (!enableSFX) return;
+        
+        string soundToPlay = soundName ?? defaultBackSound;
+        if (!string.IsNullOrEmpty(soundToPlay) && Manager.Audio != null)
+        {
+            Manager.Audio.SfxPlay(soundToPlay);
+        }
+    }
+
+    // 이벤트 등록 시 자동 SFX 추가
+    public PointerHandler GetEventWithSFX(in string name, string clickSound = null)
+    {
+        PointerHandler handler = GetEvent(name);
+        if (handler != null)
+        {
+            handler.Click += (data) => PlayClickSound(clickSound);
+        }
+        return handler;
+    }
+
+    // Back 버튼용 특별 메서드
+    public PointerHandler GetBackEvent(in string name, string backSound = null)
+    {
+        PointerHandler handler = GetEvent(name);
+        if (handler != null)
+        {
+            handler.Click += (data) => PlayBackSound(backSound);
+        }
+        return handler;
     }
 
     // string으로 특정 UI 게임오브젝트 찾기

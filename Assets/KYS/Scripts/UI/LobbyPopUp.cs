@@ -54,7 +54,7 @@ namespace KYS
             }
 
             // Photon 이벤트 연결 (null 체크 추가)
-            var createRoomButton = GetEvent("CreateRoomButton");
+            var createRoomButton = GetEventWithSFX("CreateRoomButton", "SFX_ButtonClick");
             if (createRoomButton != null)
             {
                 createRoomButton.Click += OnCreateRoomClicked;
@@ -214,14 +214,14 @@ namespace KYS
         private void ConnectEventsIfNeeded()
         {
             // CreateRoomButton 이벤트가 연결되지 않았다면 다시 시도
-            var createRoomButton = GetEvent("CreateRoomButton");
+            var createRoomButton = GetEventWithSFX("CreateRoomButton", "SFX_ButtonClick");
             if (createRoomButton != null)
             {
                 createRoomButton.Click -= OnCreateRoomClicked; // 중복 방지
                 createRoomButton.Click += OnCreateRoomClicked;
             }
 
-            var menuButton = GetEvent("MenuButton");
+            var menuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
             if (menuButton != null)
             {
                 menuButton.Click -= OnMenu;

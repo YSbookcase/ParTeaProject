@@ -18,11 +18,13 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
-canCloseWithESC = false; // ESC로 닫을 수 없음
-            // 버튼 이벤트 등록
-            GetEvent("BackButton").Click += Back;
+            canCloseWithESC = false; // ESC로 닫을 수 없음
 
-            GetEvent("ResendButton").Click += ResendEmail;
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("ResendButton", "SFX_ButtonClick").Click += ResendEmail;
+            GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
+            GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenu;
+
         }
 
         private void OnEnable()
@@ -166,6 +168,11 @@ canCloseWithESC = false; // ESC로 닫을 수 없음
                     loginPanelScript.ResetInputs();
                 }
             }
+        }
+
+        private void OnMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
         }
 
         private void UpdateStatusText(string message)

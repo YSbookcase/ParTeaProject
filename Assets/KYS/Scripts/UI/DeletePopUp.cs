@@ -18,11 +18,12 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
+            canCloseWithESC = false; // ESC로 닫을 수 없음
 
-            // 버튼 이벤트 등록
-            GetEvent("DeleteButton").Click += OnDeleteButtonClick;
-            GetEvent("CancelButton").Click += OnCancelButtonClick;
-
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("DeleteButton", "SFX_ButtonClick").Click += OnDeleteButtonClick;
+            GetBackEvent("CancelButton", "SFX_ButtonClickBack").Click += OnCancelButtonClick;
+            GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenuButtonClick;
         }
 
         // 삭제 버튼 클릭 시
@@ -60,6 +61,12 @@ namespace KYS
             ResetInputs();
             UIManager.Instance.ClosePopUp();
         }
+
+        private void OnMenuButtonClick(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
+        }
+
 
         // 삭제 확인 팝업 띄우기
         private void ShowConfirmDeletePopup()
