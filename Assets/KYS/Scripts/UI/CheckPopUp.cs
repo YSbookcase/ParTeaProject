@@ -20,9 +20,9 @@ namespace KYS
         {
             base.Awake();
 
-            // 버튼 이벤트 등록
-            GetEvent("ConfirmButton").Click += OnConfirm;
-            GetEvent("CancelButton").Click += OnCancel;
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("ConfirmButton", "SFX_ButtonClick").Click += OnConfirm;
+            GetBackEvent("CancelButton", "SFX_ButtonClickBack").Click += OnCancel;
         }
 
         // 메시지와 버튼 텍스트, 콜백 함수를 설정하는 메서드

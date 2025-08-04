@@ -1,12 +1,12 @@
+using Firebase.Auth;
 using Firebase.Extensions;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq; // Count() 메서드를 위해 추가
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using System.Text.RegularExpressions;
-using Firebase.Auth;
-using System.Linq; // Count() 메서드를 위해 추가
 
 namespace KYS
 {
@@ -24,10 +24,16 @@ namespace KYS
             base.Awake();
             canCloseWithESC = false; // ESC로 닫을 수 없음
 
-            // 버튼 이벤트 등록
-            //GetEvent("CheckAvailabilityButton").Click += CheckEmailAvailability; // 이메일 중복 확인 버튼 비활성화
-            GetEvent("SignUpButton").Click += SignUp;
-            GetEvent("CancelButton").Click += Cancel;
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("SignUpButton", "SFX_ButtonClick").Click += SignUp;
+            GetBackEvent("CancelButton", "SFX_ButtonClickBack").Click += Cancel;
+
+            var menuButton = GetEventWithSFX("TitleMenuButton", "SFX_ButtonClick");
+            if (menuButton != null)
+            {
+                menuButton.Click -= OnTitleMenu;
+                menuButton.Click += OnTitleMenu;
+            }
 
             // 이메일 입력 필드 변경 이벤트 등록
             if (idInput != null)
@@ -298,6 +304,12 @@ namespace KYS
                 loginPanel.SetActive(true);
             }
         }
+
+        private void OnTitleMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<TitleMenuPopUp>();
+        }
+
 
         private void ResetInputs()
         {

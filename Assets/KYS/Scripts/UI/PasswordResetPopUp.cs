@@ -13,10 +13,19 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
-            canCloseWithESC = false;
+            canCloseWithESC = false; // ESC로 닫을 수 없음
 
-            GetEvent("SendButton").Click += SendResetEmail;
-            GetEvent("BackButton").Click += Back;
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("SendButton", "SFX_ButtonClick").Click += SendResetEmail;
+            GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
+
+            var menuButton = GetEventWithSFX("TitleMenuButton", "SFX_ButtonClick");
+            if (menuButton != null)
+            {
+                menuButton.Click -= OnTitleMenu;
+                menuButton.Click += OnTitleMenu;
+            }
+
         }
 
         private void SendResetEmail(PointerEventData eventData)
@@ -110,6 +119,12 @@ namespace KYS
 
             return true;
         }
+
+        private void OnTitleMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<TitleMenuPopUp>();
+        }
+
 
         private void ShowErrorMessage(string message)
         {
