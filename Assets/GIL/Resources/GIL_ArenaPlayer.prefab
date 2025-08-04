@@ -136,7 +136,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 0
-  m_CollisionDetection: 1
+  m_CollisionDetection: 2
 --- !u!114 &2028662890537002284
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -152,6 +152,7 @@ MonoBehaviour:
   movePower: 30
   maxSpeed: 50
   drag: 0.95
+  pushForce: 30
 --- !u!114 &5067074703783935331
 MonoBehaviour:
   m_ObjectHideFlags: 0
