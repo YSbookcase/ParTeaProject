@@ -43,7 +43,26 @@ namespace KYS
 
         private void OnEnable()
         {
-            //Debug.Log("[LoginPanel] OnEnable 호출됨 - 입력 필드 초기화 시작");
+            Debug.Log("[LoginPopUp] OnEnable 호출됨");
+            
+            // Canvas 정보 확인
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                Debug.Log($"[LoginPopUp] Canvas 발견: {canvas.name}, 활성화: {canvas.gameObject.activeInHierarchy}, 렌더링 모드: {canvas.renderMode}");
+            }
+            else
+            {
+                Debug.LogError("[LoginPopUp] Canvas를 찾을 수 없습니다!");
+            }
+            
+            // RectTransform 정보 확인
+            RectTransform rectTransform = GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                Debug.Log($"[LoginPopUp] RectTransform 크기: {rectTransform.sizeDelta}, 위치: {rectTransform.anchoredPosition}, 앵커: {rectTransform.anchorMin} ~ {rectTransform.anchorMax}");
+            }
+            
             // 패널이 활성화될 때마다 입력 필드 초기화
             ResetInputs();
 
