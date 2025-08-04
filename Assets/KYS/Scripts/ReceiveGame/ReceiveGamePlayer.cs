@@ -28,7 +28,7 @@ namespace KYS
         
         [Header("Effects")]
         [SerializeField] private GameObject collectEffect;
-        [SerializeField] private AudioClip collectSound;
+        [SerializeField] private string collectSoundName = "SFX_NormalItem"; // AudioData 에셋 이름으로 변경
         
         [Header("Input System")]
         [SerializeField] private UnityEngine.InputSystem.InputActionAsset inputActions;
@@ -40,7 +40,6 @@ namespace KYS
         private bool isMoving = false;
         private ReceiveGameManagerEnhanced gameManager;
         private ReceiveGameUI gameUI;
-        private AudioSource audioSource;
         private GameObject nameTag;
         private ReceiveGameNicknamePanel nicknamePanel;
         
@@ -122,11 +121,7 @@ namespace KYS
                 InitializeInputSystem();
             }
             
-            audioSource = GetComponent<AudioSource>();
-            if (audioSource == null)
-            {
-                audioSource = gameObject.AddComponent<AudioSource>();
-            }
+            // AudioSource 제거 - AudioManager 시스템 사용
         }
         
         private void Update()
@@ -217,9 +212,6 @@ namespace KYS
                     
                     // 속도 부스트 시에도 MoveSpeed로만 처리 (Sprint 모션이 없으므로)
                     playerAnimator.SetFloat("MoveSpeed", normalizedSpeed);
-                    
-                    // 디버그 로그 (테스트 후 제거 가능)
-                    Debug.Log($"애니메이션 설정 - IsMoving: true, MoveSpeed: {normalizedSpeed:F2}");
                 }
                 else
                 {
@@ -241,9 +233,6 @@ namespace KYS
                 {
                     playerAnimator.SetBool("IsMoving", false);
                     playerAnimator.SetFloat("MoveSpeed", 0f);
-                    
-                    // 디버그 로그 (테스트 후 제거 가능)
-                    Debug.Log("애니메이션 설정 - IsMoving: false, MoveSpeed: 0");
                 }
             }
         }
@@ -253,32 +242,12 @@ namespace KYS
             // 주변 아이템 검사
             Collider[] colliders = Physics.OverlapSphere(transform.position, collectionRadius);
             
-            if (colliders.Length > 0)
-            {
-                Debug.Log($"[ReceiveGamePlayer] 플레이어 {PhotonNetwork.LocalPlayer.ActorNumber} 주변에 {colliders.Length}개의 콜라이더 발견");
-                
-                // 모든 콜라이더 정보 출력 (디버깅용)
-                foreach (Collider collider in colliders)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 발견된 오브젝트: {collider.name}, 레이어: {collider.gameObject.layer}, 태그: {collider.tag}");
-                }
-            }
-            
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
-                    Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}, 수집 반경: {collectionRadius}");
                     CollectItem(item);
-                }
-                else if (item != null && item.IsCollected)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 이미 수집된 아이템: {item.name}");
-                }
-                else
-                {
-                    Debug.Log($"[ReceiveGamePlayer] CollectibleItem 컴포넌트가 없는 오브젝트: {collider.name}");
                 }
             }
         }
@@ -344,10 +313,10 @@ namespace KYS
                 Instantiate(collectEffect, transform.position, Quaternion.identity);
             }
             
-            // 수집 사운드
-            if (collectSound != null && audioSource != null)
+            // 수집 사운드 - AudioManager 시스템 사용
+            if (!string.IsNullOrEmpty(collectSoundName) && Manager.Audio != null)
             {
-                audioSource.PlayOneShot(collectSound);
+                Manager.Audio.SfxPlay(collectSoundName, transform);
             }
         }
         
@@ -672,30 +641,12 @@ namespace KYS
         // 충돌 감지 디버그 (테스트용)
         private void OnCollisionEnter(Collision collision)
         {
-            if (photonView.IsMine)
-            {
-                Debug.Log($"[ReceiveGamePlayer] 충돌 감지: {collision.gameObject.name}, 태그: {collision.gameObject.tag}, 레이어: {collision.gameObject.layer}");
-                
-                // 장애물과의 충돌 확인
-                ObstacleController obstacle = collision.gameObject.GetComponent<ObstacleController>();
-                if (obstacle != null)
-                {
-                    Debug.Log("[ReceiveGamePlayer] 장애물과 충돌 감지됨!");
-                }
-            }
+            // 충돌 처리 로직이 필요한 경우 여기에 추가
         }
         
         private void OnCollisionStay(Collision collision)
         {
-            if (photonView.IsMine)
-            {
-                // 지속적인 충돌 상태 확인 (디버그용)
-                ObstacleController obstacle = collision.gameObject.GetComponent<ObstacleController>();
-                if (obstacle != null)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 장애물과 충돌 중 - 위치: {transform.position}");
-                }
-            }
+            // 지속적인 충돌 처리 로직이 필요한 경우 여기에 추가
         }
         
         // 플랫폼 감지

@@ -329,11 +329,14 @@ namespace KYS
                 ReceiveGamePlayer player = other.GetComponent<ReceiveGamePlayer>();
                 if (player != null)
                 {
-                    // 아이템 효과 적용
-                    ApplyItemEffect(player);
-                    
-                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
-                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
+                                    // 아이템 효과 적용
+                ApplyItemEffect(player);
+                
+                // 아이템 수집 효과음 재생
+                PlayCollectSound();
+                
+                // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
+                // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
                 }
                 
                 // 아이템 제거
@@ -377,6 +380,27 @@ namespace KYS
         public float GetEffectDuration()
         {
             return effectDuration;
+        }
+        
+        // 아이템 수집 효과음 재생
+        private void PlayCollectSound()
+        {
+            if (itemConfiguration != null)
+            {
+                ItemConfig config = itemConfiguration.GetItemConfig(itemType);
+                if (config != null && !string.IsNullOrEmpty(config.collectSoundName) && Manager.Audio != null)
+                {
+                    Manager.Audio.SfxPlay(config.collectSoundName, transform);
+                }
+            }
+            else
+            {
+                // 기본 효과음 재생
+                if (Manager.Audio != null)
+                {
+                    Manager.Audio.SfxPlay("SFX_NormalItem", transform);
+                }
+            }
         }
     }
 } 

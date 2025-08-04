@@ -29,6 +29,9 @@ namespace KYS
         public float rotationSpeed = 60f;
         public float bobSpeed = 1.5f;
         public float bobHeight = 0.3f;
+        
+        [Header("Audio Settings")]
+        public string collectSoundName = "SFX_NormalItem"; // 아이템 수집 효과음
     }
 
     [CreateAssetMenu(fileName = "ItemConfiguration", menuName = "KYS/Item Configuration")]

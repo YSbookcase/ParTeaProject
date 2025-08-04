@@ -60,7 +60,7 @@ MonoBehaviour:
     type: 3}
   nameTagOffset: {x: 0, y: 2.5, z: 0}
   collectEffect: {fileID: 0}
-  collectSound: {fileID: 0}
+  collectSoundName: SFX_NormalItem
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
     type: 3}
 --- !u!136 &2652187264152053537
