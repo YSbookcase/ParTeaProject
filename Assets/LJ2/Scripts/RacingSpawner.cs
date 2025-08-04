@@ -53,8 +53,9 @@ public class RacingSpawner : MonoBehaviour
 
     public void SetStartLineIndex()
     {
+        Debug.Log(racingMap.racingLines.Count);
         trackLength = Random.Range(1, racingMap.racingLines.Count);
-        startIndex = Random.Range(0, racingMap.racingLines.Count);
+        startIndex = Random.Range(0, racingMap.racingLines.Count - 1 );
         Debug.Log($"Track length: {trackLength}, Start index: {startIndex}");
         isSetStartLineIndex = true;
     }
