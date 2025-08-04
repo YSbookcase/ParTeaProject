@@ -16,10 +16,13 @@ namespace KYS
         private new void Awake()
         {
             base.Awake();
-canCloseWithESC = false; // ESC로 닫을 수 없음
-            // 버튼 이벤트 등록
-            GetEvent("ConfirmButton").Click += Confirm;
-            GetEvent("BackButton").Click += Back;
+            canCloseWithESC = false; // ESC로 닫을 수 없음
+
+            // SFX가 포함된 버튼 이벤트 등록
+            GetEventWithSFX("ConfirmButton", "SFX_ButtonClick").Click += Confirm;
+            
+            // Back 버튼 이벤트 등록 (SFX 포함)
+            GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
         }
 
         private void Confirm(PointerEventData eventData)

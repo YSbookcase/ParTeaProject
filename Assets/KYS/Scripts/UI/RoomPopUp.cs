@@ -12,14 +12,22 @@ namespace KYS
 {
     public class RoomPopUp : BaseUI
     {
+        [Header("Audio Settings")]
+        [SerializeField] private string roomBgmName = "BGM_ParTeaRoom";
+        // 애플리케이션 종료 플래그
+        private bool isApplicationQuitting = false;
+        private bool isGameStarting = false; // 게임 시작 플래그 추가
+
         #region UI References
         // 방 관련 UI
         private Button startButton => GetUI<Button>("StartButton");
         private Button leaveButton => GetUI<Button>("LeaveButton");
         private Button gameLeftButton => GetUI<Button>("GameLeftButton");
         private Button gameRightButton => GetUI<Button>("GameRightButton");
+        private Button menuButton => GetUI<Button>("MenuButton");
         private Image gameImage => GetUI<Image>("GameImage");
         private TMP_Text gameNameText => GetUI<TMP_Text>("GameNameText");
+        private TMP_Text roomNameText => GetUI<TMP_Text>("RoomNameContent"); // 방 이름 표시용
         private GameObject playerPanelItemPrefab;
         private Transform playerPanelContent => GetUI<Transform>("PlayerPanelContent");
 
@@ -34,7 +42,7 @@ namespace KYS
         // 방 상태
         public int selectedGameIndex = 0;
         public Dictionary<int, PlayerPanelItem> playerPanels = new Dictionary<int, PlayerPanelItem>();
-        
+
         // 게임 정보 (8개 게임)
         private GameInfo[] availableGames = new GameInfo[]
         {
@@ -52,7 +60,7 @@ namespace KYS
         #region Photon Components
         // 모든 클라이언트가 같은 ViewID를 사용하는 PhotonView
         private PhotonView photonView;
-        
+
         // 채팅용 고정 ViewID (모든 클라이언트가 공유)
         private const int CHAT_VIEW_ID = 9999;
         #endregion
@@ -62,7 +70,7 @@ namespace KYS
         {
             base.Awake();
             canCloseWithESC = false; // ESC로 닫을 수 없음
-            
+
             InitializePhotonView();
             LoadPrefabs();
             ConnectEvents();
@@ -70,14 +78,183 @@ namespace KYS
 
         private void OnEnable()
         {
+            Debug.Log($"[RoomPopUp] OnEnable 호출됨 - isGameStarting: {isGameStarting}");
             InitializePhotonViewID();
             SubscribePhotonEvents();
             InitializeRoom();
+            
+            // 게임에서 돌아온 상황이 아니라면 BGM 시작
+            if (!isGameStarting)
+            {
+                StartCoroutine(StartRoomBGMWithDelay());
+            }
+            else
+            {
+                Debug.Log("[RoomPopUp] 게임에서 돌아온 상황이므로 OnEnable에서 BGM 시작을 건너뜁니다.");
+            }
+        }
+
+        // 지연된 BGM 시작 (오디오 매니저 생성 대기)
+        private IEnumerator StartRoomBGMWithDelay()
+        {
+            yield return new WaitForSeconds(0.1f);
+            if (Manager.Audio != null)
+            {
+                StartRoomBGM();
+            }
+        }
+
+        // 방 BGM 시작
+        public void StartRoomBGM()
+        {
+            Debug.Log($"[RoomPopUp] StartRoomBGM 호출됨 - roomBgmName: {roomBgmName}");
+            if (Manager.Audio == null)
+            {
+                Debug.LogWarning("[RoomPopUp] AudioManager가 null입니다. BGM 시작을 건너뜁니다.");
+                return;
+            }
+
+            // AudioManager 상태 확인
+            Debug.Log($"[RoomPopUp] AudioManager 상태 - masterVolume: {Manager.Audio.masterVolume}, bgmVolume: {Manager.Audio.bgmVolume}, sfxVolume: {Manager.Audio.sfxVolume}");
+            Debug.Log($"[RoomPopUp] AudioListener.volume: {AudioListener.volume}");
+
+            // 볼륨이 0인지 확인
+            if (Manager.Audio.masterVolume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] masterVolume이 0입니다. 소리가 나지 않을 수 있습니다.");
+            }
+            if (Manager.Audio.bgmVolume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] bgmVolume이 0입니다. BGM이 나지 않을 수 있습니다.");
+            }
+            if (AudioListener.volume <= 0f)
+            {
+                Debug.LogWarning("[RoomPopUp] AudioListener.volume이 0입니다. 모든 소리가 나지 않을 수 있습니다.");
+            }
+
+            if (!string.IsNullOrEmpty(roomBgmName))
+            {
+                Debug.Log($"[RoomPopUp] BGM 재생 시도: {roomBgmName}");
+                
+                // AudioManager 상태 강제 리셋 시도
+                Debug.Log("[RoomPopUp] AudioManager 상태 강제 리셋 시도");
+                Manager.Audio.BgmPlay(null, 0f); // 기존 BGM 완전 중지
+                
+                // 잠시 대기 후 새 BGM 재생
+                StartCoroutine(PlayBGMAfterReset());
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] roomBgmName이 null이거나 비어있습니다.");
+            }
+        }
+
+        // AudioManager 리셋 후 BGM 재생
+        private IEnumerator PlayBGMAfterReset()
+        {
+            yield return new WaitForSeconds(0.1f); // AudioManager 리셋 대기
+            
+            Debug.Log($"[RoomPopUp] 새 BGM 재생 시도: {roomBgmName}");
+            
+            // AudioData 로드 확인
+            AudioData data = Resources.Load<AudioData>($"Audio/{roomBgmName}");
+            if (data != null)
+            {
+                Debug.Log($"[RoomPopUp] AudioData 로드 성공 - clip: {data.clip?.name}, volume: {data.volume}");
+            }
+            else
+            {
+                Debug.LogError($"[RoomPopUp] AudioData 로드 실패: {roomBgmName}");
+            }
+            
+            Manager.Audio.BgmPlay(roomBgmName, 0f);
+            
+            // AudioSource 상태 확인
+            if (Manager.Audio != null)
+            {
+                var audioSource = Manager.Audio.GetComponent<AudioSource>();
+                if (audioSource != null)
+                {
+                    Debug.Log($"[RoomPopUp] AudioSource 상태 - clip: {audioSource.clip?.name}, volume: {audioSource.volume}, isPlaying: {audioSource.isPlaying}");
+                }
+            }
+            
+            Debug.Log($"[RoomPopUp] 방 BGM 시작 완료: {roomBgmName}");
         }
 
         private void OnDisable()
         {
+            Debug.Log($"[RoomPopUp] OnDisable 호출됨 - isGameStarting: {isGameStarting}, isApplicationQuitting: {isApplicationQuitting}");
             UnsubscribePhotonEvents();
+
+            // 게임 시작 중이면 BGM 변경하지 않음
+            if (isGameStarting)
+            {
+                Debug.Log("[RoomPopUp] 게임 시작 중이므로 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // MenuPopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<MenuPopUp>() != null)
+            {
+                // MenuPopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] MenuPopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // MessagePopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<MessagePopUp>() != null)
+            {
+                // MessagePopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] MessagePopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // CheckPopUp이 열려있는지 확인
+            if (UIManager.Instance.FindActivePopUp<CheckPopUp>() != null)
+            {
+                // CheckPopUp이 열려있으면 BGM 변경하지 않음
+                Debug.Log("[RoomPopUp] CheckPopUp이 열려있어 BGM 변경을 건너뜁니다.");
+                return;
+            }
+
+            // 애플리케이션이 종료 중이 아니고 게임오브젝트가 활성화되어 있을 때만 코루틴 시작
+            if (!isApplicationQuitting && gameObject.activeInHierarchy)
+            {
+                // 방에서 나갈 때 BGM을 메인으로 자연스럽게 전환
+                StartCoroutine(TransitionToMainBGM());
+            }
+            else
+            {
+                // 애플리케이션 종료 중이거나 게임오브젝트가 비활성화된 경우 직접 BGM 변경
+                if (Manager.Audio != null)
+                {
+                    Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f);
+                    Debug.Log("[RoomPopUp] 메인 BGM으로 즉시 전환: BGM_ParTeaMain");
+                }
+            }
+        }
+
+        
+
+        // 애플리케이션 종료 시 호출되는 메서드
+        private void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
+            UnsubscribePhotonEvents();
+        }
+
+        // 메인 BGM으로 자연스럽게 전환
+        private IEnumerator TransitionToMainBGM()
+        {
+            Debug.Log("[RoomPopUp] TransitionToMainBGM 코루틴 시작");
+            if (Manager.Audio != null)
+            {
+                // 현재 BGM을 페이드 아웃하면서 메인 BGM으로 전환
+                Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f); // fadeDuration을 0으로 설정하여 즉시 재생
+                Debug.Log("[RoomPopUp] 메인 BGM으로 전환: BGM_ParTeaMain");
+            }
+            yield return null;
         }
 
         private void Start()
@@ -95,7 +272,7 @@ namespace KYS
             {
                 photonView = gameObject.AddComponent<PhotonView>();
             }
-            
+
             if (photonView != null)
             {
                 photonView.ObservedComponents = new List<Component>();
@@ -114,26 +291,30 @@ namespace KYS
 
         private void LoadPrefabs()
         {
-            playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
-            chatTextPrefab = Resources.Load<GameObject>("UI/ChatTextPrefab");
+            playerPanelItemPrefab = Resources.Load<GameObject>("UITest/PlayerPanelItemPrefab");
+            chatTextPrefab = Resources.Load<GameObject>("UITest/ChatTextPrefab");
         }
 
         private void ConnectEvents()
         {
-            var startButton = GetEvent("StartButton");
+            var startButton = GetEventWithSFX("StartButton", "SFX_ButtonClick");
             if (startButton != null) startButton.Click += GameStart;
 
-            var leaveButton = GetEvent("LeaveButton");
+            var leaveButton = GetEventWithSFX("LeaveButton", "SFX_ButtonClick");
             if (leaveButton != null) leaveButton.Click += LeaveRoom;
 
-            var gameLeftButton = GetEvent("GameLeftButton");
+            var gameLeftButton = GetEventWithSFX("GameLeftButton", "SFX_ButtonClick");
             if (gameLeftButton != null) gameLeftButton.Click += ClickLeftGameButton;
 
-            var gameRightButton = GetEvent("GameRightButton");
+            var gameRightButton = GetEventWithSFX("GameRightButton", "SFX_ButtonClick");
             if (gameRightButton != null) gameRightButton.Click += ClickRightGameButton;
 
-            var sendChatButton = GetEvent("SendChatButton");
+            var sendChatButton = GetEventWithSFX("SendChatButton", "SFX_ButtonClick");
             if (sendChatButton != null) sendChatButton.Click += SendChatMessage;
+
+            var menuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
+            if (menuButton != null) menuButton.Click += OnMenu;
+
         }
 
         private void SubscribePhotonEvents()
@@ -166,8 +347,8 @@ namespace KYS
             {
                 chatField.onEndEdit.AddListener(HandleChatInput);
                 chatField.onSubmit.AddListener(HandleChatInput);
-                
-                #if UNITY_ANDROID || UNITY_IOS
+
+#if UNITY_ANDROID || UNITY_IOS
                 if (chatField.textViewport != null)
                 {
                     var contentSizeFitter = chatField.textViewport.gameObject.GetComponent<ContentSizeFitter>();
@@ -177,10 +358,10 @@ namespace KYS
                     }
                     contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                 }
-                
+
                 chatField.keyboardType = TouchScreenKeyboardType.Default;
                 chatField.characterLimit = 100;
-                #endif
+#endif
             }
         }
         #endregion
@@ -188,30 +369,89 @@ namespace KYS
         #region Room Management
         private void InitializeRoom()
         {
+            Debug.Log("[RoomPopUp] 방 초기화 시작");
+
+            // 방 이름 업데이트
+            UpdateRoomName();
+
+            // 기존 플레이어 패널 정리
             ClearExistingPanels();
-            InitializePlayerProperties();
-            UpdateGameSelectionButtonStates();
-            InitializeGameSelection();
-            InitializeColorSelection();
+
+            // 현재 방의 모든 플레이어에 대해 패널 생성
             PlayerPanelSpawn();
+
+            // 게임 선택 UI 초기화
+            InitializeGameSelection();
+
+            // 채팅 초기화
             InitializeChat();
+
+            Debug.Log("[RoomPopUp] 방 초기화 완료");
+        }
+
+        // 방 이름 업데이트
+        private void UpdateRoomName()
+        {
+            if (roomNameText != null && PhotonNetwork.InRoom)
+            {
+                string roomName = PhotonNetwork.CurrentRoom.Name;
+                int currentPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+                int maxPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
+
+                roomNameText.text = $"{roomName} ({currentPlayers}/{maxPlayers})";
+                Debug.Log($"[RoomPopUp] 방 이름 업데이트: {roomName} ({currentPlayers}/{maxPlayers})");
+            }
+            else if (roomNameText != null)
+            {
+                roomNameText.text = "알 수 없음";
+                Debug.LogWarning("[RoomPopUp] 방에 입장하지 않은 상태입니다.");
+            }
         }
 
         public void InitializeRoomAfterGame()
         {
+            // 게임 시작 플래그 리셋 (게임에서 돌아왔을 때)
+            isGameStarting = false;
+            Debug.Log("[RoomPopUp] InitializeRoomAfterGame - isGameStarting 플래그 리셋됨");
+
             if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
             }
-            
+
             ClearChat();
-            
+
             if (chatField != null)
             {
                 chatField.text = "";
             }
-            
+
             UpdateGameSelectionButtonStates();
+            
+            // BGM 재시작 (지연 포함)
+            StartCoroutine(StartRoomBGMAfterGameReturn());
+        }
+        
+
+        
+        // 게임에서 돌아왔을 때 BGM 시작 (지연 포함)
+        private IEnumerator StartRoomBGMAfterGameReturn()
+        {
+            Debug.Log("[RoomPopUp] StartRoomBGMAfterGameReturn 코루틴 시작");
+            yield return new WaitForSeconds(1f); // AudioManager 준비 대기 (1초로 증가)
+            
+            Debug.Log($"[RoomPopUp] AudioManager 상태 확인: {Manager.Audio != null}");
+            if (Manager.Audio != null)
+            {
+                Debug.Log("[RoomPopUp] StartRoomBGM() 호출 직전");
+                StartRoomBGM();
+                Debug.Log("[RoomPopUp] StartRoomBGM() 호출 완료");
+                Debug.Log("[RoomPopUp] 게임에서 돌아온 후 BGM 시작 완료");
+            }
+            else
+            {
+                Debug.LogWarning("[RoomPopUp] AudioManager가 null입니다. BGM 시작을 건너뜁니다.");
+            }
         }
 
         private void ClearExistingPanels()
@@ -239,6 +479,13 @@ namespace KYS
             }
         }
 
+
+        private void OnMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
+        }
+
+
         [PunRPC]
         private void ResetAllPlayersReadyState()
         {
@@ -248,7 +495,7 @@ namespace KYS
                 playerProperties["Ready"] = false;
                 PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
             }
-            
+
             foreach (var kvp in playerPanels)
             {
                 if (kvp.Value != null)
@@ -257,6 +504,24 @@ namespace KYS
                 }
             }
         }
+
+        [PunRPC]
+        private void StopBGMForAllClients()
+        {
+            // 게임 시작 시 BGM 중지 (게임별 BGM이 재생될 예정)
+            isGameStarting = true; // 모든 클라이언트에서 게임 시작 플래그 설정
+            Debug.Log($"[RoomPopUp] 게임 시작 - BGM 중지 (RPC 호출됨) - isGameStarting: {isGameStarting}");
+            
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
+                Debug.Log("[RoomPopUp] 게임 시작 - BGM 중지 완료");
+            }
+        }
+
+
+
+
         #endregion
 
         #region Player Panel Management
@@ -294,7 +559,7 @@ namespace KYS
                     PlayerPanelItem item = obj.GetComponent<PlayerPanelItem>();
                     item.Init(player);
                     playerPanels.Add(player.ActorNumber, item);
-                    
+
                     if (player.IsLocal && !player.CustomProperties.ContainsKey("Color"))
                     {
                         AssignAutoColor(player);
@@ -329,7 +594,7 @@ namespace KYS
         private void AssignAutoColor(Player player)
         {
             bool[] usedColors = new bool[4];
-            
+
             foreach (Player otherPlayer in PhotonNetwork.PlayerList)
             {
                 if (otherPlayer != player && otherPlayer.CustomProperties.TryGetValue("Color", out object colorValue))
@@ -344,7 +609,7 @@ namespace KYS
                     }
                 }
             }
-            
+
             for (int i = 0; i < 4; i++)
             {
                 if (!usedColors[i])
@@ -364,30 +629,40 @@ namespace KYS
                 ShowErrorMessage("방장만 게임을 시작할 수 있습니다.");
                 return;
             }
-            
+
             if (!AllPlayerReadyCheck())
             {
                 ShowErrorMessage("모든 플레이어가 Ready 상태이고 색상을 선택해야 합니다.");
                 return;
             }
-            
+
             if (!CheckPlayerCountRequirement())
             {
                 return;
             }
-            
+
+            // 게임 시작 플래그 설정
+            isGameStarting = true;
+            Debug.Log("[RoomPopUp] GameStart - isGameStarting 플래그 설정됨");
+
             InitializeGameStart();
-            
+
             string sceneName = GetSelectedGameScene();
-            
+
             Hashtable roomProperty = new Hashtable();
             roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
-            
+
+            // 모든 클라이언트에게 BGM 중지 RPC 호출
+            if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            {
+                photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
+            }
+
             if (Manager.game != null)
             {
                 int maxGameCount = 1;
-                
+
                 if (selectedGameIndex == 6) // 4G 릴레이
                 {
                     sceneName = null;
@@ -398,14 +673,14 @@ namespace KYS
                     sceneName = null;
                     maxGameCount = 6;
                 }
-                
+
                 Manager.game.GameStart(sceneName, maxGameCount);
             }
             else
             {
                 PhotonNetwork.LoadLevel(sceneName);
             }
-            
+
             UIManager.Instance.CleanAllUI();
         }
 
@@ -435,9 +710,9 @@ namespace KYS
             {
                 photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
             }
-            
+
             ClearChat();
-            
+
             if (chatField != null)
             {
                 chatField.text = "";
@@ -452,13 +727,13 @@ namespace KYS
                 {
                     return false;
                 }
-                
+
                 if (!player.CustomProperties.TryGetValue("Color", out object colorValue) || colorValue == null)
                 {
                     return false;
                 }
             }
-            
+
             return true;
         }
 
@@ -475,6 +750,13 @@ namespace KYS
         #region Room Exit
         private void LeaveRoom(PointerEventData eventData)
         {
+            // 방을 나가기 전에 BGM을 메인으로 전환
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay("BGM_ParTeaMain", 0f); // fadeDuration을 0으로 설정하여 즉시 재생
+                Debug.Log("[RoomPopUp] 방 나가기 - 메인 BGM으로 전환");
+            }
+
             InitializeRoomExit();
 
             foreach (Player player in PhotonNetwork.PlayerList)
@@ -497,7 +779,7 @@ namespace KYS
             {
                 photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
             }
-            
+
             if (PhotonNetwork.LocalPlayer != null)
             {
                 Hashtable playerProperties = new Hashtable();
@@ -506,10 +788,10 @@ namespace KYS
                 playerProperties["SelectedGame"] = null;
                 PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
             }
-            
+
             ClearChat();
             selectedGameIndex = 0;
-            
+
             if (chatField != null)
             {
                 chatField.text = "";
@@ -580,7 +862,7 @@ namespace KYS
             else
             {
                 selectedGameIndex = 0;
-                
+
                 if (PhotonNetwork.IsMasterClient)
                 {
                     Hashtable roomProperty = new Hashtable();
@@ -598,7 +880,10 @@ namespace KYS
             {
                 selectedGameIndex = (int)PhotonNetwork.CurrentRoom.CustomProperties["SelectedGame"];
             }
-            
+
+            // 방 이름 업데이트
+            UpdateRoomName();
+
             if (selectedGameIndex >= 0 && selectedGameIndex < availableGames.Length)
             {
                 GameInfo selectedGame = availableGames[selectedGameIndex];
@@ -624,17 +909,57 @@ namespace KYS
                     }
                     else
                     {
-                        gameNameText.color = Color.white;
+                        gameNameText.color = Color.black;
                         gameNameText.text = selectedGame.gameName;
                     }
                 }
-                
+
                 if (gameImage != null)
                 {
-                    Sprite gameSprite = Resources.Load<Sprite>($"GameImages/{selectedGame.sceneName}");
+                    string imageName;
+
+                    // 릴레이 게임의 경우 특별한 이미지 이름 사용
+                    if (selectedGame.sceneName == null)
+                    {
+                        // 4G 릴레이 또는 6G 릴레이에 따라 다른 이미지 사용
+                        if (selectedGameIndex == 6) // 4G 릴레이
+                        {
+                            imageName = "4G_Relay";
+                        }
+                        else if (selectedGameIndex == 7) // 6G 릴레이
+                        {
+                            imageName = "6G_Relay";
+                        }
+                        else
+                        {
+                            imageName = "Relay"; // 기본 릴레이 이미지
+                        }
+                    }
+                    else
+                    {
+                        imageName = selectedGame.sceneName;
+                    }
+
+                    // 먼저 지정된 이미지 로드 시도
+                    Sprite gameSprite = Resources.Load<Sprite>($"GameImages/{imageName}");
+
+                    // 릴레이 게임이고 이미지가 없으면 기본 Relay 이미지 시도
+                    if (gameSprite == null && selectedGame.sceneName == null)
+                    {
+                        gameSprite = Resources.Load<Sprite>("GameImages/Relay");
+                        if (gameSprite != null)
+                        {
+                            Debug.Log($"[RoomPopUp] {imageName} 이미지가 없어 기본 Relay 이미지를 사용합니다.");
+                        }
+                    }
+
                     if (gameSprite != null)
                     {
                         gameImage.sprite = gameSprite;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[RoomPopUp] 게임 이미지를 찾을 수 없습니다: GameImages/{imageName}");
                     }
                 }
             }
@@ -668,7 +993,7 @@ namespace KYS
 
         private void Update()
         {
-            #if UNITY_ANDROID || UNITY_IOS
+#if UNITY_ANDROID || UNITY_IOS
             if (chatField != null && chatField.isFocused && TouchScreenKeyboard.visible)
             {
                 if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
@@ -680,7 +1005,7 @@ namespace KYS
                     }
                 }
             }
-            #endif
+#endif
         }
 
         private void SendChatMessage(PointerEventData eventData)
@@ -694,12 +1019,12 @@ namespace KYS
                     chatField.text = "";
                     return;
                 }
-                
+
                 if (photonView.ViewID == 0)
                 {
                     photonView.ViewID = PhotonNetwork.AllocateViewID(false);
                 }
-                
+
                 if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
                 {
                     photonView.RPC(nameof(SendChatMessage), RpcTarget.All, PhotonNetwork.NickName, message);
@@ -708,16 +1033,16 @@ namespace KYS
                 {
                     DisplayChatMessage(PhotonNetwork.NickName, message);
                 }
-                
+
                 chatField.text = "";
-                
-                #if UNITY_ANDROID || UNITY_IOS
+
+#if UNITY_ANDROID || UNITY_IOS
                 if (TouchScreenKeyboard.visible)
                 {
                     chatField.DeactivateInputField();
                 }
-                #endif
-                
+#endif
+
                 chatField.ActivateInputField();
             }
         }
@@ -735,18 +1060,18 @@ namespace KYS
                 }
             }
         }
-        
+
         [PunRPC]
         private void SendChatMessage(string sender, string message)
         {
             DisplayChatMessage(sender, message);
         }
-        
+
         private void InitializeChat()
         {
             // RPC 기반 채팅은 별도 초기화가 필요 없음
         }
-        
+
         public void TestRPC()
         {
             if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
@@ -774,57 +1099,39 @@ namespace KYS
         #region Photon Event Handlers
         private void OnPlayerEnteredRoom(Player newPlayer)
         {
-            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
             }
-            else
-            {
-                DisplayChatMessage("시스템", $"{newPlayer.NickName}님이 방에 입장했습니다.");
-            }
-            
-            if (!playerPanels.ContainsKey(newPlayer.ActorNumber))
-            {
-                PlayerPanelSpawn(newPlayer);
-            }
-            else
-            {
-                if (playerPanels.TryGetValue(newPlayer.ActorNumber, out PlayerPanelItem panel))
-                {
-                    panel.Init(newPlayer);
-                }
-            }
-            
+
+            PlayerPanelSpawn(newPlayer);
             UpdateGameSelectionUI();
+
+            // 방 이름 업데이트 (플레이어 수 변경)
+            UpdateRoomName();
         }
 
         private void OnPlayerLeftRoom(Player otherPlayer)
         {
-            if (otherPlayer.IsMasterClient)
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
-                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                if (otherPlayer.IsMasterClient)
                 {
                     photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
                 }
                 else
                 {
-                    DisplayChatMessage("시스템", $"{otherPlayer.NickName} 방장이 방을 나갔습니다.");
-                }
-            }
-            else
-            {
-                if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
-                {
                     photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
                 }
-                else
-                {
-                    DisplayChatMessage("시스템", $"{otherPlayer.NickName}님이 방을 나갔습니다.");
-                }
             }
-            
+
             PlayerPanelDestroy(otherPlayer);
             UpdateGameSelectionUI();
+
+            // 방 이름 업데이트 (플레이어 수 변경)
+            UpdateRoomName();
         }
 
         private void OnLeftRoom()
@@ -847,9 +1154,10 @@ namespace KYS
             UpdateGameSelectionButtonStates();
             UpdateAllPlayerPanelsMasterClientStatus();
             ShowMasterClientChangeMessage(newMasterClient);
-            
-            string masterChangeMessage = $"{newMasterClient.NickName}님이 새로운 방장이 되었습니다!";
-            DisplayChatMessage("시스템", masterChangeMessage);
+
+            // 중복 메시지 제거 - ShowMasterClientChangeMessage에서 처리
+            // string masterChangeMessage = $"{newMasterClient.NickName}님이 새로운 방장이 되었습니다!";
+            // DisplayChatMessage("시스템", masterChangeMessage);
         }
 
         private void UpdateAllPlayerPanelsMasterClientStatus()
@@ -859,7 +1167,8 @@ namespace KYS
                 Player player = PhotonNetwork.CurrentRoom.GetPlayer(kvp.Key);
                 if (player != null)
                 {
-                    kvp.Value.UpdatePlayerProperties(player);
+                    // 마스터 클라이언트 상태만 업데이트하고 Ready 상태는 건드리지 않음
+                    kvp.Value.UpdateMasterClientDisplay(player.IsMasterClient);
                 }
             }
         }
@@ -875,14 +1184,11 @@ namespace KYS
             {
                 message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
             }
-            
-            if (PhotonNetwork.InRoom && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+
+            // 마스터 클라이언트만 시스템 메시지 전송
+            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(SendChatMessage), RpcTarget.All, "시스템", message);
-            }
-            else
-            {
-                DisplayChatMessage("시스템", message);
             }
         }
         #endregion
@@ -896,7 +1202,7 @@ namespace KYS
                 existingMessagePopUp.SetMessage(message, "확인");
                 return;
             }
-            
+
             MessagePopUp messagePopUp = UIManager.Instance.ShowPopUp<MessagePopUp>();
             if (messagePopUp != null)
             {
