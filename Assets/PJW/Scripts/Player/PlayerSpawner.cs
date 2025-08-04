@@ -37,10 +37,12 @@ namespace PJW
             int idx = PhotonNetwork.LocalPlayer.ActorNumber - 1;
             idx = Mathf.Clamp(idx, 0, spawnPoints.Length - 1);
 
+            Quaternion spawnRotation = Quaternion.Euler(0, 180f, 0);
+
             PhotonNetwork.Instantiate(
                 playerPrefab.name,
                 spawnPoints[idx].position,
-                spawnPoints[idx].rotation
+                spawnRotation
             );
         }
     }
