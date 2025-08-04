@@ -162,6 +162,16 @@ public class AudioManager : Singleton<AudioManager>
         loopingSfxDataDict[key] = data;
     }
 
+    public void SetVolumeLoopSfx(string key, float volume)
+    {
+        if (loopingSfxDataDict.ContainsKey(key))
+        {
+            Debug.Log($"해당 {key} 의 LoopSound가 없습니다.");
+            return;
+        }
+
+        loopingSfxDataDict[key].GetComponent<AudioSource>().volume = volume;
+    }
 
     public void SfxStopLoop(string key)
     {
