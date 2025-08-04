@@ -101,6 +101,8 @@ namespace PJW
                  RpcTarget.MasterClient,
                  PhotonNetwork.LocalPlayer.ActorNumber
              );
+
+            AudioManager.Instance.SfxPlay("Die", transform);
         }
 
         [PunRPC]

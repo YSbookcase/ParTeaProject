@@ -1,5 +1,6 @@
-using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace PJW
@@ -39,11 +40,35 @@ namespace PJW
 
             Quaternion spawnRotation = Quaternion.Euler(0, 180f, 0);
 
-            PhotonNetwork.Instantiate(
-                playerPrefab.name,
-                spawnPoints[idx].position,
-                spawnRotation
-            );
+            GameObject myPlayer = PhotonNetwork.Instantiate(
+            playerPrefab.name,
+            spawnPoints[idx].position,
+            spawnRotation
+    );
+
+            IgnorePlayerCollisions(myPlayer);
+        }
+
+        private void IgnorePlayerCollisions(GameObject myPlayer)
+        {
+            Collider[] myColliders = myPlayer.GetComponentsInChildren<Collider>();
+
+            GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+
+            foreach (GameObject other in allPlayers)
+            {
+                if (other == myPlayer) continue;
+
+                Collider[] otherColliders = other.GetComponentsInChildren<Collider>();
+
+                foreach (Collider myCol in myColliders)
+                {
+                    foreach (Collider otherCol in otherColliders)
+                    {
+                        Physics.IgnoreCollision(myCol, otherCol);
+                    }
+                }
+            }
         }
     }
 }
