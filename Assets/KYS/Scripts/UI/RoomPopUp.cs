@@ -17,6 +17,10 @@ namespace KYS
         // 애플리케이션 종료 플래그
         private bool isApplicationQuitting = false;
         private bool isGameStarting = false; // 게임 시작 플래그 추가
+        
+        // 화면 크기 모니터링용
+        private Coroutine screenSizeMonitorCoroutine;
+        private Vector2 lastScreenSize;
 
         #region UI References
         // 방 관련 UI
@@ -83,6 +87,9 @@ namespace KYS
             SubscribePhotonEvents();
             InitializeRoom();
             
+            // 화면 크기 모니터링 시작
+            StartScreenSizeMonitoring();
+            
             // 게임에서 돌아온 상황이 아니라면 BGM 시작
             if (!isGameStarting)
             {
@@ -132,6 +139,9 @@ namespace KYS
         {
             Debug.Log($"[RoomPopUp] OnDisable 호출됨 - isGameStarting: {isGameStarting}, isApplicationQuitting: {isApplicationQuitting}");
             UnsubscribePhotonEvents();
+            
+            // 화면 크기 모니터링 정지
+            StopScreenSizeMonitoring();
 
             // 게임 시작 중이면 BGM 변경하지 않음
             if (isGameStarting)
@@ -496,6 +506,9 @@ namespace KYS
         {
             PhotonNetwork.AutomaticallySyncScene = true;
 
+            // GridLayoutGroup 설정 (2x2 레이아웃)
+            SetupGridLayout();
+
             foreach (Player player in PhotonNetwork.PlayerList)
             {
                 if (!playerPanels.ContainsKey(player.ActorNumber))
@@ -514,6 +527,102 @@ namespace KYS
             }
 
             UpdateLayout();
+        }
+
+        // 2x2 그리드 레이아웃 설정
+        private void SetupGridLayout()
+        {
+            if (playerPanelContent == null) return;
+
+            // 기존 GridLayoutGroup이 있으면 제거
+            GridLayoutGroup existingGrid = playerPanelContent.GetComponent<GridLayoutGroup>();
+            if (existingGrid != null)
+            {
+                DestroyImmediate(existingGrid);
+            }
+
+            // 새로운 GridLayoutGroup 추가
+            GridLayoutGroup gridLayout = playerPanelContent.gameObject.AddComponent<GridLayoutGroup>();
+            
+            // 2x2 설정
+            gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            gridLayout.constraintCount = 2; // 2열
+            
+            // 간격 설정
+            gridLayout.spacing = new Vector2(10f, 10f);
+            
+            // 패딩 설정
+            gridLayout.padding = new RectOffset(10, 10, 10, 10);
+            
+            // 셀 크기 계산 및 설정
+            UpdateGridCellSize();
+        }
+
+        // 그리드 셀 크기 업데이트
+        private void UpdateGridCellSize()
+        {
+            if (playerPanelContent == null) return;
+
+            GridLayoutGroup gridLayout = playerPanelContent.GetComponent<GridLayoutGroup>();
+            if (gridLayout == null) return;
+
+            RectTransform contentRect = playerPanelContent as RectTransform;
+            if (contentRect == null) return;
+
+            // 컨테이너 크기에서 패딩과 간격을 고려하여 셀 크기 계산
+            float availableWidth = contentRect.rect.width - gridLayout.padding.left - gridLayout.padding.right - gridLayout.spacing.x;
+            float availableHeight = contentRect.rect.height - gridLayout.padding.top - gridLayout.padding.bottom - gridLayout.spacing.y;
+            
+            // 2x2 레이아웃이므로 2로 나눔
+            float cellWidth = availableWidth / 2f;
+            float cellHeight = availableHeight / 2f;
+            
+            // 최소 크기 보장
+            cellWidth = Mathf.Max(cellWidth, 150f);
+            cellHeight = Mathf.Max(cellHeight, 100f);
+            
+            gridLayout.cellSize = new Vector2(cellWidth, cellHeight);
+        }
+
+        // 화면 크기 모니터링 시작
+        private void StartScreenSizeMonitoring()
+        {
+            if (screenSizeMonitorCoroutine != null)
+            {
+                StopCoroutine(screenSizeMonitorCoroutine);
+            }
+            
+            lastScreenSize = new Vector2(Screen.width, Screen.height);
+            screenSizeMonitorCoroutine = StartCoroutine(MonitorScreenSize());
+        }
+
+        // 화면 크기 모니터링 정지
+        private void StopScreenSizeMonitoring()
+        {
+            if (screenSizeMonitorCoroutine != null)
+            {
+                StopCoroutine(screenSizeMonitorCoroutine);
+                screenSizeMonitorCoroutine = null;
+            }
+        }
+
+        // 화면 크기 변경 모니터링 코루틴
+        private IEnumerator MonitorScreenSize()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(0.5f); // 0.5초마다 체크
+                
+                Vector2 currentScreenSize = new Vector2(Screen.width, Screen.height);
+                
+                // 화면 크기가 변경되었으면 그리드 레이아웃 업데이트
+                if (currentScreenSize != lastScreenSize)
+                {
+                    Debug.Log($"[RoomPopUp] 화면 크기 변경 감지: {lastScreenSize} -> {currentScreenSize}");
+                    lastScreenSize = currentScreenSize;
+                    UpdateGridCellSize();
+                }
+            }
         }
 
         public void PlayerPanelDestroy(Player player)
@@ -535,6 +644,9 @@ namespace KYS
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
             }
+            
+            // 그리드 레이아웃이 있으면 셀 크기 업데이트
+            UpdateGridCellSize();
         }
 
         private void AssignAutoColor(Player player)
