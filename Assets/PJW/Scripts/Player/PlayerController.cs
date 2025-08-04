@@ -59,6 +59,8 @@ namespace PJW
             isGrounded = false;
 
             animator.SetBool("IsJumping", true);
+
+            AudioManager.Instance.SfxPlay("JumpSound", transform);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -99,6 +101,8 @@ namespace PJW
                  RpcTarget.MasterClient,
                  PhotonNetwork.LocalPlayer.ActorNumber
              );
+
+            AudioManager.Instance.SfxPlay("Die", transform);
         }
 
         [PunRPC]

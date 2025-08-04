@@ -66,6 +66,12 @@ namespace PJW
             Time.timeScale = 0f;
             countdownText.gameObject.SetActive(true);
 
+            countdownText.text = " ";
+            yield return new WaitForSecondsRealtime(1f);
+
+            countdownText.text = " ";
+            yield return new WaitForSecondsRealtime(1f);
+
             countdownText.text = "3";
             yield return new WaitForSecondsRealtime(1f);
 
