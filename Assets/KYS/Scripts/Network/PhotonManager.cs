@@ -47,14 +47,35 @@ namespace KYS
             var user = FirebaseManager.Auth.CurrentUser;
             if (user != null && !string.IsNullOrEmpty(user.DisplayName))
             {
-                PhotonNetwork.NickName = user.DisplayName;
-                Debug.Log($"Photon 닉네임 동기화: {user.DisplayName}");
+                // Photon에 연결되어 있는 경우에만 닉네임 설정
+                if (PhotonNetwork.IsConnected)
+                {
+                    PhotonNetwork.NickName = user.DisplayName;
+                    Debug.Log($"Photon 닉네임 동기화 완료: {user.DisplayName}");
+                    
+                    // 방에 있는 경우 다른 플레이어들에게 닉네임 변경 알림
+                    if (PhotonNetwork.InRoom)
+                    {
+                        Debug.Log("방 내에서 닉네임 변경 알림 전송");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("Photon에 연결되어 있지 않아 닉네임 동기화를 건너뜁니다.");
+                }
             }
             else
             {
                 // Firebase 사용자가 없거나 닉네임이 없는 경우 기본값 설정
-                PhotonNetwork.NickName = "Guest";
-                Debug.Log("Firebase 사용자 정보가 없어 기본 닉네임으로 설정: Guest");
+                if (PhotonNetwork.IsConnected)
+                {
+                    PhotonNetwork.NickName = "Guest";
+                    Debug.Log("Firebase 사용자 정보가 없어 기본 닉네임으로 설정: Guest");
+                }
+                else
+                {
+                    Debug.LogWarning("Photon에 연결되어 있지 않아 기본 닉네임 설정을 건너뜁니다.");
+                }
             }
         }
 
@@ -416,12 +437,26 @@ namespace KYS
 
         public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            Debug.Log($"[PhotonManager] 방 속성 변경 감지: {string.Join(", ", propertiesThatChanged.Keys)}");
-            
-            // 각 변경된 속성의 값도 로깅
+            // gameTime 속성은 매 프레임 업데이트되므로 로그에서 제외
+            var filteredProperties = new Hashtable();
             foreach (var kvp in propertiesThatChanged)
             {
-                Debug.Log($"[PhotonManager] 속성 변경: {kvp.Key} = {kvp.Value}");
+                if (kvp.Key.ToString() != "gameTime")
+                {
+                    filteredProperties.Add(kvp.Key, kvp.Value);
+                }
+            }
+            
+            // gameTime을 제외한 다른 속성들이 변경된 경우에만 로그 출력
+            if (filteredProperties.Count > 0)
+            {
+                Debug.Log($"[PhotonManager] 방 속성 변경 감지: {string.Join(", ", filteredProperties.Keys)}");
+                
+                // 각 변경된 속성의 값도 로깅 (gameTime 제외)
+                foreach (var kvp in filteredProperties)
+                {
+                    Debug.Log($"[PhotonManager] 속성 변경: {kvp.Key} = {kvp.Value}");
+                }
             }
             
             // RoomPopUp이 활성화되어 있다면 게임 선택 UI 업데이트
@@ -434,10 +469,6 @@ namespace KYS
                     Debug.Log("[PhotonManager] RoomPopUp에 게임 선택 UI 업데이트 요청");
                     roomPopUp.UpdateGameSelectionUI();
                 }
-            }
-            else
-            {
-                Debug.Log("[PhotonManager] RoomPopUp을 찾을 수 없습니다 (방에 있지 않음)");
             }
             
             // OnRoomPropertiesUpdate는 방에 있는 클라이언트에게만 호출되므로

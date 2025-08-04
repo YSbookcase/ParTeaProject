@@ -107,41 +107,19 @@ namespace KYS
         // 방 BGM 시작
         public void StartRoomBGM()
         {
-            Debug.Log($"[RoomPopUp] StartRoomBGM 호출됨 - roomBgmName: {roomBgmName}");
+          
             if (Manager.Audio == null)
             {
                 Debug.LogWarning("[RoomPopUp] AudioManager가 null입니다. BGM 시작을 건너뜁니다.");
                 return;
             }
 
-            // AudioManager 상태 확인
-            Debug.Log($"[RoomPopUp] AudioManager 상태 - masterVolume: {Manager.Audio.masterVolume}, bgmVolume: {Manager.Audio.bgmVolume}, sfxVolume: {Manager.Audio.sfxVolume}");
-            Debug.Log($"[RoomPopUp] AudioListener.volume: {AudioListener.volume}");
-
-            // 볼륨이 0인지 확인
-            if (Manager.Audio.masterVolume <= 0f)
-            {
-                Debug.LogWarning("[RoomPopUp] masterVolume이 0입니다. 소리가 나지 않을 수 있습니다.");
-            }
-            if (Manager.Audio.bgmVolume <= 0f)
-            {
-                Debug.LogWarning("[RoomPopUp] bgmVolume이 0입니다. BGM이 나지 않을 수 있습니다.");
-            }
-            if (AudioListener.volume <= 0f)
-            {
-                Debug.LogWarning("[RoomPopUp] AudioListener.volume이 0입니다. 모든 소리가 나지 않을 수 있습니다.");
-            }
 
             if (!string.IsNullOrEmpty(roomBgmName))
             {
                 Debug.Log($"[RoomPopUp] BGM 재생 시도: {roomBgmName}");
-                
-                // AudioManager 상태 강제 리셋 시도
-                Debug.Log("[RoomPopUp] AudioManager 상태 강제 리셋 시도");
-                Manager.Audio.BgmPlay(null, 0f); // 기존 BGM 완전 중지
-                
-                // 잠시 대기 후 새 BGM 재생
-                StartCoroutine(PlayBGMAfterReset());
+
+                Manager.Audio.BgmPlay(roomBgmName, 0f);
             }
             else
             {
@@ -149,38 +127,6 @@ namespace KYS
             }
         }
 
-        // AudioManager 리셋 후 BGM 재생
-        private IEnumerator PlayBGMAfterReset()
-        {
-            yield return new WaitForSeconds(0.1f); // AudioManager 리셋 대기
-            
-            Debug.Log($"[RoomPopUp] 새 BGM 재생 시도: {roomBgmName}");
-            
-            // AudioData 로드 확인
-            AudioData data = Resources.Load<AudioData>($"Audio/{roomBgmName}");
-            if (data != null)
-            {
-                Debug.Log($"[RoomPopUp] AudioData 로드 성공 - clip: {data.clip?.name}, volume: {data.volume}");
-            }
-            else
-            {
-                Debug.LogError($"[RoomPopUp] AudioData 로드 실패: {roomBgmName}");
-            }
-            
-            Manager.Audio.BgmPlay(roomBgmName, 0f);
-            
-            // AudioSource 상태 확인
-            if (Manager.Audio != null)
-            {
-                var audioSource = Manager.Audio.GetComponent<AudioSource>();
-                if (audioSource != null)
-                {
-                    Debug.Log($"[RoomPopUp] AudioSource 상태 - clip: {audioSource.clip?.name}, volume: {audioSource.volume}, isPlaying: {audioSource.isPlaying}");
-                }
-            }
-            
-            Debug.Log($"[RoomPopUp] 방 BGM 시작 완료: {roomBgmName}");
-        }
 
         private void OnDisable()
         {
@@ -1146,6 +1092,35 @@ namespace KYS
             if (playerPanels.TryGetValue(player.ActorNumber, out PlayerPanelItem panel))
             {
                 panel.UpdatePlayerProperties(player);
+            }
+        }
+
+        // 닉네임 동기화를 위한 메서드 추가
+        public void RefreshPlayerNicknames()
+        {
+            foreach (var kvp in playerPanels)
+            {
+                Player player = PhotonNetwork.CurrentRoom.GetPlayer(kvp.Key);
+                if (player != null && kvp.Value != null)
+                {
+                    // 닉네임 텍스트 업데이트
+                    var nicknameText = kvp.Value.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                    if (nicknameText != null)
+                    {
+                        // 방장 표시가 있는지 확인하고 유지
+                        bool hasMasterText = nicknameText.text.Contains("[방장]");
+                        string baseNickname = player.NickName;
+                        
+                        if (hasMasterText)
+                        {
+                            nicknameText.text = $"{baseNickname} [방장]";
+                        }
+                        else
+                        {
+                            nicknameText.text = baseNickname;
+                        }
+                    }
+                }
             }
         }
 

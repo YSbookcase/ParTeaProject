@@ -141,6 +141,9 @@ namespace KYS
 
         private void OnEnable()
         {
+            // 사용자 정보 업데이트
+            LoginInfo();
+            
             // PhotonManager 이벤트 구독
             if (PhotonManager.Instance != null)
             {
@@ -499,6 +502,20 @@ namespace KYS
                 uiEmailText.text = user.Email ?? "이메일 없음";
                 uiNameText.text = user.DisplayName ?? "닉네임 없음";
                 //UIuserIdText.text = user.UserId;
+                
+                // Photon 연결 및 닉네임 동기화
+                if (PhotonManager.Instance != null)
+                {
+                    // Photon에 연결되어 있지 않으면 연결 시도
+                    if (!PhotonNetwork.IsConnected)
+                    {
+                        Debug.Log("LobbyPopUp: Photon 연결을 시도합니다...");
+                        PhotonManager.Instance.ConnectToPhoton();
+                    }
+                    
+                    // 닉네임 동기화 (연결 상태와 관계없이 시도)
+                    PhotonManager.Instance.SyncNicknameWithFirebase();
+                }
             }
             else
             {

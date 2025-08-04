@@ -28,7 +28,7 @@ namespace KYS
         
         [Header("Effects")]
         [SerializeField] private GameObject collectEffect;
-        [SerializeField] private AudioClip collectSound;
+        [SerializeField] private string collectSoundName = "SFX_NormalItem"; // AudioData 에셋 이름으로 변경
         
         [Header("Input System")]
         [SerializeField] private UnityEngine.InputSystem.InputActionAsset inputActions;
@@ -40,7 +40,6 @@ namespace KYS
         private bool isMoving = false;
         private ReceiveGameManagerEnhanced gameManager;
         private ReceiveGameUI gameUI;
-        private AudioSource audioSource;
         private GameObject nameTag;
         private ReceiveGameNicknamePanel nicknamePanel;
         
@@ -81,7 +80,25 @@ namespace KYS
             if (rb != null)
             {
                 rb.useGravity = false; // 중력 비활성화
-                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+                rb.isKinematic = false; // 물리 충돌을 위해 Kinematic 비활성화
+                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezeRotationY;
+                rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // 빠른 이동 시 충돌 감지 개선
+                Debug.Log("[ReceiveGamePlayer] Rigidbody 설정 완료 - 물리 충돌 활성화");
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
+            }
+            
+            // Collider 설정 확인
+            Collider playerCollider = GetComponent<Collider>();
+            if (playerCollider != null)
+            {
+                Debug.Log($"[ReceiveGamePlayer] Collider 확인됨: {playerCollider.GetType().Name}");
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
             // 플레이어 색상 설정 (모든 플레이어가 설정)
@@ -104,11 +121,7 @@ namespace KYS
                 InitializeInputSystem();
             }
             
-            audioSource = GetComponent<AudioSource>();
-            if (audioSource == null)
-            {
-                audioSource = gameObject.AddComponent<AudioSource>();
-            }
+            // AudioSource 제거 - AudioManager 시스템 사용
         }
         
         private void Update()
@@ -173,24 +186,53 @@ namespace KYS
                     transform.rotation = Quaternion.LookRotation(moveDirection);
                 }
                 
-                // 이동 적용 (Y축 제한 - 2D 평면에서만 이동)
-                Vector3 newPosition = transform.position + moveDirection.normalized * moveSpeed * Time.deltaTime;
-                newPosition.y = transform.position.y; // Y축 위치 고정
-                transform.position = newPosition;
+                // Rigidbody를 사용한 이동 (물리 충돌 보장)
+                Rigidbody rb = GetComponent<Rigidbody>();
+                if (rb != null && !rb.isKinematic)
+                {
+                    Vector3 velocity = moveDirection.normalized * moveSpeed;
+                    velocity.y = 0; // Y축 속도 제한
+                    rb.velocity = velocity;
+                }
+                else
+                {
+                    // Rigidbody가 없거나 Kinematic인 경우 Transform 사용 (백업)
+                    Vector3 newPosition = transform.position + moveDirection.normalized * moveSpeed * Time.deltaTime;
+                    newPosition.y = transform.position.y; // Y축 위치 고정
+                    transform.position = newPosition;
+                }
                 
                 // 애니메이션 설정
                 if (playerAnimator != null)
                 {
                     playerAnimator.SetBool("IsMoving", true);
-                    playerAnimator.SetFloat("MoveSpeed", moveDirection.magnitude);
+                    
+                    // 속도에 따른 애니메이션 블렌드
+                    float normalizedSpeed = Mathf.Clamp01(moveDirection.magnitude);
+                    
+                    // 속도 부스트 시에도 MoveSpeed로만 처리 (Sprint 모션이 없으므로)
+                    playerAnimator.SetFloat("MoveSpeed", normalizedSpeed);
+                }
+                else
+                {
+                    Debug.LogWarning("playerAnimator가 null입니다. Inspector에서 Animator를 할당해주세요.");
                 }
             }
             else
             {
                 isMoving = false;
+                
+                // 정지 시 Rigidbody 속도 초기화
+                Rigidbody rb = GetComponent<Rigidbody>();
+                if (rb != null && !rb.isKinematic)
+                {
+                    rb.velocity = Vector3.zero;
+                }
+                
                 if (playerAnimator != null)
                 {
                     playerAnimator.SetBool("IsMoving", false);
+                    playerAnimator.SetFloat("MoveSpeed", 0f);
                 }
             }
         }
@@ -200,26 +242,12 @@ namespace KYS
             // 주변 아이템 검사
             Collider[] colliders = Physics.OverlapSphere(transform.position, collectionRadius);
             
-            if (colliders.Length > 0)
-            {
-                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber} 주변에 {colliders.Length}개의 콜라이더 발견");
-            }
-            
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
-                    Debug.Log($"아이템 발견: {item.name}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}, 수집 반경: {collectionRadius}");
                     CollectItem(item);
-                }
-                else if (item != null && item.IsCollected)
-                {
-                    Debug.Log($"이미 수집된 아이템: {item.name}");
-                }
-                else
-                {
-                    Debug.Log($"CollectibleItem 컴포넌트가 없는 오브젝트: {collider.name}");
                 }
             }
         }
@@ -285,10 +313,10 @@ namespace KYS
                 Instantiate(collectEffect, transform.position, Quaternion.identity);
             }
             
-            // 수집 사운드
-            if (collectSound != null && audioSource != null)
+            // 수집 사운드 - AudioManager 시스템 사용
+            if (!string.IsNullOrEmpty(collectSoundName) && Manager.Audio != null)
             {
-                audioSource.PlayOneShot(collectSound);
+                Manager.Audio.SfxPlay(collectSoundName, transform);
             }
         }
         
@@ -608,6 +636,17 @@ namespace KYS
         public int GetPlayerActorNumber()
         {
             return photonView.Owner.ActorNumber;
+        }
+        
+        // 충돌 감지 디버그 (테스트용)
+        private void OnCollisionEnter(Collision collision)
+        {
+            // 충돌 처리 로직이 필요한 경우 여기에 추가
+        }
+        
+        private void OnCollisionStay(Collision collision)
+        {
+            // 지속적인 충돌 처리 로직이 필요한 경우 여기에 추가
         }
         
         // 플랫폼 감지
