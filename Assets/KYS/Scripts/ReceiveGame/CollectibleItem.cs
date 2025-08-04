@@ -22,13 +22,12 @@ namespace KYS
         
         [Header("Effects")]
         [SerializeField] private GameObject collectParticle;
-        [SerializeField] private AudioClip collectSound;
+        [SerializeField] private string collectSoundName = "SFX_NormalItem"; // AudioData 에셋 이름으로 변경
         
         private Vector3 startPosition;
         private bool isCollected = false;
         private bool hasHitGround = false;
         private Renderer itemRenderer;
-        private AudioSource audioSource;
         private Rigidbody rb;
         private Coroutine returnCoroutine;
         
@@ -47,13 +46,7 @@ namespace KYS
             
             startPosition = transform.position;
             itemRenderer = GetComponent<Renderer>();
-            audioSource = GetComponent<AudioSource>();
             rb = GetComponent<Rigidbody>();
-            
-            if (audioSource == null)
-            {
-                audioSource = gameObject.AddComponent<AudioSource>();
-            }
             
             if (rb == null)
             {
@@ -108,7 +101,7 @@ namespace KYS
         private void OnHitGround()
         {
             hasHitGround = true;
-            Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
+            //Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
             
             // 바운스 효과
             if (rb != null)
@@ -228,10 +221,10 @@ namespace KYS
                 Destroy(effect, 2f);
             }
             
-            // 수집 사운드
-            if (collectSound != null && audioSource != null)
+            // 수집 사운드 - AudioManager 시스템 사용
+            if (!string.IsNullOrEmpty(collectSoundName) && Manager.Audio != null)
             {
-                audioSource.PlayOneShot(collectSound);
+                Manager.Audio.SfxPlay(collectSoundName, transform);
             }
             
             // 머티리얼 투명도 애니메이션

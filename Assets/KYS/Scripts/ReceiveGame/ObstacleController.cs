@@ -6,7 +6,7 @@ namespace KYS
     /// <summary>
     /// 방해물의 충돌 효과를 처리하는 컴포넌트
     /// </summary>
-    public class ObstacleController : MonoBehaviourPun
+    public class ObstacleController : PooledObject
     {
         [Header("Obstacle Settings")]
         // 사용되지 않는 변수들 - 주석 처리
@@ -16,18 +16,21 @@ namespace KYS
         
         [Header("Effects")]
         [SerializeField] private GameObject hitEffect;
-        [SerializeField] private AudioClip hitSound;
+        [SerializeField] private string hitSoundName = "SFX_ButtonClick"; // AudioData 에셋 이름으로 변경
         
         private bool isHit = false;
-        private AudioSource audioSource;
         
         private void Start()
         {
-            audioSource = GetComponent<AudioSource>();
-            if (audioSource == null)
+            // PhotonView 컴포넌트 확인 및 추가
+            PhotonView photonView = GetComponent<PhotonView>();
+            if (photonView == null)
             {
-                audioSource = gameObject.AddComponent<AudioSource>();
+                photonView = gameObject.AddComponent<PhotonView>();
+                Debug.Log("ObstacleController에 PhotonView 컴포넌트를 추가했습니다.");
             }
+            
+            // AudioSource 제거 - AudioManager 시스템 사용
         }
         
         private void OnCollisionEnter(Collision collision)
@@ -72,10 +75,10 @@ namespace KYS
                 Instantiate(hitEffect, transform.position, Quaternion.identity);
             }
             
-            // 충돌 사운드
-            if (hitSound != null && audioSource != null)
+            // 충돌 사운드 - AudioManager 시스템 사용
+            if (!string.IsNullOrEmpty(hitSoundName) && Manager.Audio != null)
             {
-                audioSource.PlayOneShot(hitSound);
+                Manager.Audio.SfxPlay(hitSoundName, transform);
             }
         }
         

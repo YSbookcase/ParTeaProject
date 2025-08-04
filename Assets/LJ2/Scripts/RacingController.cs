@@ -62,6 +62,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
                 //virtualCamera.Follow = transform;
                 virtualCamera.LookAt = transform;
             }
+
+            //Manager.Audio.SfxPlayLoop("low_on", this.transform);
             previousPosition = transform.position;
             linePassed = 0;
         }
@@ -107,8 +109,9 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         {
             SetRotationByCam();
             DollyCartMove();
+            // TODO : 차량의 속도에 비례하여 소리 조절
         }
-        
+
     }
 
     private void FixedUpdate()
@@ -163,8 +166,10 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             // 카메라 기준으로 입력 방향 구성
             Vector3 inputDirection = (camForward * input.y + camRight * input.x).normalized;
 
-            float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
-            if (directionDot < -0.85f) // 방향이 너무 반대에 가까우면
+            //float directionDot = Vector3.Dot(inputDirection, dollyCart.transform.forward);
+
+            float directionDot = Vector3.Dot(inputDirection, -camForward);
+            if (directionDot < -0.7f) // 방향이 너무 반대에 가까우면
             {
                 inputDirection = Vector3.zero; // 입력 무시
             }

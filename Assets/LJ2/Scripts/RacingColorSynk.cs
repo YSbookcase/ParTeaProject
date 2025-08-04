@@ -16,6 +16,8 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
             Color.yellow
         };
 
+    [SerializeField] List<GameObject> carryFoods = new List<GameObject>();
+
     private void Start()
     {
         ApplyColor();
@@ -27,6 +29,18 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
         {
             int colorIndex = (int)photonView.Owner.CustomProperties["Color"];
             playerRenderer.materials[0].color = colors[colorIndex];
+            for (int i = 0; i < carryFoods.Count; i++)
+            {
+                if(i == colorIndex)
+                {
+                    carryFoods[i].SetActive(true);
+                    Debug.Log($"[RacingColorSynk] Player {photonView.Owner.NickName} color index: {colorIndex}, food active: {carryFoods[i].name}");
+                }
+                else
+                {
+                    carryFoods[i].SetActive(false);
+                }
+            }
         }
     }
 

@@ -41,6 +41,7 @@ public class RacingMap : MonoBehaviour
         // 시작 지점, 통과해야 할 Line의 수로 Goal 선정
         int goalIndex = (startIndex + length) % racingLines.Count;
         goalLine = racingLines[goalIndex];
+        goalLine.isGoalLine = true;
         goalLine.goalQuad.SetActive(true);
     }
 

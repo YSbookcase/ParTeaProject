@@ -24,9 +24,9 @@ EditorBuildSettings:
     path: Assets/GIL/Scenes/ArenaGame.unity
     guid: 3a437e83830c72047984dd919dd89b82
   - enabled: 1
-    path: Assets/LJ2/RacingGame.unity
-    guid: 55268abd5fd57c6428295a2c0ec371c5
-  - enabled: 1
     path: Assets/KSH/Scene/TileGame.unity
     guid: 777e7ed071948d340b8adcd921ff31a9
+  - enabled: 1
+    path: Assets/LJ2/RacingGame.unity
+    guid: 2fd65c9b0810ff6429458dc128433f71
   m_configObjects: {}

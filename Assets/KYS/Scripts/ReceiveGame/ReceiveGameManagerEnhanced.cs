@@ -50,6 +50,9 @@ namespace KYS
         
         [Header("Item Score Settings")]
         [SerializeField] private int defaultScore = 1; // Scriptable Object에서 값을 가져올 수 없을 때 사용할 기본값
+        
+        [Header("Audio Settings")]
+        [SerializeField] private string receiveGameBgmName = "BGM_ReceiveGame"; // ReceiveGame BGM 이름
         #endregion
 
         #region Private Fields
@@ -63,6 +66,9 @@ namespace KYS
         private List<GameObject> spawnedPowerUps = new List<GameObject>();
         private List<int> alivePlayers = new List<int>();
         
+        // 새로운 풀 시스템 참조
+        private ItemPoolManager itemPoolManager;
+        
         // PhotonView 참조 (MonoBehaviourPunCallbacks에서는 직접 할당 불가)
         private PhotonView photonViewRef;
         
@@ -75,10 +81,24 @@ namespace KYS
         #region Unity Lifecycle
         private void Start()
         {
+            Debug.Log("[ReceiveGameManagerEnhanced] Start 호출됨");
+            Debug.Log($"[ReceiveGameManagerEnhanced] AudioManager 상태: {Manager.Audio != null}");
+            
             InitializePhotonView();
             LoadResources();
             InitializeGameState();
             StartGameIfMasterClient();
+            
+            // 씬 로드 시 기존 BGM 정지 (게임 시작 전까지는 BGM 없음)
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay(null, 0f);
+                Debug.Log("[ReceiveGameManagerEnhanced] BGM 정지 완료");
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGameManagerEnhanced] AudioManager가 null입니다!");
+            }
         }
         
         private void Update()
@@ -125,6 +145,17 @@ namespace KYS
                 {
                     Debug.LogError("[ReceiveGameManagerEnhanced] Resources/KYSPowerUp을 찾을 수 없습니다!");
                 }
+            }
+            
+            // 풀 매니저 찾기
+            itemPoolManager = FindObjectOfType<ItemPoolManager>();
+            if (itemPoolManager == null)
+            {
+                Debug.LogWarning("[ReceiveGameManagerEnhanced] ItemPoolManager를 찾을 수 없습니다!");
+            }
+            else
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] ItemPoolManager 연결 완료");
             }
         }
         
@@ -328,18 +359,43 @@ namespace KYS
                 ItemType[] itemTypes = { ItemType.Normal, ItemType.Bonus };
                 ItemType selectedType = itemTypes[Random.Range(0, itemTypes.Length)];
                 
-                // 높은 위치에서 스폰 (하늘에서 떨어지는 효과)
-                Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
-                GameObject item = PhotonNetwork.Instantiate(powerUpPrefab.name, spawnPosition, Quaternion.identity);
-                spawnedItems.Add(item);
+                GameObject item = null;
                 
-                // 모든 클라이언트에서 동일한 아이템 타입 설정
-                photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, item.GetComponent<PhotonView>().ViewID, (int)selectedType);
-                
-                Debug.Log($"아이템 스폰 완료: {spawnPosition}, 타입: {selectedType}");
-                
-                // 아이템이 떨어지는 효과 시작
-                StartCoroutine(DropItemToGround(item, position));
+                // 새로운 풀 시스템 우선 사용
+                if (itemPoolManager != null)
+                {
+                    // 높은 위치에서 스폰 (하늘에서 떨어지는 효과)
+                    Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
+                    CollectibleItem pooledItem = itemPoolManager.GetItem(spawnPosition);
+                    if (pooledItem != null)
+                    {
+                        item = pooledItem.gameObject;
+                        spawnedItems.Add(item);
+                        
+                        // 모든 클라이언트에서 동일한 아이템 타입 설정
+                        photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, item.GetComponent<PhotonView>().ViewID, (int)selectedType);
+                        
+                        //Debug.Log($"[ReceiveGameManagerEnhanced] 풀에서 아이템 스폰 완료: {spawnPosition}, 타입: {selectedType}");
+                        
+                        // 아이템이 떨어지는 효과 시작
+                        StartCoroutine(DropItemToGround(item, position));
+                    }
+                }
+                else
+                {
+                    // 기존 방식으로 생성
+                    Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
+                    item = PhotonNetwork.Instantiate(powerUpPrefab.name, spawnPosition, Quaternion.identity);
+                    spawnedItems.Add(item);
+                    
+                    // 모든 클라이언트에서 동일한 아이템 타입 설정
+                    photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, item.GetComponent<PhotonView>().ViewID, (int)selectedType);
+                    
+                    Debug.Log($"[ReceiveGameManagerEnhanced] 기존 방식으로 아이템 스폰 완료: {spawnPosition}, 타입: {selectedType}");
+                    
+                    // 아이템이 떨어지는 효과 시작
+                    StartCoroutine(DropItemToGround(item, position));
+                }
             }
             else
             {
@@ -385,9 +441,27 @@ namespace KYS
         [PunRPC]
         private void SpawnObstacleRPC(Vector3 position)
         {
-            if (obstaclePrefab != null)
+            GameObject obstacle = null;
+            
+            // 새로운 풀 시스템 우선 사용
+            if (itemPoolManager != null)
             {
-                GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
+                ObstacleController pooledObstacle = itemPoolManager.GetObstacle(position);
+                if (pooledObstacle != null)
+                {
+                    obstacle = pooledObstacle.gameObject;
+                    spawnedObstacles.Add(obstacle);
+                    
+                    Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {position}");
+                    
+                    // 8초 후 자동 제거
+                    StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                }
+            }
+            else if (obstaclePrefab != null)
+            {
+                // 기존 방식으로 생성
+                obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
                 spawnedObstacles.Add(obstacle);
                 
                 // ObstacleController 컴포넌트 추가
@@ -404,7 +478,7 @@ namespace KYS
                     obstacleCollider.isTrigger = false;
                 }
                 
-                Debug.Log($"[SpawnObstacleRPC] 방해물 생성 완료: {position}, ObstacleController 추가됨");
+                Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {position}, ObstacleController 추가됨");
                 
                 // 8초 후 자동 제거
                 StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
@@ -728,7 +802,25 @@ namespace KYS
             if (obstacle != null && spawnedObstacles.Contains(obstacle))
             {
                 spawnedObstacles.Remove(obstacle);
-                Destroy(obstacle);
+                
+                // 새로운 풀 시스템으로 반환
+                if (itemPoolManager != null)
+                {
+                    ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
+                    if (obstacleController != null)
+                    {
+                        itemPoolManager.ReturnObstacle(obstacleController);
+                        //Debug.Log("[ReceiveGameManagerEnhanced] 장애물을 풀로 반환");
+                    }
+                    else
+                    {
+                        Destroy(obstacle);
+                    }
+                }
+                else
+                {
+                    Destroy(obstacle);
+                }
             }
         }
         
@@ -919,6 +1011,9 @@ namespace KYS
         {
             yield return new WaitForSeconds(3f);
             
+            // 씬 전환 전 BGM 정지
+            Manager.Audio.BgmPlay(null, 0f);
+            
             if (PhotonNetwork.IsMasterClient)
             {
                 PhotonNetwork.LoadLevel("Score");
@@ -948,7 +1043,25 @@ namespace KYS
         {
             if (propertiesThatChanged.ContainsKey(GAME_STARTED_KEY))
             {
+                bool wasGameStarted = isGameStarted;
                 isGameStarted = (bool)propertiesThatChanged[GAME_STARTED_KEY];
+                
+                // 게임이 시작되었을 때만 BGM 재생
+                if (isGameStarted && !wasGameStarted)
+                {
+                    Debug.Log($"[ReceiveGameManagerEnhanced] 게임 시작 - BGM 재생 시도: {receiveGameBgmName}");
+                    Debug.Log($"[ReceiveGameManagerEnhanced] AudioManager 상태: {Manager.Audio != null}");
+                    if (Manager.Audio != null)
+                    {
+                        Debug.Log($"[ReceiveGameManagerEnhanced] 현재 BGM 볼륨: {Manager.Audio.bgmVolume}");
+                        Debug.Log($"[ReceiveGameManagerEnhanced] 현재 Master 볼륨: {Manager.Audio.masterVolume}");
+                        Manager.Audio.BgmPlay(receiveGameBgmName, 0f);
+                    }
+                    else
+                    {
+                        Debug.LogError("[ReceiveGameManagerEnhanced] AudioManager가 null입니다!");
+                    }
+                }
             }
             
             if (propertiesThatChanged.ContainsKey(GAME_TIME_KEY))
@@ -963,14 +1076,19 @@ namespace KYS
             
             if (propertiesThatChanged.ContainsKey(GAME_ENDED_KEY))
             {
+                bool wasGameEnded = isGameEnded;
                 isGameEnded = (bool)propertiesThatChanged[GAME_ENDED_KEY];
-                if (isGameEnded)
+                
+                if (isGameEnded && !wasGameEnded)
                 {
                     ClearAllItems();
                     if (gameUI != null)
                     {
                         gameUI.ShowGameEnd();
                     }
+                    
+                    Debug.Log("[ReceiveGameManagerEnhanced] 게임 종료 - BGM 정지");
+                    Manager.Audio.BgmPlay(null, 0f); // BGM 정지
                 }
             }
         }

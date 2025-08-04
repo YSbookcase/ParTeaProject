@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
+using Photon.Pun;
 
 
 namespace KYS
@@ -172,8 +173,29 @@ namespace KYS
                     ShowSuccessMessage("닉네임이 성공적으로 변경되었습니다.");
                     Debug.Log("닉네임 변경 성공");
 
+                    // Photon 연결 및 닉네임 동기화
+                    if (PhotonManager.Instance != null)
+                    {
+                        // Photon에 연결되어 있지 않으면 연결 시도
+                        if (!PhotonNetwork.IsConnected)
+                        {
+                            Debug.Log("Photon 연결을 시도합니다...");
+                            PhotonManager.Instance.ConnectToPhoton();
+                        }
+                        
+                        // 닉네임 동기화 (연결 상태와 관계없이 시도)
+                        PhotonManager.Instance.SyncNicknameWithFirebase();
+                    }
+
                     // LobbyPopUp 정보 업데이트
                     UIManager.Instance.UpdatePopUp<LobbyPopUp>();
+                    
+                    // RoomPopUp이 활성화되어 있다면 닉네임도 업데이트
+                    RoomPopUp roomPopUp = UIManager.Instance.FindActivePopUp<RoomPopUp>();
+                    if (roomPopUp != null)
+                    {
+                        roomPopUp.RefreshPlayerNicknames();
+                    }
                 });
         }
 

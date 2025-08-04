@@ -1,6 +1,7 @@
 using UnityEngine;
 using Photon.Pun;
 using TMPro;
+using UnityEngine.UI;
 
 namespace KSH
 {
@@ -15,8 +16,9 @@ namespace KSH
         [SerializeField] private SkinnedMeshRenderer bodyRenderer;
         public Color color;
         [SerializeField] private TextMeshProUGUI nickName;
-        [SerializeField] private Texture2D[] textures;
         public TextMeshProUGUI NickName => nickName;
+        
+        [SerializeField] private Texture2D[] textures;
 
         private Animator animator;
         private Rigidbody rigid;
@@ -120,7 +122,10 @@ namespace KSH
             Quaternion dirQuat = Quaternion.LookRotation(moveVec); //이동벡터를 바라보며 회전
             //현재 회전에서 목표회전까지 회전 보간하고 회전 속도에 따라 시간 기반으로 조절하게 함
             Quaternion moveQuat = Quaternion.Slerp(rigid.rotation, dirQuat, rotateSpeed * Time.deltaTime);
-            rigid.MoveRotation(moveQuat); //설정한 회전값으로 회전
+            if (photonView.IsMine)
+            {
+                rigid.MoveRotation(moveQuat); //설정한 회전값으로 회전
+            } 
         }
         
         public void SettingColor(Color newcolor) //색깔 세팅

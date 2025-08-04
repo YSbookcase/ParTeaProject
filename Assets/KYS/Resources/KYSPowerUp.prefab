@@ -219,7 +219,7 @@ MonoBehaviour:
   maxFallSpeed: 15
   returnDelay: 3
   collectParticle: {fileID: 0}
-  collectSound: {fileID: 0}
+  collectSoundName: SFX_NormalItem
 --- !u!114 &-1891285017182407933
 MonoBehaviour:
   m_ObjectHideFlags: 0

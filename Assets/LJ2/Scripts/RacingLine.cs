@@ -12,11 +12,13 @@ public class RacingLine : MonoBehaviour
     [SerializeField] public GameObject goalQuad;
 
     public int havePassLine;
+    public bool isGoalLine;
 
     private void Awake()
     {
         bottomLine.SetActive(false);
         goalQuad.SetActive(false);
+        isGoalLine = false;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -31,9 +33,7 @@ public class RacingLine : MonoBehaviour
             }
             else
             {
-                Debug.Log("플레이어 도착");
-
-                if (photonView != null)
+                if (photonView != null && isGoalLine)
                 {
                     controller.isControllable = false;
                     RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.MasterClient, photonView.Owner.ActorNumber);
