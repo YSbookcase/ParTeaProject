@@ -44,17 +44,19 @@ public class AudioManager : Singleton<AudioManager>
         if (clipName == null)
         {
             bgmSource.Stop();
+            bgmSource.clip = null;
             if (curBgmData != null)
             {
                 Resources.UnloadAsset(curBgmData);
             }
+            return;
         }
 
         AudioData data = Resources.Load<AudioData>($"Audio/{clipName}");
 
         if(data == null)
         {
-            Debug.Log($"{clipName} AudioData를 찾을 수 없습니다.");
+            Debug.Log($"[AudioManager] {clipName} AudioData를 찾을 수 없습니다.");
             return;
         }
 
@@ -93,7 +95,7 @@ public class AudioManager : Singleton<AudioManager>
 
         if (data == null)
         {
-            Debug.Log($"{clipName} AudioData를 찾을 수 없습니다.");
+            Debug.Log($"[AudioManager] {clipName} AudioData를 찾을 수 없습니다.");
             return;
         }
 
@@ -142,7 +144,7 @@ public class AudioManager : Singleton<AudioManager>
 
         if (data == null)
         {
-            Debug.Log($"{clipName} AudioData를 찾을 수 없습니다.");
+            Debug.Log($"[AudioManager] {clipName} AudioData를 찾을 수 없습니다.");
             return;
         }
 
