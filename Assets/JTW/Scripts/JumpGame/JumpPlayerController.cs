@@ -44,6 +44,7 @@ public class JumpPlayerController : MonoBehaviourPun
 
     public void OnJump(InputValue value)
     {
+        Debug.Log($"{photonView.Owner.NickName} 점프 입력 감지");
         if (!photonView.IsMine) return;
         if (!isGround) return;
 
@@ -53,6 +54,8 @@ public class JumpPlayerController : MonoBehaviourPun
     [PunRPC]
     private void JumpGame_Jump(PhotonMessageInfo info)
     {
+        Debug.Log($"{photonView.Owner.NickName} 점프 RPC 함수 실행 감지");
+
         animator.SetTrigger("Jump");
         float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
 
