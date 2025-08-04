@@ -31,6 +31,8 @@ namespace JTW_JumpGame
 
         public void InitScore()
         {
+            Manager.Audio.BgmPlay("Score_BGM");
+
             scorePanel = GetUI("ScorePanel");
 
             List<Player> palyers = PhotonNetwork.PlayerList.OrderBy(p => p.GetRank()).ToList();
@@ -63,6 +65,8 @@ namespace JTW_JumpGame
 
         private void GoNextGame()
         {
+            Manager.Audio.BgmPlay(null);
+            Manager.Audio.SfxPlay("Score_NextButton");
             network.GoNext();
         }
     }
