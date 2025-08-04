@@ -56,7 +56,7 @@ public class JumpPlayerController : MonoBehaviourPun
     {
         Debug.Log($"{photonView.Owner.NickName} 점프 RPC 함수 실행 감지");
 
-        Manager.Audio.SfxPlay("JumpGame_Jump");
+        Manager.Audio.SfxPlay("JumpGame_Jump", transform);
 
         animator.SetTrigger("Jump");
         float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
@@ -94,6 +94,11 @@ public class JumpPlayerController : MonoBehaviourPun
     [PunRPC]
     private void JumpGamePlayerOut()
     {
+        // Player의 transform에서 Sfx를 재생하면 Destroy하면서 재생이 끊기기 때문에,
+        // 죽은 위치에 새로 obj를 만들어서 거기서 소리를 재생.
+        GameObject obj = new GameObject($"{photonView.Owner.NickName} Death Point");
+        obj.transform.position = transform.position;
+        Manager.Audio.SfxPlay("JumpGame_Death", obj.transform);
         Destroy(gameObject);
     }
 }
