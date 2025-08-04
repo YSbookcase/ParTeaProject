@@ -165,7 +165,7 @@ Transform:
   m_GameObject: {fileID: 155420005}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.11641413, z: 0, w: 0.9932008}
-  m_LocalPosition: {x: 123.05758, y: 200, z: -547.7875}
+  m_LocalPosition: {x: 123.05758, y: 300, z: -547.7875}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -377,7 +377,7 @@ Transform:
   m_GameObject: {fileID: 648201417}
   serializedVersion: 2
   m_LocalRotation: {x: -0.12715468, y: -0.8025053, z: 0.18476027, w: -0.55288386}
-  m_LocalPosition: {x: 125.37003, y: 200, z: -557.5164}
+  m_LocalPosition: {x: 125.37003, y: 300, z: -557.5164}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -741,7 +741,7 @@ Transform:
   m_GameObject: {fileID: 1371836295}
   serializedVersion: 2
   m_LocalRotation: {x: -0.12715468, y: -0.8025053, z: 0.18476027, w: -0.55288386}
-  m_LocalPosition: {x: 125.37003, y: 200, z: -557.5164}
+  m_LocalPosition: {x: 125.37003, y: 300, z: -557.5164}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -759,7 +759,7 @@ PrefabInstance:
     - target: {fileID: 1002988345759841497, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
       propertyPath: pathPosition
-      value: 150
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 2045186912301944157, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
@@ -832,7 +832,7 @@ PrefabInstance:
     - target: {fileID: 1002988345759841497, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
       propertyPath: pathPosition
-      value: 150
+      value: 2700
       objectReference: {fileID: 0}
     - target: {fileID: 2045186912301944157, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
@@ -1352,17 +1352,17 @@ MonoBehaviour:
     width: 0.2
   m_Looped: 1
   m_Waypoints:
-  - position: {x: 850, y: 200, z: 0}
+  - position: {x: 850, y: 300, z: 0}
     roll: 0
-  - position: {x: 1050, y: 200, z: -350}
+  - position: {x: 1050, y: 300, z: -350}
     roll: 0
-  - position: {x: 1400, y: 200, z: -1150}
+  - position: {x: 1400, y: 300, z: -1150}
     roll: 0
-  - position: {x: 900, y: 200, z: -950}
+  - position: {x: 900, y: 300, z: -950}
     roll: 0
-  - position: {x: 200, y: 200, z: -700}
+  - position: {x: 200, y: 300, z: -700}
     roll: 0
-  - position: {x: 250, y: 200, z: -100}
+  - position: {x: 250, y: 300, z: -100}
     roll: 0
 --- !u!4 &2038263692
 Transform:
@@ -1501,7 +1501,7 @@ PrefabInstance:
     - target: {fileID: 1002988345759841497, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
       propertyPath: pathPosition
-      value: 1400
+      value: 1350
       objectReference: {fileID: 0}
     - target: {fileID: 2045186912301944157, guid: 383bb448a2f80ef4aac2fb25e6c46847,
         type: 3}
