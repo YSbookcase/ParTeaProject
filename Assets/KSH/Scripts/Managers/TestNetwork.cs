@@ -7,6 +7,9 @@ namespace KSH
     {
         void Start()
         {
+            PhotonNetwork.SendRate = 30;
+            PhotonNetwork.SerializationRate = 15;
+            
             if (!PhotonNetwork.IsConnected)
             {
                 PhotonNetwork.ConnectUsingSettings();

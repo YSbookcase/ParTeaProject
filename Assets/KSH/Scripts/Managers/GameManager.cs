@@ -21,7 +21,6 @@ namespace KSH
         public event Action OnGameEnd;
         
         private Player player;
-        private bool isReady = false;
         public int readyCount;
 
         private void Awake()

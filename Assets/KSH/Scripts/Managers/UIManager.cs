@@ -4,6 +4,10 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System;
+using Photon.Pun;
+using Photon.Realtime;
+using Unity.VisualScripting;
+
 namespace KSH
 {
     public class UIManager : MonoBehaviour
@@ -18,6 +22,11 @@ namespace KSH
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private GameObject countDownPanal;
         [SerializeField] private TextMeshProUGUI countDownText;
+        [Header("팀 관련 텍스트")] 
+        [SerializeField] private Transform redTeamPanel;
+        [SerializeField] private Transform blueTeamPanel;
+        [SerializeField] private GameObject teamNickName;
+        [SerializeField] private Image vsImage;
         
         public event Action OnCountDownEnd;
         public static UIManager Instance;
@@ -45,8 +54,15 @@ namespace KSH
                 GameManager.Instance.OnGameStart += TimerUIUpdate;
                 GameManager.Instance.OnGameEnd += TileCheck;
             }
+
+            OnCountDownEnd += TeamNicknameUpdate;
             
             winnerPanel.SetActive(false);
+            redTeamPanel.gameObject.SetActive(false);
+            blueTeamPanel.gameObject.SetActive(false);
+            redText.gameObject.SetActive(false);
+            blueText.gameObject.SetActive(false);
+            vsImage.gameObject.SetActive(false);
         }
 
         void OnDisable()
@@ -59,12 +75,13 @@ namespace KSH
                 GameManager.Instance.OnGameStart -= TimerUIUpdate;
                 GameManager.Instance.OnGameEnd -= TileCheck;
             }
+            OnCountDownEnd -= TeamNicknameUpdate;
         }
 
         private void TileUIUpdate(int red, int blue) //팀 점수 UI 업데이트
         {
-            redText.text = $"RedTeam : {red}";
-            blueText.text = $"BlueTeam : {blue}";
+            redText.text = $"{red}";
+            blueText.text = $"{blue}";
         }
         
         private void TimerUIUpdate() //시간 업데이트
@@ -112,8 +129,32 @@ namespace KSH
                 yield return new WaitForSeconds(1f);
             }
             countDownText.text = "GO!";
+            yield return new WaitForSeconds(1f);
+            
             countDownPanal.SetActive(false);
+            redTeamPanel.gameObject.SetActive(true);
+            blueTeamPanel.gameObject.SetActive(true);
+            redText.gameObject.SetActive(true);
+            blueText.gameObject.SetActive(true);
+            vsImage.gameObject.SetActive(true);
             OnCountDownEnd?.Invoke();
+        }
+
+        private void TeamNicknameUpdate()
+        {
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+                int team = player.CustomProperties.ContainsKey("Team") ? (int)player.CustomProperties["Team"] : -1;
+
+                GameObject gameObject = Instantiate(teamNickName);
+                TextMeshProUGUI textMeshProUGUI = gameObject.GetComponent<TextMeshProUGUI>();
+                textMeshProUGUI.text = player.NickName;
+                
+                if (team == 0)
+                    gameObject.transform.SetParent(redTeamPanel, false);
+                else if (team == 1)
+                    gameObject.transform.SetParent(blueTeamPanel, false);;
+            }
         }
     }
 }
