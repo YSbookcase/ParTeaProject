@@ -170,8 +170,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 5539457231747955550, guid: aeac1674b2e4ada4788e342fa66bdc77,
     type: 3}
-  spawnRadius: 6.5
-  center: {x: 0, y: 0.4, z: 0}
+  spawnRadius: 5.5
+  center: {x: 0, y: 0.65, z: 0}
   segments: 60
   circleColor: {r: 0, g: 1, b: 1, a: 1}
   centerLineColor: {r: 1, g: 0, b: 0, a: 1}

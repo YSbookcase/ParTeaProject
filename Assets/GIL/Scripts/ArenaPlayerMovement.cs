@@ -6,10 +6,10 @@ namespace GIL.Scripts
     public class ArenaPlayerMovement : MonoBehaviour, IPunObservable
     {
         [Header("Movement Settings")]
-        [SerializeField] private float movePower = 50f;
-        [SerializeField] private float maxSpeed = 15f;
-        [SerializeField] private float drag = 0.9f;
-        
+        [SerializeField] private float movePower = 30f;
+        [SerializeField] private float maxSpeed = 50f;
+        [SerializeField] private float drag = 0.95f;
+        [SerializeField] private float pushForce = 30f;
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
         
@@ -33,8 +33,8 @@ namespace GIL.Scripts
             _networkPosition = transform.position;
             _networkRotation = transform.rotation;
             
-            PhotonNetwork.SendRate = 30;
-            PhotonNetwork.SerializationRate = 30;
+            PhotonNetwork.SendRate = 60;
+            PhotonNetwork.SerializationRate = 60;
         }
 
         private void OnEnable()
@@ -47,6 +47,15 @@ namespace GIL.Scripts
             if (_photonView.IsMine) _inputActions.Disable();
         }
 
+        private void Update()
+        {
+            if (_photonView.IsMine) return;
+        
+            _rigidbody.position = _networkPosition;
+            _rigidbody.rotation = _networkRotation;
+            _rigidbody.velocity = _networkVelocity;
+        }
+        
         private void FixedUpdate()
         {
             if (_photonView.IsMine)
@@ -55,13 +64,8 @@ namespace GIL.Scripts
             }
             else
             {
-                float lerpFactor = Mathf.Clamp01((Time.time - _lastReceivedTime) * PhotonNetwork.SerializationRate);
-                // 다른 플레이어는 부드럽게 보간
-                transform.position = Vector3.Lerp(transform.position, _networkPosition, lerpFactor);
-                transform.rotation = Quaternion.Lerp(transform.rotation, _networkRotation, lerpFactor);
-
-                // 속도도 보간해서 더 자연스럽게
-                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, _networkVelocity, lerpFactor);
+                _rigidbody.MovePosition(_networkPosition);
+                _rigidbody.MoveRotation(_networkRotation);
             }
         }
         
@@ -113,5 +117,31 @@ namespace GIL.Scripts
                 _lastReceivedTime = Time.time;
             }
         }
+        
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!_photonView.IsMine) return;
+
+            if (collision.gameObject.CompareTag("Player"))
+            {
+                Debug.Log("플레이어 충돌");
+                Vector3 pushDir = (collision.transform.position - transform.position).normalized;
+
+                _rigidbody.AddForce(-pushDir * pushForce, ForceMode.Impulse);
+
+                PhotonView otherPhotonView = collision.gameObject.GetComponent<PhotonView>();
+                if (otherPhotonView != null)
+                {
+                    otherPhotonView.RPC(nameof(ArenaApplyPushForce), RpcTarget.AllBuffered, pushDir * pushForce);
+                }
+            }
+        }
+        
+        [PunRPC]
+        public void ArenaApplyPushForce(Vector3 force)
+        {
+            _rigidbody.AddForce(force, ForceMode.Impulse);
+        }
+
     }
 }
