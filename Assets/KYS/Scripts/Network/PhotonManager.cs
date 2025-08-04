@@ -47,14 +47,35 @@ namespace KYS
             var user = FirebaseManager.Auth.CurrentUser;
             if (user != null && !string.IsNullOrEmpty(user.DisplayName))
             {
-                PhotonNetwork.NickName = user.DisplayName;
-                Debug.Log($"Photon 닉네임 동기화: {user.DisplayName}");
+                // Photon에 연결되어 있는 경우에만 닉네임 설정
+                if (PhotonNetwork.IsConnected)
+                {
+                    PhotonNetwork.NickName = user.DisplayName;
+                    Debug.Log($"Photon 닉네임 동기화 완료: {user.DisplayName}");
+                    
+                    // 방에 있는 경우 다른 플레이어들에게 닉네임 변경 알림
+                    if (PhotonNetwork.InRoom)
+                    {
+                        Debug.Log("방 내에서 닉네임 변경 알림 전송");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("Photon에 연결되어 있지 않아 닉네임 동기화를 건너뜁니다.");
+                }
             }
             else
             {
                 // Firebase 사용자가 없거나 닉네임이 없는 경우 기본값 설정
-                PhotonNetwork.NickName = "Guest";
-                Debug.Log("Firebase 사용자 정보가 없어 기본 닉네임으로 설정: Guest");
+                if (PhotonNetwork.IsConnected)
+                {
+                    PhotonNetwork.NickName = "Guest";
+                    Debug.Log("Firebase 사용자 정보가 없어 기본 닉네임으로 설정: Guest");
+                }
+                else
+                {
+                    Debug.LogWarning("Photon에 연결되어 있지 않아 기본 닉네임 설정을 건너뜁니다.");
+                }
             }
         }
 

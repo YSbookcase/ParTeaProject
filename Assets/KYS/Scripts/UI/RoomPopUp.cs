@@ -1095,6 +1095,35 @@ namespace KYS
             }
         }
 
+        // 닉네임 동기화를 위한 메서드 추가
+        public void RefreshPlayerNicknames()
+        {
+            foreach (var kvp in playerPanels)
+            {
+                Player player = PhotonNetwork.CurrentRoom.GetPlayer(kvp.Key);
+                if (player != null && kvp.Value != null)
+                {
+                    // 닉네임 텍스트 업데이트
+                    var nicknameText = kvp.Value.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                    if (nicknameText != null)
+                    {
+                        // 방장 표시가 있는지 확인하고 유지
+                        bool hasMasterText = nicknameText.text.Contains("[방장]");
+                        string baseNickname = player.NickName;
+                        
+                        if (hasMasterText)
+                        {
+                            nicknameText.text = $"{baseNickname} [방장]";
+                        }
+                        else
+                        {
+                            nicknameText.text = baseNickname;
+                        }
+                    }
+                }
+            }
+        }
+
         private void OnMasterClientSwitched(Player newMasterClient)
         {
             UpdateGameSelectionButtonStates();
