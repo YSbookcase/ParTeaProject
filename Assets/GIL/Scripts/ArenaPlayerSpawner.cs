@@ -1,4 +1,5 @@
 using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
 
 namespace GIL.Scripts
@@ -15,19 +16,32 @@ namespace GIL.Scripts
         [SerializeField] private Color centerLineColor = Color.red;
 
         private int _playerCount;
-    
+        private int _playerNum;
         private void Start()
         {
             SpawnPlayer();
         }
-    
+        
+        private void ResetActorNumber()
+        {
+            _playerNum = 0;
+            foreach(Player player in PhotonNetwork.PlayerList)
+            {
+                if (player.IsLocal)
+                {
+                    break;
+                }
+                _playerNum++;
+            }
+        }
+        
         private void SpawnPlayer()
         {
             _playerCount = PhotonNetwork.PlayerList.Length;
-            int myIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+            ResetActorNumber();
 
             float anglePerPlayer = 360f / _playerCount;
-            float angle = anglePerPlayer * myIndex;
+            float angle = anglePerPlayer * _playerNum;
             float rad = angle * Mathf.Deg2Rad;
 
             Vector3 spawnPos = new Vector3(
