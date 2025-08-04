@@ -56,6 +56,8 @@ public class JumpPlayerController : MonoBehaviourPun
     {
         Debug.Log($"{photonView.Owner.NickName} 점프 RPC 함수 실행 감지");
 
+        Manager.Audio.SfxPlay("JumpGame_Jump");
+
         animator.SetTrigger("Jump");
         float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
 
