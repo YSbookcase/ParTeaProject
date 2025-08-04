@@ -33,6 +33,7 @@ namespace JTW_JumpGame
         { 
             if (isGameStarted) return;
             isGameStarted = true;
+            Manager.Audio.BgmPlay("BGM_JumpGame");
 
             int playerNum = 0;
             foreach(Player player in PhotonNetwork.PlayerList)

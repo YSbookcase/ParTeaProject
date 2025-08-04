@@ -18,7 +18,7 @@ namespace JTW_JumpGame
         private GameObject scorePanel;
         private Button nextButton;
 
-        private Vector2 startPositon = new Vector2(0, -145);
+        private Vector2 startPositon = new Vector2(0, -165);
 
         private int[] rankScore = new int[] { 0, 5, 3, 2, 1 };
 
@@ -31,6 +31,8 @@ namespace JTW_JumpGame
 
         public void InitScore()
         {
+            Manager.Audio.BgmPlay("Score_BGM");
+
             scorePanel = GetUI("ScorePanel");
 
             List<Player> palyers = PhotonNetwork.PlayerList.OrderBy(p => p.GetRank()).ToList();
@@ -45,7 +47,7 @@ namespace JTW_JumpGame
                 panel.InitInfo(player.GetRank(), player.NickName, player.GetTotalGameScore(), rankScore[player.GetRank()]);
 
                 player.AddTotalGameScore(rankScore[player.GetRank()]);
-                startPositon.y -= 140;
+                startPositon.y -= 150;
 
                 // property가 초기화 되지 않아서 생기는 문제를 방지하기 위해 미리 초기화
                 Hashtable property = new Hashtable();
@@ -63,6 +65,8 @@ namespace JTW_JumpGame
 
         private void GoNextGame()
         {
+            Manager.Audio.BgmPlay(null);
+            Manager.Audio.SfxPlay("Score_NextButton");
             network.GoNext();
         }
     }
