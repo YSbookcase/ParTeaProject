@@ -71,8 +71,8 @@ namespace KYS
 
         private void RegisterEvents()
         {
-            // NicknameConfirmButton 이벤트 등록
-            var nicknameButton = GetEvent("NicknameConfirmButton");
+            // SFX가 포함된 NicknameConfirmButton 이벤트 등록
+            var nicknameButton = GetEventWithSFX("NicknameConfirmButton", "SFX_ButtonClick");
             if (nicknameButton != null)
             {
                 nicknameButton.Click += ChangeNickname;
@@ -82,8 +82,8 @@ namespace KYS
                 Debug.LogWarning("[EditPopUp] NicknameConfirmButton을 찾을 수 없습니다.");
             }
 
-            // PassConfirmButton 이벤트 등록
-            var passButton = GetEvent("PassConfirmButton");
+            // SFX가 포함된 PassConfirmButton 이벤트 등록
+            var passButton = GetEventWithSFX("PassConfirmButton", "SFX_ButtonClick");
             if (passButton != null)
             {
                 passButton.Click += ChangePassword;
@@ -93,8 +93,8 @@ namespace KYS
                 Debug.LogWarning("[EditPopUp] PassConfirmButton을 찾을 수 없습니다.");
             }
 
-            // BackButton 이벤트 등록
-            var backButton = GetEvent("BackButton");
+            // SFX가 포함된 BackButton 이벤트 등록
+            var backButton = GetBackEvent("BackButton", "SFX_ButtonClickBack");
             if (backButton != null)
             {
                 backButton.Click += Back;
@@ -104,7 +104,7 @@ namespace KYS
                 Debug.LogWarning("[EditPopUp] BackButton을 찾을 수 없습니다.");
             }
 
-            var deleteUserButton = GetEvent("IDDeleteButton");
+            var deleteUserButton = GetEventWithSFX("IDDeleteButton", "SFX_ButtonClick");
             if (deleteUserButton != null)
             {
                 deleteUserButton.Click -= DeleteUser;
@@ -114,6 +114,19 @@ namespace KYS
             {
                 Debug.LogError("[LobbyPopUp] IDDeleteButton을 찾을 수 없습니다.");
             }
+
+            // SFX가 포함된 MenuButton 이벤트 등록
+            var MenuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
+            if (MenuButton != null)
+            {
+                MenuButton.Click -= OnMenu;
+                MenuButton.Click += OnMenu;
+            }
+            else
+            {
+                Debug.LogWarning("[EditPopUp] PassConfirmButton을 찾을 수 없습니다.");
+            }
+
 
         }
 
@@ -151,7 +164,8 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"닉네임 변경 실패: {task.Exception}");
+                        ShowErrorMessage($"닉네임 변경 실패");
+                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
                         return;
                     }
 
@@ -194,18 +208,27 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"비밀번호 변경 실패: {task.Exception}");
+                        ShowErrorMessage($"비밀번호 변경 실패");
+                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
                         return;
                     }
 
                     ShowSuccessMessage("비밀번호가 성공적으로 변경되었습니다.");
                     Debug.Log("비밀번호 변경 성공");
                 });
+
+            // 비밀번호 변경 성공 후 입력 필드 초기화
+            ClearPasswordFields();
         }
 
         private void Back(PointerEventData eventData)
         {
             UIManager.Instance.ClosePopUp();
+        }
+
+        private void OnMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
         }
 
         public void LoginInfo()
@@ -242,6 +265,22 @@ namespace KYS
             nameInput.text = user.DisplayName ?? "";
 
             Debug.Log($"[EditPopUp] 사용자 정보 로드 완료 - Email: {user.Email}, Name: {user.DisplayName}, UID: {user.UserId}");
+        }
+
+        // 비밀번호 입력 필드 초기화
+        private void ClearPasswordFields()
+        {
+            if (passInput != null)
+            {
+                passInput.text = "";
+            }
+
+            if (passConfirmInput != null)
+            {
+                passConfirmInput.text = "";
+            }
+
+            Debug.Log("[EditPopUp] 비밀번호 입력 필드가 초기화되었습니다.");
         }
 
         // 방 삭제 버튼 클릭 시

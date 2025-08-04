@@ -545,7 +545,7 @@ namespace KYS
                 else
                 {
                     // Non-Master Client는 Master Client에게 점수 증가 요청
-                    photonViewRef.RPC("RequestScoreIncrease", RpcTarget.MasterClient, playerActorNumber, (int)itemType);
+                    photonViewRef.RPC(nameof(RequestScoreIncrease), RpcTarget.MasterClient, playerActorNumber, (int)itemType);
                 }
             }
         }

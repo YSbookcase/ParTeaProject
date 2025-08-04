@@ -9,9 +9,10 @@ namespace KYS
     public class ObstacleController : MonoBehaviourPun
     {
         [Header("Obstacle Settings")]
-        [SerializeField] private float slowEffectDuration = 3f; // 느려지는 효과 지속 시간
-        [SerializeField] private float slowEffectMultiplier = 0.5f; // 느려지는 효과 배율
-        [SerializeField] private int damagePoints = -2; // 점수 감점
+        // 사용되지 않는 변수들 - 주석 처리
+        // [SerializeField] private float slowEffectDuration = 3f; // 느려지는 효과 지속 시간
+        // [SerializeField] private float slowEffectMultiplier = 0.5f; // 느려지는 효과 배율
+        // [SerializeField] private int damagePoints = -2; // 점수 감점
         
         [Header("Effects")]
         [SerializeField] private GameObject hitEffect;

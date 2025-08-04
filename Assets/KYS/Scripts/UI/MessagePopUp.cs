@@ -20,7 +20,7 @@ namespace KYS
         {
             base.Awake();
 
-            GetEvent("ConfirmText").Click += CheckedMessage;
+            GetEventWithSFX("ConfirmText", "SFX_ButtonClick").Click += CheckedMessage;
 
         }
 

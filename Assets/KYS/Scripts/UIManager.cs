@@ -147,12 +147,14 @@ namespace KYS
 
         private System.Collections.IEnumerator ShowRoomPopUpAfterDelay()
         {
+            Debug.Log("[UIManager] ShowRoomPopUpAfterDelay 코루틴 시작");
             yield return new WaitForSeconds(0.5f);
             
             // 이미 RoomPopUp이 표시되어 있는지 확인
             RoomPopUp existingRoomPopUp = FindActivePopUp<RoomPopUp>();
             if (existingRoomPopUp == null)
             {
+                Debug.Log("[UIManager] 새로운 RoomPopUp 생성");
                 ShowPopUp<RoomPopUp>();
                 Debug.Log("[UIManager] RoomPopUp 표시 완료");
             }
@@ -161,6 +163,7 @@ namespace KYS
                 // 기존 RoomPopUp이 있다면 초기화
                 Debug.Log("[UIManager] 기존 RoomPopUp 초기화");
                 existingRoomPopUp.InitializeRoomAfterGame();
+                Debug.Log("[UIManager] 기존 RoomPopUp 초기화 완료");
             }
         }
 
