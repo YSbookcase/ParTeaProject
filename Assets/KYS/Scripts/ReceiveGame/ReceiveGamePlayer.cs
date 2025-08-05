@@ -18,6 +18,10 @@ namespace KYS
         [SerializeField] private float speedBoostMultiplier = 1.5f;
         [SerializeField] private float slowEffectMultiplier = 0.5f;
         
+        [Header("Magnetic Effect Settings")]
+        [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위
+        [SerializeField] private float magnetForce = 10f; // 자석 효과 힘
+        
         [Header("Components")]
         [SerializeField] private Renderer playerRenderer;
         [SerializeField] private Animator playerAnimator;
@@ -131,6 +135,12 @@ namespace KYS
                 // 로컬 플레이어만 입력 처리
                 HandleInput();
                 CheckItemCollection();
+                
+                // 자석 효과가 활성화된 경우 주변 아이템을 끌어당기기
+                if (hasMagnetEffect)
+                {
+                    CheckMagneticAttraction();
+                }
             }
             else
             {
@@ -248,6 +258,52 @@ namespace KYS
                 if (item != null && !item.IsCollected)
                 {
                     CollectItem(item);
+                }
+            }
+        }
+        
+        private void CheckMagneticAttraction()
+        {
+            // 자석 효과 범위 내의 아이템들을 찾기
+            Collider[] colliders = Physics.OverlapSphere(transform.position, magnetRadius);
+            
+            foreach (Collider collider in colliders)
+            {
+                CollectibleItem item = collider.GetComponent<CollectibleItem>();
+                if (item != null && !item.IsCollected)
+                {
+                    // 아이템을 플레이어 방향으로 끌어당기기
+                    AttractItem(item);
+                }
+            }
+        }
+        
+        private void AttractItem(CollectibleItem item)
+        {
+            if (item == null || item.IsCollected) return;
+            
+            // 아이템과 플레이어 사이의 방향 계산
+            Vector3 directionToPlayer = (transform.position - item.transform.position).normalized;
+            float distanceToPlayer = Vector3.Distance(transform.position, item.transform.position);
+            
+            // 거리가 가까울수록 더 강한 힘 적용 (역제곱 법칙)
+            float attractionForce = magnetForce / (distanceToPlayer * distanceToPlayer);
+            
+            // 아이템의 Rigidbody에 힘 적용
+            Rigidbody itemRb = item.GetComponent<Rigidbody>();
+            if (itemRb != null && !itemRb.isKinematic)
+            {
+                // Y축 속도는 제한하여 너무 빠르게 떨어지지 않도록 함
+                Vector3 currentVelocity = itemRb.velocity;
+                Vector3 attractionVelocity = directionToPlayer * attractionForce;
+                attractionVelocity.y = Mathf.Max(currentVelocity.y, -2f); // 최대 낙하 속도 제한
+                
+                itemRb.velocity = attractionVelocity;
+                
+                // 디버그 로그 (너무 자주 출력되지 않도록 제한)
+                if (Time.frameCount % 60 == 0) // 1초에 한 번씩만 출력
+                {
+                    Debug.Log($"[ReceiveGamePlayer] 자석 효과로 아이템 끌어당김: {item.name}, 거리: {distanceToPlayer:F2}, 힘: {attractionForce:F2}, 기본 마그네틱 힘: {magnetForce}");
                 }
             }
         }
@@ -534,6 +590,23 @@ namespace KYS
             // 수집 반경 시각화
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(transform.position, collectionRadius);
+            
+            // 자석 효과 범위 표시 (자석 효과가 활성화된 경우에만)
+            if (hasMagnetEffect)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(transform.position, magnetRadius);
+            }
+        }
+        
+        private void OnDrawGizmos()
+        {
+            // 자석 효과가 활성화된 경우 런타임에서도 범위 표시
+            if (hasMagnetEffect)
+            {
+                Gizmos.color = new Color(0, 0, 1, 0.3f); // 반투명 파란색
+                Gizmos.DrawWireSphere(transform.position, magnetRadius);
+            }
         }
         
         // 고스트 무빙 방지를 위한 보간 메서드
@@ -623,13 +696,30 @@ namespace KYS
             }
         }
         
-        public void ApplyMagnetEffect(float duration)
+        public void ApplyMagnetEffect(float duration, float customMagnetRadius = -1f, float customMagnetForce = -1f)
         {
             if (photonView.IsMine)
             {
                 hasMagnetEffect = true;
                 magnetEffectEndTime = Time.time + duration;
-                Debug.Log($"자석 효과 적용! 지속시간: {duration}초");
+                
+                // 커스텀 값이 제공된 경우 사용,否则 기본값 사용
+                if (customMagnetRadius > 0f)
+                {
+                    magnetRadius = customMagnetRadius;
+                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 범위 적용: {customMagnetRadius}");
+                }
+                if (customMagnetForce > 0f)
+                {
+                    magnetForce = customMagnetForce;
+                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 힘 적용: {customMagnetForce}");
+                }
+                else
+                {
+                    Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
+                }
+                
+                Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
             }
         }
         

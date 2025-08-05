@@ -23,6 +23,8 @@ MonoBehaviour:
     emissionIntensity: 1
     pointValue: 1
     effectDuration: 0
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 60
@@ -39,12 +41,14 @@ MonoBehaviour:
     emissionIntensity: 1
     pointValue: 3
     effectDuration: 0
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2.5
     maxFallSpeed: 12
     rotationSpeed: 90
     bobSpeed: 2
     bobHeight: 0.4
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_BonusItem
   - itemType: 2
     visualPrefab: {fileID: 2199520570192686080, guid: 36f36da7ed2d01042a8849c9b55afe87,
       type: 3}
@@ -55,12 +59,14 @@ MonoBehaviour:
     emissionIntensity: 1
     pointValue: 2
     effectDuration: 5
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 120
     bobSpeed: 1.5
     bobHeight: 0.3
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_SpeedItem
   - itemType: 3
     visualPrefab: {fileID: 5296646555204626939, guid: 685c0fc5fa8b9c04ca226db350611cc7,
       type: 3}
@@ -71,12 +77,14 @@ MonoBehaviour:
     emissionIntensity: 1
     pointValue: -1
     effectDuration: 5
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 1.5
     maxFallSpeed: 10
     rotationSpeed: 30
     bobSpeed: 1
     bobHeight: 0.2
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_SlowItem
   - itemType: 4
     visualPrefab: {fileID: 8835592703282879395, guid: 346e2afa35d4a7e4e9dae1616ddd6772,
       type: 3}
@@ -85,13 +93,15 @@ MonoBehaviour:
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
-    pointValue: 1
-    effectDuration: 5
+    pointValue: 2
+    effectDuration: 10
+    magnetRadius: 10
+    magnetForce: 200
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 60
     bobSpeed: 1.5
     bobHeight: 0.3
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_MagnetItem
   defaultVisualPrefab: {fileID: 9206591617620198387, guid: fe2d2f156fa000a4696f74c99b27129c,
     type: 3}

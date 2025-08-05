@@ -14,6 +14,10 @@ namespace KYS
         [SerializeField] private int pointValue = 1;
         [SerializeField] private float effectDuration = 5f;
         
+        [Header("Magnetic Effect Settings")]
+        [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위 (기본값)
+        [SerializeField] private float magnetForce = 10f; // 자석 효과 힘 (기본값)
+        
         [Header("Physics Settings")]
         [SerializeField] private float groundLevel = 0.5f;
         [SerializeField] private float bounceForce = 2f;
@@ -171,11 +175,14 @@ namespace KYS
         public void SetItemType(ItemType type)
         {
             itemType = type;
+            Debug.Log($"[EnhancedItemController] 아이템 타입 설정: {type} - {gameObject.name}");
             UpdateVisual();
         }
         
         private void UpdateVisual()
         {
+            Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
+            
             // 기존 시각적 프리팹 제거
             ClearVisualPrefab();
             
@@ -184,6 +191,11 @@ namespace KYS
             if (itemConfiguration != null)
             {
                 config = itemConfiguration.GetItemConfig(itemType);
+                Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
+            }
+            else
+            {
+                Debug.LogWarning($"[EnhancedItemController] ItemConfiguration이 null입니다. 레거시 방식 사용");
             }
             
             if (config != null)
@@ -197,6 +209,12 @@ namespace KYS
                 bobSpeed = config.bobSpeed;
                 bobHeight = config.bobHeight;
                 
+                // 마그네틱 효과 설정 적용
+                magnetRadius = config.magnetRadius;
+                magnetForce = config.magnetForce;
+                
+                Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
+                
                 // 시각적 프리팹 적용
                 if (config.visualPrefab != null)
                 {
@@ -206,11 +224,13 @@ namespace KYS
                 {
                     // 프리팹이 없으면 색상만 변경
                     ApplyColor(config.itemColor);
+                    Debug.Log($"[EnhancedItemController] {itemType} 색상 적용: {config.itemColor}");
                 }
             }
             else
             {
                 // 설정이 없으면 레거시 방식 사용
+                Debug.Log($"[EnhancedItemController] {itemType} 레거시 시각적 설정 적용");
                 ApplyLegacyVisual();
             }
         }
@@ -227,29 +247,42 @@ namespace KYS
             currentVisualPrefab.transform.localPosition = Vector3.zero;
             currentVisualPrefab.transform.localRotation = Quaternion.identity;
             
-            // 아이템 타입별 크기 설정
-            float scaleMultiplier = GetItemTypeScale();
-            currentVisualPrefab.transform.localScale = Vector3.one * scaleMultiplier;
+            // ScriptableObject에서 가져온 크기 설정 적용
+            Vector3 itemScale = GetItemTypeScale();
+            currentVisualPrefab.transform.localScale = itemScale;
             
-            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {scaleMultiplier}");
+            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
         }
         
-        private float GetItemTypeScale()
+        private Vector3 GetItemTypeScale()
         {
+            // ScriptableObject에서 크기 설정 가져오기
+            if (itemConfiguration != null)
+            {
+                ItemConfig config = itemConfiguration.GetItemConfig(itemType);
+                if (config != null)
+                {
+                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
+                    return config.scale;
+                }
+            }
+            
+            // ScriptableObject에서 가져올 수 없는 경우 기본값 사용
+            Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 크기 설정을 찾을 수 없어 기본값 사용");
             switch (itemType)
             {
                 case ItemType.Normal:
-                    return 1.5f;
+                    return Vector3.one * 1.5f;
                 case ItemType.Bonus:
-                    return 2.0f; // 보너스 아이템은 더 크게
+                    return Vector3.one * 2.0f; // 보너스 아이템은 더 크게
                 case ItemType.Speed:
-                    return 1.5f;
+                    return Vector3.one * 1.5f;
                 case ItemType.Slow:
-                    return 1.2f; // 느린 아이템은 약간 작게
+                    return Vector3.one * 1.2f; // 느린 아이템은 약간 작게
                 case ItemType.Magnet:
-                    return 1.5f;
+                    return Vector3.one * 1.5f;
                 default:
-                    return 1.5f;
+                    return Vector3.one * 1.5f;
             }
         }
         
@@ -306,6 +339,7 @@ namespace KYS
                     break;
             }
             
+            Debug.Log($"[EnhancedItemController] 레거시 시각적 설정 - {itemType}: 색상={targetColor}, 점수={pointValue}");
             ApplyColor(targetColor);
         }
         
@@ -362,7 +396,9 @@ namespace KYS
                     break;
                     
                 case ItemType.Magnet:
-                    player.ApplyMagnetEffect(effectDuration);
+                    // 이미 설정된 마그네틱 힘 값 사용 (UpdateVisual에서 ItemConfiguration에서 가져온 값)
+                    Debug.Log($"[EnhancedItemController] 마그네틱 효과 적용 - 힘: {magnetForce}, 범위: {magnetRadius}, 지속시간: {effectDuration}");
+                    player.ApplyMagnetEffect(effectDuration, magnetRadius, magnetForce);
                     break;
             }
         }
@@ -382,6 +418,17 @@ namespace KYS
             return effectDuration;
         }
         
+        public float GetMagnetRadius()
+        {
+            return magnetRadius;
+        }
+        
+        public float GetMagnetForce()
+        {
+            Debug.Log($"[EnhancedItemController] GetMagnetForce 호출 - 현재 힘 값: {magnetForce}, 아이템 타입: {itemType}");
+            return magnetForce;
+        }
+        
         // 아이템 수집 효과음 재생
         private void PlayCollectSound()
         {
@@ -391,6 +438,11 @@ namespace KYS
                 if (config != null && !string.IsNullOrEmpty(config.collectSoundName) && Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay(config.collectSoundName, transform);
+                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다.");
                 }
             }
             else
@@ -399,6 +451,11 @@ namespace KYS
                 if (Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay("SFX_NormalItem", transform);
+                    Debug.Log($"[EnhancedItemController] {itemType} 기본 사운드 재생: SFX_NormalItem");
+                }
+                else
+                {
+                    Debug.LogWarning($"[EnhancedItemController] AudioManager가 null입니다.");
                 }
             }
         }

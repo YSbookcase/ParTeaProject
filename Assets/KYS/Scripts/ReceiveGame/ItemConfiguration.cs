@@ -23,6 +23,10 @@ namespace KYS
         public int pointValue = 1;
         public float effectDuration = 5f;
         
+        [Header("Magnetic Effect Settings")]
+        public float magnetRadius = 5f; // 자석 효과 범위 (기본값)
+        public float magnetForce = 10f; // 자석 효과 힘 (기본값)
+        
         [Header("Physics Settings")]
         public float bounceForce = 2f;
         public float maxFallSpeed = 12f;

@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: SFX_SlowItem
   m_EditorClassIdentifier: 
   clipName: SFX_SlowItem
-  clip: {fileID: 8300000, guid: 945b3c656c8c8aa46829aba03a904c70, type: 3}
-  volume: 1 
+  clip: {fileID: 8300000, guid: a2662a091a9195b4bac60ca2aadde94b, type: 3}
+  volume: 1

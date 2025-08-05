@@ -54,6 +54,8 @@ MonoBehaviour:
   baseMoveSpeed: 5
   speedBoostMultiplier: 1.5
   slowEffectMultiplier: 0.5
+  magnetRadius: 5
+  magnetForce: 10
   playerRenderer: {fileID: 189909359735969262}
   playerAnimator: {fileID: 4985343708486770554}
   nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
