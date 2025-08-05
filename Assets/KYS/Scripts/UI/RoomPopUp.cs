@@ -355,7 +355,7 @@ namespace KYS
                 int maxPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
 
                 roomNameText.text = $"{roomName} ({currentPlayers}/{maxPlayers})";
-                Debug.Log($"[RoomPopUp] 방 이름 업데이트: {roomName} ({currentPlayers}/{maxPlayers})");
+                //Debug.Log($"[RoomPopUp] 방 이름 업데이트: {roomName} ({currentPlayers}/{maxPlayers})");
             }
             else if (roomNameText != null)
             {
@@ -1007,7 +1007,7 @@ namespace KYS
                         gameSprite = Resources.Load<Sprite>("GameImages/Relay");
                         if (gameSprite != null)
                         {
-                            Debug.Log($"[RoomPopUp] {imageName} 이미지가 없어 기본 Relay 이미지를 사용합니다.");
+                            //Debug.Log($"[RoomPopUp] {imageName} 이미지가 없어 기본 Relay 이미지를 사용합니다.");
                         }
                     }
 

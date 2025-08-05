@@ -18,7 +18,7 @@ namespace KYS
         }
         public void PushUIStack(BaseUI ui)
         {
-            Debug.Log($"[PopUpUI] PushUIStack 호출: {ui?.name}, 현재 스택 개수: {stack.Count}");
+            //Debug.Log($"[PopUpUI] PushUIStack 호출: {ui?.name}, 현재 스택 개수: {stack.Count}");
             
             IsPopUpActive = true;
             if (stack.Count > 0)
@@ -29,7 +29,7 @@ namespace KYS
             }
 
             stack.Push(ui);
-            Debug.Log($"[PopUpUI] 팝업 스택에 추가됨: {ui?.name}, 현재 스택 개수: {stack.Count}");
+            //Debug.Log($"[PopUpUI] 팝업 스택에 추가됨: {ui?.name}, 현재 스택 개수: {stack.Count}");
             
             // LoginPopUp일 경우 Blocker를 비활성화 (로그인 화면은 전체 화면이므로)
             if (ui is LoginPopUp)
@@ -37,7 +37,7 @@ namespace KYS
                 if (blocker != null)
                 {
                     blocker.SetActive(false);
-                    Debug.Log("[PopUpUI] LoginPopUp이므로 Blocker 비활성화");
+                    //Debug.Log("[PopUpUI] LoginPopUp이므로 Blocker 비활성화");
                 }
             }
             else

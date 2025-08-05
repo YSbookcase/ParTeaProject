@@ -28,7 +28,7 @@ namespace KYS
         private Renderer effectRenderer;
         private Material effectMaterial;
         private Color originalColor;
-        private ParticleSystem particleSystem;
+        private new ParticleSystem particleSystem;
         private ParticleSystem.MainModule particleMain;
         
         private void Start()

@@ -81,63 +81,51 @@ namespace KYS
         private Dictionary<ItemType, GameObject> activeEffects = new Dictionary<ItemType, GameObject>();
         private Dictionary<ItemType, Coroutine> effectCoroutines = new Dictionary<ItemType, Coroutine>();
         
+        // 컴포넌트 참조
+        private Rigidbody rb;
+        private Collider playerCollider;
+        
         private void Start()
         {
-            // 모든 플레이어가 색상과 이름 태그를 설정
-            targetPosition = transform.position;
-            gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
-            gameUI = FindObjectOfType<ReceiveGameUI>();
+            // 플랫폼 감지
+            DetectPlatform();
             
-            // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
-            Rigidbody rb = GetComponent<Rigidbody>();
+            // 컴포넌트 초기화
+            if (rb == null)
+            {
+                rb = GetComponent<Rigidbody>();
+            }
+            
             if (rb != null)
             {
-                rb.useGravity = false; // 중력 비활성화
-                rb.isKinematic = false; // 물리 충돌을 위해 Kinematic 비활성화
-                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezeRotationY;
-                rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // 빠른 이동 시 충돌 감지 개선
-                Debug.Log("[ReceiveGamePlayer] Rigidbody 설정 완료 - 물리 충돌 활성화");
+                // Rigidbody 설정
+                rb.useGravity = true;
+                rb.constraints = RigidbodyConstraints.FreezeRotation;
+                rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             }
             else
             {
                 Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
-            // Collider 설정 확인
-            Collider playerCollider = GetComponent<Collider>();
-            if (playerCollider != null)
-            {
-                Debug.Log($"[ReceiveGamePlayer] Collider 확인됨: {playerCollider.GetType().Name}");
-            }
-            else
+            // Collider 확인
+            playerCollider = GetComponent<Collider>();
+            if (playerCollider == null)
             {
                 Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
-            // 플레이어 색상 설정 (모든 플레이어가 설정)
-            SetPlayerColor();
+            // ReceiveGameUI 찾기 및 할당
+            InitializeGameUI();
             
-            // 이름 태그 생성 (모든 플레이어가 생성)
-            CreateNameTag();
+            // 로컬 플레이어 초기화
+            if (photonView.IsMine)
+            {
+                InitializeLocalPlayer();
+            }
             
             // 이펙트 부모 초기화
             InitializeEffectParent();
-            
-            if (photonView.IsMine)
-            {
-                // 로컬 플레이어만 추가 설정
-                Debug.Log($"로컬 플레이어 초기화: {PhotonNetwork.LocalPlayer.NickName}");
-                
-                // 플랫폼 감지
-                DetectPlatform();
-                
-                            // MobileUIManager 백업 시스템 제거됨 - ReceiveGameUI 조이스틱만 사용
-                
-                // Input System 초기화
-                InitializeInputSystem();
-            }
-            
-            // AudioSource 제거 - AudioManager 시스템 사용
         }
         
         private void Update()
@@ -290,73 +278,55 @@ namespace KYS
             }
         }
         
+        private void InitializeLocalPlayer()
+        {
+            // 플레이어 색상 설정
+            SetPlayerColor();
+            
+            // 이름 태그 생성
+            CreateNameTag();
+            
+            // Input System 초기화
+            InitializeInputSystem();
+        }
+        
         private void AttractItem(CollectibleItem item)
         {
             if (item == null || item.IsCollected) return;
             
-            // 아이템과 플레이어 사이의 방향 계산
             Vector3 directionToPlayer = (transform.position - item.transform.position).normalized;
             float distanceToPlayer = Vector3.Distance(transform.position, item.transform.position);
             
-            // 거리가 가까울수록 더 강한 힘 적용 (역제곱 법칙)
-            float attractionForce = magnetForce / (distanceToPlayer * distanceToPlayer);
+            // 거리가 너무 멀면 자석 효과 적용하지 않음
+            if (distanceToPlayer > magnetRadius) return;
             
-            // 아이템의 Rigidbody에 힘 적용
+            // 자석 효과 힘 계산 (거리에 반비례)
+            float attractionForce = magnetForce * (1f - (distanceToPlayer / magnetRadius));
+            
+            // 아이템을 플레이어 쪽으로 끌어당김
             Rigidbody itemRb = item.GetComponent<Rigidbody>();
-            if (itemRb != null && !itemRb.isKinematic)
+            if (itemRb != null)
             {
-                // Y축 속도는 제한하여 너무 빠르게 떨어지지 않도록 함
-                Vector3 currentVelocity = itemRb.velocity;
-                Vector3 attractionVelocity = directionToPlayer * attractionForce;
-                attractionVelocity.y = Mathf.Max(currentVelocity.y, -2f); // 최대 낙하 속도 제한
-                
-                itemRb.velocity = attractionVelocity;
-                
-                // 디버그 로그 (너무 자주 출력되지 않도록 제한)
-                if (Time.frameCount % 60 == 0) // 1초에 한 번씩만 출력
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 자석 효과로 아이템 끌어당김: {item.name}, 거리: {distanceToPlayer:F2}, 힘: {attractionForce:F2}, 기본 마그네틱 힘: {magnetForce}");
-                }
+                itemRb.AddForce(directionToPlayer * attractionForce, ForceMode.Force);
             }
         }
         
         private void CollectItem(CollectibleItem item)
         {
-            if (!item.IsCollected)
+            if (item == null || item.IsCollected) return;
+            
+            // 아이템 수집
+            item.Collect();
+            
+            // 게임 매니저에 수집 알림
+            if (gameManager != null)
             {
-                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}가 아이템 수집 시도");
-                
-                // 아이템 타입 가져오기
                 ItemType itemType = GetItemType(item);
-                
-                // 아이템을 즉시 수집된 상태로 표시하여 중복 수집 방지
-                item.Collect();
-                
-                // ReceiveGameManagerEnhanced 직접 찾기
-                ReceiveGameManagerEnhanced enhancedManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
-                if (enhancedManager != null)
-                {
-                    // 로컬 플레이어만 점수 증가 요청 (중복 방지) - 아이템 타입 전달
-                    enhancedManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
-                    Debug.Log($"ReceiveGameManagerEnhanced에 아이템 수집 알림 전송 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 타입: {itemType}");
-                }
-                else
-                {
-                    Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
-                }
-                
-                // 수집 효과 재생
-                PlayCollectEffect();
-                
-                // spawnedItems 리스트에서 제거 (중복 제거 방지)
-                if (enhancedManager != null && item.gameObject != null)
-                {
-                    enhancedManager.RemoveItemFromList(item.gameObject);
-                }
+                gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
             }
             else
             {
-                Debug.LogWarning($"아이템이 이미 수집되었습니다: {item.name}");
+                Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
             }
         }
         
@@ -1069,6 +1039,42 @@ namespace KYS
         public ItemType[] GetActiveEffects()
         {
             return activeEffects.Keys.ToArray();
+        }
+        
+        /// <summary>
+        /// ReceiveGameUI를 찾아서 할당합니다.
+        /// </summary>
+        private void InitializeGameUI()
+        {
+            if (gameUI == null)
+            {
+                // 씬에서 ReceiveGameUI 찾기
+                gameUI = FindObjectOfType<ReceiveGameUI>();
+                
+                if (gameUI != null)
+                {
+                    Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
+                }
+                else
+                {
+                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
+                }
+            }
+            
+            // ReceiveGameManagerEnhanced도 찾아서 할당
+            if (gameManager == null)
+            {
+                gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
+                
+                if (gameManager != null)
+                {
+                    Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
+                }
+                else
+                {
+                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
+                }
+            }
         }
     }
 } 

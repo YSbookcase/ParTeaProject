@@ -124,7 +124,7 @@ namespace KYS
         // 씬 전환 시 자동으로 모든 UI 정리
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            Debug.Log($"[UIManager] 씬 전환 감지: {scene.name}");
+            //Debug.Log($"[UIManager] 씬 전환 감지: {scene.name}");
             
             // 게임 씬으로 전환되는 경우 모든 UI 정리
             if (scene.name.Contains("Game") || scene.name.Contains("Arena") || 
@@ -197,7 +197,7 @@ namespace KYS
         public T ShowPopUp<T>() where T : BaseUI
         {
             string path = $"{prefabPath}/{typeof(T).Name}";
-            Debug.Log($"[UIManager] ShowPopUp 호출: {typeof(T).Name}, 경로: {path}");
+            //Debug.Log($"[UIManager] ShowPopUp 호출: {typeof(T).Name}, 경로: {path}");
             
             T prefab = Resources.Load<T>(path);
             if (prefab == null)
@@ -205,14 +205,14 @@ namespace KYS
                 Debug.LogError($"[UIManager] 해당 경로에 팝업 프리팹이 없음: {path}");
                 return null;
             }
-            Debug.Log($"[UIManager] 프리팹 로딩 성공: {prefab.name}");
+            //Debug.Log($"[UIManager] 프리팹 로딩 성공: {prefab.name}");
 
             if (PopUp == null)
             {
                 Debug.LogError("[UIManager] PopUp이 null입니다.");
                 return null;
             }
-            Debug.Log($"[UIManager] PopUp 확인됨: {PopUp.name}");
+            //Debug.Log($"[UIManager] PopUp 확인됨: {PopUp.name}");
 
             T instance = Instantiate(prefab, PopUp.transform);
             if (instance == null)
@@ -220,19 +220,19 @@ namespace KYS
                 Debug.LogError("[UIManager] 인스턴스 생성 실패");
                 return null;
             }
-            Debug.Log($"[UIManager] 인스턴스 생성 성공: {instance.name}");
+            //Debug.Log($"[UIManager] 인스턴스 생성 성공: {instance.name}");
             
             // PushUIStack 호출 전 상태 확인
-            Debug.Log($"[UIManager] PushUIStack 호출 전 - PopUp 스택 개수: {PopUp.StackCount()}");
+            //Debug.Log($"[UIManager] PushUIStack 호출 전 - PopUp 스택 개수: {PopUp.StackCount()}");
             
             PopUp.PushUIStack(instance);
             
             // 생성된 팝업의 상태 확인
-            Debug.Log($"[UIManager] {typeof(T).Name} 팝업 생성 및 표시 완료");
-            Debug.Log($"[UIManager] 팝업 활성화 상태: {instance.gameObject.activeInHierarchy}");
-            Debug.Log($"[UIManager] 팝업 부모: {instance.transform.parent?.name}");
-            Debug.Log($"[UIManager] 팝업 위치: {instance.transform.position}");
-            Debug.Log($"[UIManager] PushUIStack 호출 후 - PopUp 스택 개수: {PopUp.StackCount()}");
+            //Debug.Log($"[UIManager] {typeof(T).Name} 팝업 생성 및 표시 완료");
+            //Debug.Log($"[UIManager] 팝업 활성화 상태: {instance.gameObject.activeInHierarchy}");
+            //Debug.Log($"[UIManager] 팝업 부모: {instance.transform.parent?.name}");
+            //Debug.Log($"[UIManager] 팝업 위치: {instance.transform.position}");
+            //Debug.Log($"[UIManager] PushUIStack 호출 후 - PopUp 스택 개수: {PopUp.StackCount()}");
             
             return instance;
         }
@@ -247,7 +247,7 @@ namespace KYS
 
         public void CleanPopUp()
         {
-            Debug.Log($"[UIManager] CleanPopUp 시작 - 현재 팝업 개수: {PopUp?.StackCount() ?? 0}");
+            //Debug.Log($"[UIManager] CleanPopUp 시작 - 현재 팝업 개수: {PopUp?.StackCount() ?? 0}");
             
             if (PopUp != null)
             {
@@ -258,7 +258,7 @@ namespace KYS
                 }
             }
             
-            Debug.Log("[UIManager] CleanPopUp 완료");
+            //Debug.Log("[UIManager] CleanPopUp 완료");
         }
 
         // 모든 UI 정리

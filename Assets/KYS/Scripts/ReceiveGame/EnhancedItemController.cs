@@ -181,7 +181,7 @@ namespace KYS
         
         private void UpdateVisual()
         {
-            Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
+            //Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
             
             // 기존 시각적 프리팹 제거
             ClearVisualPrefab();
@@ -191,7 +191,7 @@ namespace KYS
             if (itemConfiguration != null)
             {
                 config = itemConfiguration.GetItemConfig(itemType);
-                Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
+                //Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
             }
             else
             {
@@ -213,7 +213,7 @@ namespace KYS
                 magnetRadius = config.magnetRadius;
                 magnetForce = config.magnetForce;
                 
-                Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
+                //Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
                 
                 // 시각적 프리팹 적용
                 if (config.visualPrefab != null)
@@ -251,7 +251,7 @@ namespace KYS
             Vector3 itemScale = GetItemTypeScale();
             currentVisualPrefab.transform.localScale = itemScale;
             
-            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
+            //Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
         }
         
         private Vector3 GetItemTypeScale()
@@ -262,7 +262,7 @@ namespace KYS
                 ItemConfig config = itemConfiguration.GetItemConfig(itemType);
                 if (config != null)
                 {
-                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
+                    //Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
                     return config.scale;
                 }
             }
@@ -438,7 +438,7 @@ namespace KYS
                 if (config != null && !string.IsNullOrEmpty(config.collectSoundName) && Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay(config.collectSoundName, transform);
-                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
+                    //Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
                 }
                 else
                 {

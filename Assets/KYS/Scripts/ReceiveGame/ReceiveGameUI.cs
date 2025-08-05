@@ -22,6 +22,10 @@ namespace KYS
         [SerializeField] private GameObject gameEndPanel;
         [SerializeField] private TextMeshProUGUI gameEndText;
         
+        [Header("Countdown UI")]
+        [SerializeField] private GameObject countdownPanel;
+        [SerializeField] private TextMeshProUGUI countdownText;
+        
         [Header("Joystick UI")]
         [SerializeField] private GameObject joystickPanel;
         [SerializeField] private Image joystickBackground;
@@ -41,6 +45,11 @@ namespace KYS
             if (gameEndPanel != null)
             {
                 gameEndPanel.SetActive(false);
+            }
+            
+            if (countdownPanel != null)
+            {
+                countdownPanel.SetActive(false);
             }
             
             SetupJoystick();
@@ -330,6 +339,38 @@ namespace KYS
             }
         }
         
+        // 카운트다운 UI 관련 메서드들
+        public void ShowCountdown()
+        {
+            if (countdownPanel != null)
+            {
+                countdownPanel.SetActive(true);
+            }
+        }
+        
+        public void HideCountdown()
+        {
+            if (countdownPanel != null)
+            {
+                countdownPanel.SetActive(false);
+            }
+        }
+        
+        public void UpdateCountdownText(int count)
+        {
+            if (countdownText != null)
+            {
+                if (count > 0)
+                {
+                    countdownText.text = count.ToString();
+                }
+                else
+                {
+                    countdownText.text = "시작!";
+                }
+            }
+        }
+        
         public void AddPlayer(Player newPlayer)
         {
             if (!playerScoreUIs.ContainsKey(newPlayer.ActorNumber))
@@ -368,8 +409,6 @@ namespace KYS
         {
             if (changedProps.ContainsKey("isLoaded"))
             {
-                Debug.Log($"플레이어 {targetPlayer.NickName} UI 로드 완료");
-                
                 // 모든 플레이어가 로드되었는지 확인
                 bool allPlayersLoaded = true;
                 foreach (Player player in PhotonNetwork.PlayerList)
@@ -383,7 +422,6 @@ namespace KYS
                 
                 if (allPlayersLoaded)
                 {
-                    Debug.Log("모든 플레이어 로드 완료 - UI 초기화");
                     InitializeScoreUI();
                 }
             }

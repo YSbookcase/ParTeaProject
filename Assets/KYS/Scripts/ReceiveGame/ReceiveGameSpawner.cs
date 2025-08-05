@@ -14,123 +14,105 @@ namespace KYS
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private float spawnDelay = 1f;
         
-        // private PhotonView photonView; // MonoBehaviourPun에서 이미 제공됨
+        private new PhotonView photonView; // MonoBehaviourPun에서 이미 제공됨
         
         private Dictionary<int, GameObject> spawnedPlayers = new Dictionary<int, GameObject>();
         private bool isInitialized = false;
         
         private void Awake()
         {
-            // PhotonView 컴포넌트 자동 추가 (로컬 변수 사용)
-            PhotonView pv = GetComponent<PhotonView>();
-            if (pv == null)
+            // PhotonView 컴포넌트 확인 및 추가
+            photonView = GetComponent<PhotonView>();
+            if (photonView == null)
             {
-                pv = gameObject.AddComponent<PhotonView>();
-                Debug.Log("ReceiveGameSpawner에 PhotonView 컴포넌트를 자동으로 추가했습니다.");
+                photonView = gameObject.AddComponent<PhotonView>();
             }
             
-            // PhotonView 설정
-            pv.ObservedComponents = new List<Component> { this };
-            pv.Synchronization = ViewSynchronization.UnreliableOnChange;
-            pv.OwnershipTransfer = OwnershipOption.Takeover;
+            // 플레이어 프리팹 로드
+            playerPrefab = Resources.Load<GameObject>("ReceiveGamePlayer");
+            if (playerPrefab == null)
+            {
+                Debug.LogError("ReceiveGamePlayer 프리팹을 Resources 폴더에서 찾을 수 없습니다!");
+            }
         }
         
         private void Start()
         {
-            // 모든 플레이어가 로드될 때까지 대기
-            Debug.Log("ReceiveGameSpawner 시작");
+            // 이미 스폰된 플레이어가 있는지 확인
+            if (spawnedPlayers.ContainsKey(PhotonNetwork.LocalPlayer.ActorNumber))
+            {
+                return;
+            }
             
             // 플레이어 로드 상태 설정
             SetPlayerLoaded();
             
-            // 이미 스폰된 플레이어가 있는지 확인
-            if (spawnedPlayers.Count > 0)
-            {
-                Debug.Log("이미 스폰된 플레이어가 있습니다. 중복 스폰 방지.");
-                return;
-            }
-            
-            // 모든 플레이어 모드에서 스폰 시작
+            // 플레이어 스폰 초기화
             StartCoroutine(InitializeSpawner());
         }
         
         private void SetPlayerLoaded()
         {
-            // 플레이어 로드 상태를 CustomProperties에 설정
-            ExitGames.Client.Photon.Hashtable props = new ExitGames.Client.Photon.Hashtable
-            {
-                { "isLoaded", true }
-            };
+            // 플레이어 로드 완료 상태를 CustomProperties에 설정
+            ExitGames.Client.Photon.Hashtable props = new ExitGames.Client.Photon.Hashtable();
+            props["isLoaded"] = true;
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
-            Debug.Log("플레이어 로드 상태 설정 완료");
         }
         
         private IEnumerator InitializeSpawner()
         {
-            // 모든 플레이어가 준비될 때까지 대기
-            yield return new WaitForSeconds(spawnDelay);
+            // 네트워크 준비 대기
+            yield return new WaitUntil(() => PhotonNetwork.IsConnectedAndReady);
             
-            Debug.Log("플레이어 스폰 초기화 시작");
-            
-            // 각 플레이어가 자신의 캐릭터를 스폰
+            // 내 플레이어 스폰
             SpawnMyPlayer();
-            
-            isInitialized = true;
-            Debug.Log("플레이어 스폰 초기화 완료");
         }
         
         private void SpawnMyPlayer()
         {
-            // 이미 스폰된 플레이어인지 확인
+            // 이미 스폰된 플레이어가 있는지 확인
             if (spawnedPlayers.ContainsKey(PhotonNetwork.LocalPlayer.ActorNumber))
             {
-                Debug.LogWarning($"플레이어 {PhotonNetwork.LocalPlayer.NickName}는 이미 스폰되어 있습니다. 중복 스폰 방지.");
                 return;
             }
             
+            // 플레이어 프리팹 확인
             if (playerPrefab == null)
             {
                 Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
                 return;
             }
             
-            if (spawnPoints.Length == 0)
+            // 스폰 포인트 확인
+            if (spawnPoints == null || spawnPoints.Length == 0)
             {
                 Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
                 return;
             }
             
-            // 플레이어별 스폰 포인트 선택
-            int spawnIndex = (PhotonNetwork.LocalPlayer.ActorNumber - 1) % spawnPoints.Length;
-            Vector3 spawnPosition = spawnPoints[spawnIndex].position;
+            // 스폰 위치 계산
+            Vector3 spawnPosition = GetSpawnPosition(PhotonNetwork.LocalPlayer.ActorNumber);
             
-            Debug.Log($"내 플레이어 스폰: {PhotonNetwork.LocalPlayer.NickName} at {spawnPosition} (인덱스: {spawnIndex})");
-            
-            // 플레이어 스폰 (자신의 캐릭터만)
+            // 플레이어 생성
             GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
-            
-            if (playerObject == null)
+            if (playerObject != null)
             {
-                Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
-                return;
-            }
-            
-            spawnedPlayers[PhotonNetwork.LocalPlayer.ActorNumber] = playerObject;
-            
-            // 플레이어 설정
-            ReceiveGamePlayer playerController = playerObject.GetComponent<ReceiveGamePlayer>();
-            if (playerController != null)
-            {
-                // 플레이어 이름 설정
-                playerObject.name = $"Player_{PhotonNetwork.LocalPlayer.NickName}";
-                Debug.Log($"내 플레이어 컨트롤러 설정 완료: {playerObject.name}");
+                // 플레이어 컨트롤러 설정
+                ReceiveGamePlayer playerController = playerObject.GetComponent<ReceiveGamePlayer>();
+                if (playerController != null)
+                {
+                    // 플레이어를 딕셔너리에 추가
+                    spawnedPlayers[PhotonNetwork.LocalPlayer.ActorNumber] = playerObject;
+                }
+                else
+                {
+                    Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
+                }
             }
             else
             {
-                Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
+                Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
             }
-            
-            Debug.Log($"내 플레이어 {PhotonNetwork.LocalPlayer.NickName} 스폰 완료: {spawnPosition}");
         }
         
         public override void OnPlayerEnteredRoom(Player newPlayer)

@@ -42,42 +42,28 @@ namespace KYS
         
         private void Start()
         {
-            // PhotonView 컴포넌트 확인 및 추가
+            // PhotonView 초기화
             photonView = GetComponent<PhotonView>();
             if (photonView == null)
             {
                 photonView = gameObject.AddComponent<PhotonView>();
-                Debug.Log("CollectibleItem에 PhotonView 컴포넌트를 추가했습니다.");
             }
             
-            // PhotonView 초기화 (ViewID가 0인 경우)
-            if (photonView.ViewID == 0)
+            if (photonView == null)
             {
-                bool success = PhotonNetwork.AllocateViewID(photonView);
-                if (success)
-                {
-                    Debug.Log($"[CollectibleItem] Start에서 PhotonView 초기화: {gameObject.name}, ViewID = {photonView.ViewID}");
-                }
-                else
-                {
-                    Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
-                }
+                Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
+                return;
             }
             
-            startPosition = transform.position;
+            // 컴포넌트 초기화
             itemRenderer = GetComponent<Renderer>();
             rb = GetComponent<Rigidbody>();
             
-            if (rb == null)
-            {
-                rb = gameObject.AddComponent<Rigidbody>();
-            }
-            
-            // Rigidbody 설정
-            SetupRigidbody();
+            // 시작 위치 저장
+            startPosition = transform.position;
             
             // 아이템 애니메이션 시작
-            //StartCoroutine(ItemAnimation());
+            StartCoroutine(ItemAnimation());
         }
         
         private void SetupRigidbody()
@@ -246,7 +232,6 @@ namespace KYS
             if (!string.IsNullOrEmpty(soundToPlay) && Manager.Audio != null)
             {
                 Manager.Audio.SfxPlay(soundToPlay, transform);
-                Debug.Log($"[CollectibleItem] 아이템 수집 사운드 재생: {soundToPlay}, 아이템 타입: {itemType}");
             }
             
             // 머티리얼 투명도 애니메이션
@@ -258,7 +243,6 @@ namespace KYS
         /// </summary>
         private string GetCollectSoundName()
         {
-            Debug.Log($"[CollectibleItem] GetCollectSoundName 호출 - itemType: {itemType}, collectSoundName: {collectSoundName}");
             return collectSoundName;
         }
         
@@ -317,7 +301,7 @@ namespace KYS
             
             gameObject.SetActive(true);
             
-            Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
+            //Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
         }
         
         /// <summary>
@@ -337,33 +321,21 @@ namespace KYS
         /// </summary>
         public void SetItemConfiguration(ItemConfiguration config)
         {
-            Debug.Log($"[CollectibleItem] SetItemConfiguration 호출 - config: {(config != null ? "있음" : "없음")}, 현재 itemType: {itemType}");
-            
             itemConfiguration = config;
             
             if (config != null)
             {
-                // 설정된 ItemConfiguration의 내용 확인
-                Debug.Log($"[CollectibleItem] ItemConfiguration 이름: {config.name}");
-                foreach (ItemConfig itemConfig in config.itemConfigs)
-                {
-                    Debug.Log($"[CollectibleItem] ItemConfig - {itemConfig.itemType}: collectSoundName = {itemConfig.collectSoundName}");
-                }
-                
                 // 현재 아이템 타입에 맞는 collectSoundName 업데이트
                 ItemConfig currentConfig = config.GetItemConfig(itemType);
                 if (currentConfig != null && !string.IsNullOrEmpty(currentConfig.collectSoundName))
                 {
                     collectSoundName = currentConfig.collectSoundName;
-                    Debug.Log($"[CollectibleItem] collectSoundName 업데이트 완료: {itemType} -> {collectSoundName}");
                 }
                 else
                 {
                     Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
                 }
             }
-            
-            Debug.Log($"[CollectibleItem] ItemConfiguration 설정 완료: {config != null}, 아이템 타입: {itemType}, collectSoundName: {collectSoundName}");
         }
         
         private IEnumerator ReturnToPoolDelayed(float delay)
@@ -374,7 +346,6 @@ namespace KYS
             if (returnPool != null && returnPool.gameObject != null && returnPool.gameObject.activeInHierarchy)
             {
                 returnPool.ReturnToPool(this);
-                Debug.Log($"[CollectibleItem] 지연 반환 완료: {gameObject.name}");
             }
             else
             {

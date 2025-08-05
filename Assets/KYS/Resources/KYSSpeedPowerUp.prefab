@@ -63,7 +63,7 @@ Transform:
   m_GameObject: {fileID: 7504042543773716186}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.706191, y: -9.569451, z: 1.1488155}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -222,6 +222,7 @@ MonoBehaviour:
   returnDelay: 3
   collectParticle: {fileID: 0}
   collectSoundName: SFX_NormalItem
+  itemConfiguration: {fileID: 0}
   itemType: 0
 --- !u!114 &-1891285017182407933
 MonoBehaviour:

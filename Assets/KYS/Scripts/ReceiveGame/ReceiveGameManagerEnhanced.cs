@@ -66,6 +66,9 @@ namespace KYS
         
         [Header("Audio Settings")]
         [SerializeField] private string receiveGameBgmName = "BGM_ReceiveGame"; // ReceiveGame BGM 이름
+        
+        [Header("Debug Settings")]
+        [SerializeField] private bool autoStartCountdown = true; // 테스트용: 자동 카운트다운 시작
         #endregion
 
         #region Private Fields
@@ -94,14 +97,15 @@ namespace KYS
         private const string GAME_STARTED_KEY = "gameStarted";
         private const string GAME_TIME_KEY = "gameTime";
         private const string GAME_ENDED_KEY = "gameEnded";
+        
+        // 카운트다운 관련 변수들
+        private bool isCountdownActive = false;
+        private Coroutine countdownCoroutine;
         #endregion
 
         #region Unity Lifecycle
         private void Start()
         {
-            Debug.Log("[ReceiveGameManagerEnhanced] Start 호출됨");
-            Debug.Log($"[ReceiveGameManagerEnhanced] AudioManager 상태: {Manager.Audio != null}");
-            
             // PowerUp 확률 검증
             ValidatePowerUpChances();
             
@@ -114,12 +118,29 @@ namespace KYS
             if (Manager.Audio != null)
             {
                 Manager.Audio.BgmPlay(null, 0f);
-                Debug.Log("[ReceiveGameManagerEnhanced] BGM 정지 완료");
                 Manager.Audio.BgmPlay(receiveGameBgmName,0); // BGM 페이드 아웃
             }
             else
             {
                 Debug.LogError("[ReceiveGameManagerEnhanced] AudioManager가 null입니다!");
+            }
+            
+            // 테스트용: 자동 카운트다운 시작
+            if (autoStartCountdown && PhotonNetwork.IsMasterClient)
+            {
+                StartCoroutine(AutoStartCountdownDelayed());
+            }
+        }
+        
+        // 자동 카운트다운 시작 (테스트용)
+        private IEnumerator AutoStartCountdownDelayed()
+        {
+            // 3초 후에 자동으로 카운트다운 시작
+            yield return new WaitForSeconds(3f);
+            
+            if (!isGameStarted && !isCountdownActive)
+            {
+                StartCountdown();
             }
         }
         
@@ -1414,6 +1435,15 @@ namespace KYS
                 UpdateUI();
             }
             
+            // 플레이어 준비 상태 체크
+            if (changedProps.ContainsKey("Ready"))
+            {
+                bool isReady = (bool)changedProps["Ready"];
+                
+                // 모든 플레이어가 준비되었는지 확인
+                CheckAllPlayersReady();
+            }
+            
             // 기존 로드 완료 체크
             if (changedProps.ContainsKey("isLoaded"))
             {
@@ -1430,17 +1460,130 @@ namespace KYS
                 
                 if (allPlayersLoaded && PhotonNetwork.IsMasterClient && !isGameStarted)
                 {
-                    Debug.Log("모든 플레이어 로드 완료 - 게임 시작");
                     InitializeGame();
                 }
             }
+        }
+        
+        private void CheckAllPlayersReady()
+        {
+            if (PhotonNetwork.PlayerList.Length < 2) 
+            {
+                return; // 최소 2명 필요
+            }
+            
+            bool allReady = true;
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+                bool isPlayerReady = PhotonManager.Instance.GetPlayerReady(player);
+                
+                if (!isPlayerReady)
+                {
+                    allReady = false;
+                }
+            }
+            
+            if (allReady && !isGameStarted && PhotonNetwork.IsMasterClient)
+            {
+                StartCountdown();
+            }
+        }
+        
+        // 카운트다운 시작
+        private void StartCountdown()
+        {
+            if (isCountdownActive) 
+            {
+                return;
+            }
+            
+            isCountdownActive = true;
+            
+            // PhotonView 확인
+            if (photonViewRef == null)
+            {
+                Debug.LogError("[ReceiveGameManagerEnhanced] PhotonView가 null입니다!");
+                return;
+            }
+            
+            // 모든 클라이언트에게 카운트다운 시작 알림
+            photonViewRef.RPC(nameof(RPCBeginCountdown), RpcTarget.All);
+        }
+        
+        [PunRPC]
+        private void RPCBeginCountdown()
+        {
+            if (countdownCoroutine != null)
+            {
+                StopCoroutine(countdownCoroutine);
+            }
+            
+            countdownCoroutine = StartCoroutine(CountdownRoutine());
+        }
+        
+        private IEnumerator CountdownRoutine()
+        {
+            // 카운트다운 UI 표시
+            if (gameUI != null)
+            {
+                gameUI.ShowCountdown();
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGameManagerEnhanced] gameUI가 null입니다!");
+            }
+            
+            // 3초 카운트다운
+            for (int i = 3; i > 0; i--)
+            {
+                // UI 업데이트
+                if (gameUI != null)
+                {
+                    gameUI.UpdateCountdownText(i);
+                }
+                else
+                {
+                    Debug.LogError("[ReceiveGameManagerEnhanced] gameUI가 null입니다!");
+                }
+                
+                yield return new WaitForSeconds(1f);
+            }
+            
+            // "시작!" 메시지 표시
+            if (gameUI != null)
+            {
+                gameUI.UpdateCountdownText(0);
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGameManagerEnhanced] gameUI가 null입니다!");
+            }
+            
+            yield return new WaitForSeconds(0.5f);
+            
+            // 카운트다운 UI 숨기기
+            if (gameUI != null)
+            {
+                gameUI.HideCountdown();
+            }
+            else
+            {
+                Debug.LogError("[ReceiveGameManagerEnhanced] gameUI가 null입니다!");
+            }
+            
+            // 카운트다운 완료 후 게임 시작
+            if (PhotonNetwork.IsMasterClient)
+            {
+                StartGame();
+            }
+            
+            isCountdownActive = false;
+            countdownCoroutine = null;
         }
         #endregion
         
         private void OnDestroy()
         {
-            Debug.Log("[ReceiveGameManagerEnhanced] OnDestroy 호출됨");
-            
             // 스폰 코루틴들을 명시적으로 중지
             StopAllSpawningCoroutines();
             
@@ -1448,7 +1591,6 @@ namespace KYS
             if (itemPoolManager != null)
             {
                 itemPoolManager.ClearAllActiveObjects();
-                Debug.Log("[ReceiveGameManagerEnhanced] OnDestroy에서 활성 오브젝트 정리 완료");
             }
         }
     }
