@@ -35,6 +35,11 @@ namespace JTW_JumpGame
             isGameStarted = true;
             Manager.Audio.BgmPlay("BGM_JumpGame");
 
+            foreach(Player player in PhotonNetwork.PlayerList)
+            {
+                alivePlayers.Add(player.ActorNumber);
+            }
+
             int playerNum = 0;
             foreach(Player player in PhotonNetwork.PlayerList)
             {
@@ -120,11 +125,11 @@ namespace JTW_JumpGame
                 }
                 else
                 {
-                    photonView.RPC("DeleteJumpGamePlayer", RpcTarget.MasterClient);
+                    photonView.RPC("DeleteJumpGamePlayer", RpcTarget.All);
                 }
 
-                timer += 2;
-                yield return new WaitForSeconds(2f);
+                timer += 0.5f;
+                yield return new WaitForSeconds(0.5f);
 
                 if(PhotonNetwork.IsMasterClient && alivePlayers.Count <= 0)
                 {
@@ -148,8 +153,6 @@ namespace JTW_JumpGame
         [PunRPC]
         private void DeleteJumpGamePlayer(PhotonMessageInfo info)
         {
-            if (!PhotonNetwork.IsMasterClient) return;
-
             alivePlayers.Remove(info.Sender.ActorNumber);
         }
 
@@ -199,17 +202,22 @@ namespace JTW_JumpGame
             {
                 if (Manager.game.isAllPlayerLoaded())
                 {
-                    foreach(Player player in PhotonNetwork.PlayerList)
+                    bool result = Random.value < 0.5f;
+                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
+
+                    foreach (Player player in PhotonNetwork.PlayerList)
                     {
-                        alivePlayers.Add(player.ActorNumber);
                         player.SetJumpGameScore(0);
-                        bool result = Random.value < 0.5f;
-                        photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
                     }
 
                     photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
                 }
             }
+        }
+
+        public override void OnPlayerLeftRoom(Player otherPlayer)
+        {
+            alivePlayers.Remove(otherPlayer.ActorNumber);
         }
     }
 }
