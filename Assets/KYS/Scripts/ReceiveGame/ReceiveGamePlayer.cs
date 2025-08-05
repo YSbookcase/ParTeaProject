@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
@@ -33,6 +34,10 @@ namespace KYS
         [Header("Effects")]
         [SerializeField] private GameObject collectEffect;
         [SerializeField] private string collectSoundName = "SFX_NormalItem"; // AudioData 에셋 이름으로 변경
+        
+        [Header("Player Effect Management")]
+        [SerializeField] private Transform effectParent; // 이펙트들이 자식으로 들어갈 부모 Transform
+        [SerializeField] private ItemConfiguration itemConfiguration; // 이펙트 프리팹을 가져오기 위한 설정
         
         [Header("Input System")]
         [SerializeField] private UnityEngine.InputSystem.InputActionAsset inputActions;
@@ -72,6 +77,10 @@ namespace KYS
         private int playerColorIndex = -1; // 플레이어 색상 인덱스
         private bool isColorSet = false; // 색상이 설정되었는지 확인
         
+        // 이펙트 관리 변수들
+        private Dictionary<ItemType, GameObject> activeEffects = new Dictionary<ItemType, GameObject>();
+        private Dictionary<ItemType, Coroutine> effectCoroutines = new Dictionary<ItemType, Coroutine>();
+        
         private void Start()
         {
             // 모든 플레이어가 색상과 이름 태그를 설정
@@ -110,6 +119,9 @@ namespace KYS
             
             // 이름 태그 생성 (모든 플레이어가 생성)
             CreateNameTag();
+            
+            // 이펙트 부모 초기화
+            InitializeEffectParent();
             
             if (photonView.IsMine)
             {
@@ -645,6 +657,9 @@ namespace KYS
                 inputActions.Disable();
                 // inputActions.Dispose(); // InputActionAsset에는 Dispose 메서드가 없음
             }
+            
+            // 활성화된 이펙트들 정리
+            ClearAllEffects();
         }
         
         // 파워업 효과 관련 메서드들
@@ -655,6 +670,7 @@ namespace KYS
             {
                 hasSpeedBoost = false;
                 moveSpeed = baseMoveSpeed;
+                DeactivateEffect(ItemType.Speed);
                 Debug.Log("속도 부스트 효과 종료");
             }
             
@@ -663,6 +679,7 @@ namespace KYS
             {
                 hasSlowEffect = false;
                 moveSpeed = baseMoveSpeed;
+                DeactivateEffect(ItemType.Slow);
                 Debug.Log("슬로우 효과 종료");
             }
             
@@ -670,6 +687,7 @@ namespace KYS
             if (hasMagnetEffect && Time.time >= magnetEffectEndTime)
             {
                 hasMagnetEffect = false;
+                DeactivateEffect(ItemType.Magnet);
                 Debug.Log("자석 효과 종료");
             }
         }
@@ -681,6 +699,10 @@ namespace KYS
                 hasSpeedBoost = true;
                 speedBoostEndTime = Time.time + duration;
                 moveSpeed = baseMoveSpeed * speedBoostMultiplier;
+                
+                // 스피드 부스트 이펙트 활성화
+                ActivateEffect(ItemType.Speed, duration);
+                
                 Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
             }
         }
@@ -692,6 +714,10 @@ namespace KYS
                 hasSlowEffect = true;
                 slowEffectEndTime = Time.time + duration;
                 moveSpeed = baseMoveSpeed * slowEffectMultiplier;
+                
+                // 슬로우 이펙트 활성화
+                ActivateEffect(ItemType.Slow, duration);
+                
                 Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
             }
         }
@@ -718,6 +744,9 @@ namespace KYS
                 {
                     Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
                 }
+                
+                // 마그네틱 이펙트 활성화
+                ActivateEffect(ItemType.Magnet, duration);
                 
                 Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
             }
@@ -896,6 +925,150 @@ namespace KYS
                 // 액션 로직 (필요시 구현)
                 Debug.Log("액션!");
             }
+        }
+        
+        // ===== 이펙트 관리 메서드들 =====
+        
+        /// <summary>
+        /// 이펙트 부모 Transform을 초기화합니다.
+        /// </summary>
+        private void InitializeEffectParent()
+        {
+            if (effectParent == null)
+            {
+                // 이펙트 부모가 설정되지 않은 경우 자동 생성
+                GameObject effectParentObj = new GameObject("PlayerEffects");
+                effectParent = effectParentObj.transform;
+                effectParent.SetParent(transform);
+                effectParent.localPosition = Vector3.zero;
+                effectParent.localRotation = Quaternion.identity;
+                Debug.Log("[ReceiveGamePlayer] 이펙트 부모 자동 생성 완료");
+            }
+            
+            // ItemConfiguration 로드
+            if (itemConfiguration == null)
+            {
+                itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
+                if (itemConfiguration == null)
+                {
+                    Debug.LogWarning("[ReceiveGamePlayer] ItemConfiguration을 Resources에서 로드할 수 없습니다.");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 특정 아이템 타입의 이펙트를 활성화합니다.
+        /// </summary>
+        /// <param name="itemType">아이템 타입</param>
+        /// <param name="duration">지속 시간</param>
+        public void ActivateEffect(ItemType itemType, float duration)
+        {
+            if (!photonView.IsMine) return; // 로컬 플레이어만 이펙트 활성화
+            
+            // 이미 활성화된 이펙트가 있다면 제거
+            DeactivateEffect(itemType);
+            
+            if (itemConfiguration == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] ItemConfiguration이 없어 {itemType} 이펙트를 활성화할 수 없습니다.");
+                return;
+            }
+            
+            ItemConfig config = itemConfiguration.GetItemConfig(itemType);
+            if (config == null || config.playerEffectPrefab == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] {itemType} 타입의 이펙트 프리팹이 설정되지 않았습니다.");
+                return;
+            }
+            
+            // 이펙트 생성
+            GameObject effect = Instantiate(config.playerEffectPrefab, effectParent);
+            effect.transform.localPosition = config.effectOffset;
+            
+            // 이펙트 추적에 추가
+            activeEffects[itemType] = effect;
+            
+            // 지속 시간 후 자동 제거하는 코루틴 시작
+            Coroutine effectCoroutine = StartCoroutine(DeactivateEffectAfterDuration(itemType, duration));
+            effectCoroutines[itemType] = effectCoroutine;
+            
+            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초");
+        }
+        
+        /// <summary>
+        /// 특정 아이템 타입의 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="itemType">아이템 타입</param>
+        public void DeactivateEffect(ItemType itemType)
+        {
+            // 활성화된 이펙트가 있는지 확인
+            if (activeEffects.TryGetValue(itemType, out GameObject effect))
+            {
+                if (effect != null)
+                {
+                    Destroy(effect);
+                }
+                activeEffects.Remove(itemType);
+                Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료");
+            }
+            
+            // 코루틴이 실행 중인지 확인하고 중지
+            if (effectCoroutines.TryGetValue(itemType, out Coroutine coroutine))
+            {
+                if (coroutine != null)
+                {
+                    StopCoroutine(coroutine);
+                }
+                effectCoroutines.Remove(itemType);
+            }
+        }
+        
+        /// <summary>
+        /// 모든 이펙트를 비활성화합니다.
+        /// </summary>
+        public void ClearAllEffects()
+        {
+            // 모든 활성화된 이펙트 제거
+            foreach (var kvp in activeEffects)
+            {
+                if (kvp.Value != null)
+                {
+                    Destroy(kvp.Value);
+                }
+            }
+            activeEffects.Clear();
+            
+            // 모든 실행 중인 코루틴 중지
+            foreach (var kvp in effectCoroutines)
+            {
+                if (kvp.Value != null)
+                {
+                    StopCoroutine(kvp.Value);
+                }
+            }
+            effectCoroutines.Clear();
+            
+            Debug.Log("[ReceiveGamePlayer] 모든 이펙트 정리 완료");
+        }
+        
+        /// <summary>
+        /// 지속 시간 후 이펙트를 비활성화하는 코루틴입니다.
+        /// </summary>
+        /// <param name="itemType">아이템 타입</param>
+        /// <param name="duration">지속 시간</param>
+        private IEnumerator DeactivateEffectAfterDuration(ItemType itemType, float duration)
+        {
+            yield return new WaitForSeconds(duration);
+            DeactivateEffect(itemType);
+        }
+        
+        /// <summary>
+        /// 현재 활성화된 이펙트 목록을 반환합니다.
+        /// </summary>
+        /// <returns>활성화된 이펙트 타입들의 배열</returns>
+        public ItemType[] GetActiveEffects()
+        {
+            return activeEffects.Keys.ToArray();
         }
     }
 } 

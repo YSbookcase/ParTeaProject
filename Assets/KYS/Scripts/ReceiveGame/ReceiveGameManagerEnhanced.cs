@@ -490,84 +490,8 @@ namespace KYS
                     Debug.Log($"[ReceiveGameManagerEnhanced] 일반 아이템 생성 (확률: {1f - bonusItemChance}, 랜덤값: {randomValue:F2})");
                 }
                 
-                // 마스터 클라이언트에서만 실제 아이템 생성
-                if (PhotonNetwork.IsMasterClient)
-                {
-                    GameObject item = null;
-                    
-                    // 새로운 풀 시스템 우선 사용
-                    if (itemPoolManager != null)
-                    {
-                        // 높은 위치에서 스폰 (하늘에서 떨어지는 효과)
-                        Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
-                        
-                        CollectibleItem pooledItem;
-                        if (selectedType == ItemType.Bonus)
-                        {
-                            // 보너스 아이템은 별도의 PowerUp 풀에서 가져오기
-                            pooledItem = itemPoolManager.GetPowerUp(spawnPosition, ItemType.Bonus);
-                            Debug.Log($"[ReceiveGameManagerEnhanced] 보너스 아이템을 PowerUp 풀에서 가져옴: {spawnPosition}");
-                        }
-                        else
-                        {
-                            // 일반 아이템은 일반 아이템 풀에서 가져오기
-                            pooledItem = itemPoolManager.GetItem(spawnPosition, selectedType);
-                            Debug.Log($"[ReceiveGameManagerEnhanced] 일반 아이템을 아이템 풀에서 가져옴: {spawnPosition}, 타입: {selectedType}");
-                        }
-                        
-                        if (pooledItem != null)
-                        {
-                            item = pooledItem.gameObject;
-                            spawnedItems.Add(item);
-                            
-                            // PhotonView 확인 및 RPC 호출
-                            PhotonView itemPhotonView = item.GetComponent<PhotonView>();
-                            if (itemPhotonView != null && itemPhotonView.ViewID != 0)
-                            {
-                                // 모든 클라이언트에서 동일한 아이템 타입 설정
-                                photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, itemPhotonView.ViewID, (int)selectedType);
-                                
-                                // 마스터가 아닌 클라이언트들에게 풀 아이템 활성화 알림
-                                photonViewRef.RPC("ActivatePooledItemRPC", RpcTarget.Others, spawnPosition, (int)selectedType, itemPhotonView.ViewID);
-                                
-                                Debug.Log($"[ReceiveGameManagerEnhanced] 풀에서 아이템 스폰 완료: {spawnPosition}, 타입: {selectedType}, ViewID: {itemPhotonView.ViewID}");
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[ReceiveGameManagerEnhanced] PhotonView가 null이거나 ViewID가 0입니다. 아이템: {item.name}");
-                                // PhotonView가 없거나 ViewID가 0인 경우 로컬에서만 설정
-                                SetupItemComponents(item, selectedType);
-                            }
-                            
-                            // 아이템이 떨어지는 효과 시작
-                            StartCoroutine(DropItemToGround(item, position));
-                        }
-                        else
-                        {
-                            Debug.LogError($"[ReceiveGameManagerEnhanced] 풀에서 {selectedType} 아이템을 가져올 수 없습니다!");
-                        }
-                    }
-                    else
-                    {
-                        // 기존 방식으로 생성
-                        Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
-                        item = PhotonNetwork.Instantiate(powerUpPrefab.name, spawnPosition, Quaternion.identity);
-                        spawnedItems.Add(item);
-                        
-                        // 모든 클라이언트에서 동일한 아이템 타입 설정
-                        photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, item.GetComponent<PhotonView>().ViewID, (int)selectedType);
-                        
-                        Debug.Log($"[ReceiveGameManagerEnhanced] 기존 방식으로 아이템 스폰 완료: {spawnPosition}, 타입: {selectedType}");
-                        
-                        // 아이템이 떨어지는 효과 시작
-                        StartCoroutine(DropItemToGround(item, position));
-                    }
-                }
-                else
-                {
-                    // 마스터가 아닌 클라이언트에서는 아이템 생성 정보만 로깅
-                    Debug.Log($"[ReceiveGameManagerEnhanced] 마스터가 아닌 클라이언트에서 아이템 스폰 정보 수신: 위치={position}, 타입={selectedType}");
-                }
+                // 모든 클라이언트에서 동일한 위치에 아이템 생성 (장애물과 같은 방식)
+                photonViewRef.RPC("SpawnItemRPC", RpcTarget.All, position, (int)selectedType);
             }
             else
             {
@@ -584,75 +508,11 @@ namespace KYS
                 return;
             }
             
-            // 높은 위치에서 스폰 (하늘에서 떨어지는 효과)
-            Vector3 spawnPosition = new Vector3(position.x, itemSpawnHeight, position.z);
+            // PowerUp 타입 결정 (개별 빈도 조절 지원)
+            ItemType selectedPowerUpType = DeterminePowerUpType();
             
-            Debug.Log($"[ReceiveGameManagerEnhanced] SpawnPowerUp 시작 - 위치: {spawnPosition}, itemPoolManager: {(itemPoolManager != null ? "있음" : "없음")}");
-            
-            // 새로운 타입별 풀 시스템 사용
-            if (itemPoolManager != null)
-            {
-                CollectibleItem pooledPowerUp;
-                
-                if (enablePowerUpTypeControl)
-                {
-                    // 개별 확률 기반 PowerUp 선택
-                    Debug.Log($"[ReceiveGameManagerEnhanced] 개별 확률 기반 PowerUp 선택 - Speed: {speedPowerUpChance}, Slow: {slowPowerUpChance}, Magnet: {magnetPowerUpChance}");
-                    pooledPowerUp = itemPoolManager.GetRandomPowerUp(spawnPosition, speedPowerUpChance, slowPowerUpChance, magnetPowerUpChance);
-                }
-                else
-                {
-                    // 기존 방식: 균등 확률
-                    Debug.Log("[ReceiveGameManagerEnhanced] 균등 확률 PowerUp 선택");
-                    pooledPowerUp = itemPoolManager.GetRandomPowerUp(spawnPosition);
-                }
-                
-                if (pooledPowerUp != null)
-                {
-                    GameObject powerUp = pooledPowerUp.gameObject;
-                    spawnedPowerUps.Add(powerUp);
-                    
-                    Debug.Log($"[ReceiveGameManagerEnhanced] 파워업 스폰 완료 (타입별 풀 사용): {spawnPosition}, 타입: {pooledPowerUp.itemType}");
-                    
-                    // PowerUp 아이템의 시각적 설정 적용
-                    SetupItemComponents(powerUp, pooledPowerUp.itemType);
-                    
-                    // 아이템이 떨어지는 효과 시작
-                    StartCoroutine(DropItemToGround(powerUp, position));
-                    
-                    // 60초 후 자동 제거
-                    StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
-                }
-                else
-                {
-                    Debug.LogError("[ReceiveGameManagerEnhanced] itemPoolManager.GetRandomPowerUp()에서 null을 반환했습니다!");
-                }
-            }
-            else if (powerUpPrefab != null)
-            {
-                // 기존 방식으로 생성 (폴백)
-                Debug.Log("[ReceiveGameManagerEnhanced] 기존 방식으로 파워업 생성");
-                GameObject powerUp = PhotonNetwork.Instantiate(powerUpPrefab.name, spawnPosition, Quaternion.identity);
-                spawnedPowerUps.Add(powerUp);
-                
-                // PowerUp 타입 결정 (개별 빈도 조절 지원)
-                ItemType selectedPowerUpType = DeterminePowerUpType();
-                
-                // 모든 클라이언트에서 동일한 아이템 타입 설정
-                photonViewRef.RPC("SetupItemTypeRPC", RpcTarget.All, powerUp.GetComponent<PhotonView>().ViewID, (int)selectedPowerUpType);
-                
-                Debug.Log($"[ReceiveGameManagerEnhanced] 파워업 스폰 완료 (기존 방식): {spawnPosition}, 타입: {selectedPowerUpType}");
-                
-                // 아이템이 떨어지는 효과 시작
-                StartCoroutine(DropItemToGround(powerUp, position));
-                
-                // 60초 후 자동 제거
-                StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
-            }
-            else
-            {
-                Debug.LogError("[ReceiveGameManagerEnhanced] itemPoolManager와 powerUpPrefab 모두 null입니다!");
-            }
+            // 모든 클라이언트에서 동일한 위치에 파워업 생성 (장애물과 같은 방식)
+            photonViewRef.RPC("SpawnPowerUpRPC", RpcTarget.All, position, (int)selectedPowerUpType);
         }
         
         // PowerUp 타입 결정 메서드 (개별 빈도 조절 지원)
@@ -702,6 +562,128 @@ namespace KYS
             {
                 // 모든 클라이언트에서 동일한 위치에 방해물 생성
                 photonViewRef.RPC("SpawnObstacleRPC", RpcTarget.All, position);
+            }
+        }
+        
+        [PunRPC]
+        private void SpawnItemRPC(Vector3 targetPosition, int itemType)
+        {
+            // 게임이 종료된 상태에서는 새로운 아이템을 생성하지 않음
+            if (isGameEnded)
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] 게임이 종료된 상태에서 아이템 RPC 스폰 시도 무시됨");
+                return;
+            }
+            
+            GameObject item = null;
+            ItemType selectedType = (ItemType)itemType;
+            
+            // 아이템도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
+            Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
+            
+            // 새로운 풀 시스템 우선 사용
+            if (itemPoolManager != null)
+            {
+                CollectibleItem pooledItem;
+                if (selectedType == ItemType.Bonus)
+                {
+                    // 보너스 아이템은 별도의 PowerUp 풀에서 가져오기
+                    pooledItem = itemPoolManager.GetPowerUp(spawnPosition, ItemType.Bonus);
+                    Debug.Log($"[SpawnItemRPC] 보너스 아이템을 PowerUp 풀에서 가져옴: {spawnPosition}");
+                }
+                else
+                {
+                    // 일반 아이템은 일반 아이템 풀에서 가져오기
+                    pooledItem = itemPoolManager.GetItem(spawnPosition, selectedType);
+                    Debug.Log($"[SpawnItemRPC] 일반 아이템을 아이템 풀에서 가져옴: {spawnPosition}, 타입: {selectedType}");
+                }
+                
+                if (pooledItem != null)
+                {
+                    item = pooledItem.gameObject;
+                    spawnedItems.Add(item);
+                    
+                    Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    
+                    // 아이템이 떨어지는 효과 시작
+                    StartCoroutine(DropItemToGround(item, targetPosition));
+                }
+                else
+                {
+                    Debug.LogError($"[SpawnItemRPC] 풀에서 {selectedType} 아이템을 가져올 수 없습니다!");
+                }
+            }
+            else if (powerUpPrefab != null)
+            {
+                // 기존 방식으로 생성
+                item = Instantiate(powerUpPrefab, spawnPosition, Quaternion.identity);
+                spawnedItems.Add(item);
+                
+                // 아이템 타입 설정
+                SetupItemComponents(item, selectedType);
+                
+                Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                
+                // 아이템이 떨어지는 효과 시작
+                StartCoroutine(DropItemToGround(item, targetPosition));
+            }
+        }
+        
+        [PunRPC]
+        private void SpawnPowerUpRPC(Vector3 targetPosition, int itemType)
+        {
+            // 게임이 종료된 상태에서는 새로운 파워업을 생성하지 않음
+            if (isGameEnded)
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] 게임이 종료된 상태에서 파워업 RPC 스폰 시도 무시됨");
+                return;
+            }
+            
+            GameObject powerUp = null;
+            ItemType selectedType = (ItemType)itemType;
+            
+            // 파워업도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
+            Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
+            
+            // 새로운 풀 시스템 우선 사용
+            if (itemPoolManager != null)
+            {
+                CollectibleItem pooledPowerUp = itemPoolManager.GetPowerUp(spawnPosition, selectedType);
+                
+                if (pooledPowerUp != null)
+                {
+                    powerUp = pooledPowerUp.gameObject;
+                    spawnedPowerUps.Add(powerUp);
+                    
+                    Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    
+                    // 파워업이 떨어지는 효과 시작
+                    StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    
+                    // 60초 후 자동 제거
+                    StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                }
+                else
+                {
+                    Debug.LogError($"[SpawnPowerUpRPC] 풀에서 {selectedType} 파워업을 가져올 수 없습니다!");
+                }
+            }
+            else if (powerUpPrefab != null)
+            {
+                // 기존 방식으로 생성
+                powerUp = Instantiate(powerUpPrefab, spawnPosition, Quaternion.identity);
+                spawnedPowerUps.Add(powerUp);
+                
+                // 파워업 타입 설정
+                SetupItemComponents(powerUp, selectedType);
+                
+                Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                
+                // 파워업이 떨어지는 효과 시작
+                StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                
+                // 60초 후 자동 제거
+                StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
             }
         }
         
@@ -1004,36 +986,7 @@ namespace KYS
         /// <summary>
         /// 마스터 클라이언트에서 풀 아이템을 활성화할 때 다른 클라이언트들에게 알리는 RPC
         /// </summary>
-        [PunRPC]
-        private void ActivatePooledItemRPC(Vector3 position, int itemType, int viewID)
-        {
-            Debug.Log($"[ActivatePooledItemRPC] 풀 아이템 활성화 알림 수신: 위치={position}, 타입={(ItemType)itemType}, ViewID={viewID}");
-            
-            // 마스터가 아닌 클라이언트에서만 처리
-            if (!PhotonNetwork.IsMasterClient)
-            {
-                // 해당 ViewID의 아이템을 찾아서 활성화
-                PhotonView itemView = PhotonView.Find(viewID);
-                if (itemView != null)
-                {
-                    GameObject item = itemView.gameObject;
-                    ItemType selectedItemType = (ItemType)itemType;
-                    
-                    // 아이템 활성화
-                    item.SetActive(true);
-                    item.transform.position = position;
-                    
-                    // 아이템 타입 설정
-                    SetupItemComponents(item, selectedItemType);
-                    
-                    Debug.Log($"[ActivatePooledItemRPC] 풀 아이템 활성화 완료: {item.name}, 타입: {selectedItemType}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[ActivatePooledItemRPC] ViewID {viewID}에 해당하는 아이템을 찾을 수 없습니다.");
-                }
-            }
-        }
+
         
         private void CollectItemRPC(int playerActorNumber, ItemType itemType)
         {

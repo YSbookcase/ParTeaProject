@@ -386,36 +386,7 @@ namespace KYS
                 // 아이템의 시각적 설정 적용
                 ApplyItemVisualSettings(item.gameObject, itemType);
 
-                // PhotonView 초기화 확인 및 네트워크 동기화 설정
-                PhotonView photonView = item.GetComponent<PhotonView>();
-                if (photonView != null)
-                {
-                    if (photonView.ViewID == 0)
-                    {
-                        // PhotonView가 초기화되지 않은 경우, 수동으로 초기화
-                        bool success = PhotonNetwork.AllocateViewID(photonView);
-                        if (success)
-                        {
-                            Debug.Log($"[ItemPoolManager] PhotonView 초기화: ViewID = {photonView.ViewID}");
-                        }
-                        else
-                        {
-                            Debug.LogError("[ItemPoolManager] PhotonView 초기화 실패");
-                        }
-                    }
-                    
-                    // 네트워크 동기화를 위해 Observed Components 설정
-                    if (photonView.ObservedComponents == null || photonView.ObservedComponents.Count == 0)
-                    {
-                        // Transform을 Observed Component로 추가
-                        photonView.ObservedComponents = new List<Component> { item.transform };
-                        Debug.Log($"[ItemPoolManager] Transform을 Observed Component로 설정: {item.name}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"[ItemPoolManager] 아이템에 PhotonView가 없습니다: {item.name}");
-                }
+
 
                 // 풀 참조 설정 (returnPool이 null인 문제 해결)
                 item.returnPool = itemPool;
@@ -426,7 +397,7 @@ namespace KYS
                     activeItems.Add(item);
                 }
 
-                Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, ViewID: {photonView?.ViewID}, 활성 아이템 수: {activeItems?.Count ?? 0}");
+                Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, 활성 아이템 수: {activeItems?.Count ?? 0}");
             }
             else
             {
@@ -486,36 +457,7 @@ namespace KYS
                 // PowerUp 아이템의 시각적 설정 적용
                 ApplyItemVisualSettings(powerUp.gameObject, powerUpType);
 
-                // PhotonView 초기화 확인 및 네트워크 동기화 설정
-                PhotonView photonView = powerUp.GetComponent<PhotonView>();
-                if (photonView != null)
-                {
-                    if (photonView.ViewID == 0)
-                    {
-                        // PhotonView가 초기화되지 않은 경우, 수동으로 초기화
-                        bool success = PhotonNetwork.AllocateViewID(photonView);
-                        if (success)
-                        {
-                            Debug.Log($"[ItemPoolManager] PhotonView 초기화: ViewID = {photonView.ViewID}");
-                        }
-                        else
-                        {
-                            Debug.LogError("[ItemPoolManager] PhotonView 초기화 실패");
-                        }
-                    }
-                    
-                    // 네트워크 동기화를 위해 Observed Components 설정
-                    if (photonView.ObservedComponents == null || photonView.ObservedComponents.Count == 0)
-                    {
-                        // Transform을 Observed Component로 추가
-                        photonView.ObservedComponents = new List<Component> { powerUp.transform };
-                        Debug.Log($"[ItemPoolManager] Transform을 Observed Component로 설정: {powerUp.name}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"[ItemPoolManager] PowerUp에 PhotonView가 없습니다: {powerUp.name}");
-                }
+
 
                 // 풀 참조 설정 (returnPool이 null인 문제 해결)
                 powerUp.returnPool = powerUpPool;
@@ -526,7 +468,7 @@ namespace KYS
                     activePowerUps[powerUpType].Add(powerUp);
                 }
 
-                Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 활성화 - 위치: {position}, ViewID: {photonView?.ViewID}, 활성 {powerUpType} 수: {activePowerUps?[powerUpType]?.Count ?? 0}");
+                Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 활성화 - 위치: {position}, 활성 {powerUpType} 수: {activePowerUps?[powerUpType]?.Count ?? 0}");
             }
             else
             {
