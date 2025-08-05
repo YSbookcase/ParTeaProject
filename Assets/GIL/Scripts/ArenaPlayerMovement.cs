@@ -141,9 +141,12 @@ namespace GIL.Scripts
                 {
                     Vector3 hitPos = collision.contacts[0].point;
                     otherPhotonView.RPC(nameof(ArenaApplyPushForce), RpcTarget.AllBuffered, pushDir * pushForce);
-                    
-                    if (PhotonNetwork.IsConnected == false) 
+
+                    if (PhotonNetwork.IsConnected == false)
+                    {
                         Instantiate(effectPrefab, hitPos, Quaternion.identity);
+                        Manager.Audio.SfxPlay("ArenaHitSound");
+                    }
                     
                     otherPhotonView.RPC(nameof(ArenaHitEffect), RpcTarget.All, hitPos);
                 }
@@ -154,6 +157,7 @@ namespace GIL.Scripts
         public void ArenaHitEffect(Vector3 pos)
         {
             Instantiate(effectPrefab, pos, Quaternion.identity);
+            Manager.Audio.SfxPlay("ArenaHitSound");
         }
         
         [PunRPC]
