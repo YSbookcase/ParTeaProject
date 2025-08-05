@@ -15,7 +15,7 @@ public class ArenaNameDisplay : MonoBehaviourPun
     {
         if (photonView.Owner != null)
         {
-            nameText.text = photonView.Owner.NickName;
+            //nameText.text = photonView.Owner.NickName;
         }
         
         _mainCamera = Camera.main?.transform;

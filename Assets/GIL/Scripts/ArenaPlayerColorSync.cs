@@ -10,13 +10,13 @@ namespace GIL.Scripts
         [SerializeField] private Renderer ballRenderer;
         [SerializeField] private MeshFilter[] playerMeshRenderer;
         [SerializeField] private MeshFilter playerMeshFilter;
-        
+        [SerializeField] private Outline playerOutline;
         // ArenaPlayerSpawner, Color와 동일한 색상 배열
         [SerializeField] private Color[] colors = {
-            new Color(1f, 0f, 0f, 0.4f),
-            new Color(0f, 0f, 1f, 0.4f),
-            new Color(0f, 1f, 0f, 0.4f), 
-            new Color(1f, 1f, 0f, 0.4f)
+            Color.red,
+            Color.blue,
+            Color.green,
+            Color.yellow
         };
 
         private void Start()
@@ -29,7 +29,7 @@ namespace GIL.Scripts
             if (photonView.Owner != null && photonView.Owner.CustomProperties.ContainsKey("Color"))
             {
                 int colorIndex = (int)photonView.Owner.CustomProperties["Color"];
-                ballRenderer.material.color = colors[colorIndex];
+                playerOutline.OutlineColor = colors[colorIndex];
                 
                 if (colorIndex >= 0 && colorIndex < playerMeshRenderer.Length)
                 {
@@ -39,9 +39,9 @@ namespace GIL.Scripts
             
             if (PhotonNetwork.IsConnected == false)
             {
-                int randIndex = Random.Range((int)1, (int)4);
+                int randIndex = Random.Range((int)0, (int)3);
+                playerOutline.OutlineColor = colors[randIndex];
                 playerMeshFilter.mesh = playerMeshRenderer[randIndex].sharedMesh;
-                ballRenderer.material.color = colors[randIndex];
             }
         }
         
