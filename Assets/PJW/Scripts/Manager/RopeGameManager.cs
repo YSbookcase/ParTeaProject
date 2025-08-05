@@ -29,11 +29,20 @@ namespace PJW
         private void Start()
         {
             if (PhotonNetwork.IsMasterClient)
-                totalPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
+                InitAllPlayerScoreAndRank();
 
             // 자신의 로딩 완료 상태 설정
-            var props = new PhotonHashtable { { IsLoadedKey, true } };
+            var props = new ExitGames.Client.Photon.Hashtable { { "isRopeLoaded", true } };
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+        }
+
+        private void InitAllPlayerScoreAndRank()
+        {
+            foreach (var player in PhotonNetwork.PlayerList)
+            {
+                player.SetRopeGameScore(0);
+                player.SetRank(0);
+            }
         }
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
@@ -112,12 +121,18 @@ namespace PJW
 
             if (deathCount >= totalPlayers)
             {
-                RankCalculator.CalculateRanks();
-
-                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer);
+                StartCoroutine(EndGameRoutine());
             }
         }
 
+        private IEnumerator EndGameRoutine()
+        {
+            RankCalculator.CalculateRanks();
+
+            yield return new WaitForSeconds(1.0f);
+
+            photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer);
+        }
 
         [PunRPC]
         private void RPCRopeShowDeathPanel()

@@ -23,8 +23,10 @@ namespace PJW
         {
             int current = player.GetRopeGameScore();
             current += delta;
-            var props = new Hashtable { [RopeScoreKey] = current };
+            var props = new Hashtable { { "ropeGameScore", current }, { "scoreUpdated", true } };
             player.SetCustomProperties(props);
+
+            Debug.Log($"[점수 증가] {player.NickName} => {current}점");
         }
 
         //  점수 조회

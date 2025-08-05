@@ -61,7 +61,7 @@ namespace PJW
                 {
                     pc.photonView.RPC(
                         nameof(PlayerController.RPCAddRopePassScore),
-                        pc.photonView.Owner  // 해당 플레이어의 클라이언트로만 RPC
+                        pc.photonView.Owner  
                     );
                 }
             }

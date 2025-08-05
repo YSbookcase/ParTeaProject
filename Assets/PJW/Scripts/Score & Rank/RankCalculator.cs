@@ -1,40 +1,40 @@
-using System.Collections.Generic;
+using System.Linq;
 using Photon.Pun;
 using Photon.Realtime;
-using PJW;
 using UnityEngine;
-using System.Linq;
 
 namespace PJW
 {
     public class RankCalculator : MonoBehaviourPunCallbacks
     {
+        // 마스터 클라이언트가 호출 (게임 종료 시점)
         public static void CalculateRanks()
         {
-            var sorted = PhotonNetwork.CurrentRoom.Players
-                .Values
+            var sorted = PhotonNetwork.PlayerList
                 .OrderByDescending(p => p.GetRopeGameScore())
+                .ThenBy(p => p.ActorNumber)
                 .ToList();
 
-            int rank = 1;
-            int prevScore = sorted.Count > 0 ? sorted[0].GetRopeGameScore() : 0;
-            int sameCount = 0;
+            int currentRank = 1;
+            int prevScore = -1;
+            int sameRankCount = 1;
 
-            foreach (var player in sorted)
+            for (int i = 0; i < sorted.Count; i++)
             {
-                int score = player.GetRopeGameScore();
-                if (score == prevScore)
+                int score = sorted[i].GetRopeGameScore();
+
+                if (i > 0 && score == prevScore)
                 {
-                    player.SetRank(rank);
-                    sameCount++;
+                    sorted[i].SetRank(currentRank);
+                    sameRankCount++;
                 }
                 else
                 {
-                    rank += sameCount;
-                    sameCount = 1;
-                    prevScore = score;
-                    player.SetRank(rank);
+                    currentRank = i + 1;
+                    sorted[i].SetRank(currentRank);
+                    sameRankCount = 1;
                 }
+                prevScore = score;
             }
         }
     }
