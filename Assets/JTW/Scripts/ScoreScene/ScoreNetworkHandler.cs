@@ -3,11 +3,14 @@ using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
 {
     [SerializeField] private ScoreUIPresenter scorePresenter;
+    [SerializeField] private Button nextButton;
 
     private bool isInit = false;
 
@@ -30,6 +33,13 @@ public class ScoreNetworkHandler : MonoBehaviourPunCallbacks
                 isInit = true;
             }
         }
+    }
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        if (!newMasterClient.IsLocal) return;
+
+        nextButton.interactable = true;
     }
 
     private bool isAllRankUpdated()
