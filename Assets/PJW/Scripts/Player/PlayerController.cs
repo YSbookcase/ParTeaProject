@@ -55,6 +55,8 @@ namespace PJW
         [PunRPC]
         public void RPCAddRopePassScore()
         {
+
+            Debug.Log($"[RPCAddRopePassScore] »£√‚µ , isMine={photonView.IsMine}, hasJumped={hasJumped}");
             if (photonView.IsMine && !isDead && hasJumped)
             {
                 PhotonNetwork.LocalPlayer.AddRopeGameScore(1);

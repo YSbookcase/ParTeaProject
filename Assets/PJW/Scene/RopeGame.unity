@@ -4547,7 +4547,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1998752321}
-  - component: {fileID: 1998752320}
   m_Layer: 0
   m_Name: RopeUI
   m_TagString: Untagged
@@ -4555,21 +4554,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1998752320
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998752319}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef208bb222dfd1c448aa6f8bce99b337, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  jumpTextPrefab: {fileID: 1128196236979274951, guid: 7b65d186c7527d04e9496075f12238eb,
-    type: 3}
-  uiContainer: {fileID: 1412948432}
 --- !u!4 &1998752321
 Transform:
   m_ObjectHideFlags: 0
