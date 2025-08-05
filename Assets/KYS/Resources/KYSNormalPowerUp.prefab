@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: -3656118430491302083}
   - component: {fileID: -1891285017182407933}
   m_Layer: 0
-  m_Name: KYSPowerUp
+  m_Name: KYSNormalPowerUp
   m_TagString: Item
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -184,6 +184,8 @@ MonoBehaviour:
   itemType: 0
   pointValue: 1
   effectDuration: 5
+  magnetRadius: 5
+  magnetForce: 10
   groundLevel: 0.5
   bounceForce: 2
   maxFallSpeed: 12

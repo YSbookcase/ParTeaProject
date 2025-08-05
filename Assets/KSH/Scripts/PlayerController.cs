@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace KSH
 {
-    public class PlayerController : MonoBehaviourPun
+    public class PlayerController : MonoBehaviourPun,IPunObservable
     {
         [Header("움직임 관련")] 
         [SerializeField] private float moveSpeed;
@@ -26,7 +26,11 @@ namespace KSH
         private Vector2 inputDir;
         private PlayerAction playerAction;
         private float curSpeed;
-
+        private Vector3 photonPosition; //보간
+        private Quaternion photonRotation; //보간
+        private Vector3 previousPhotonPosition;
+        private double lastPacketTime;
+        
         private void Awake()
         {
             playerAction = new PlayerAction();
@@ -80,12 +84,38 @@ namespace KSH
                 float currentSpeed = inputDir.magnitude;
                 animator.SetFloat("Speed", currentSpeed);
             }
+            else
+            {
+                Vector3 velocity = (photonPosition - previousPhotonPosition) / Time.deltaTime;
+                float lag = (float)(PhotonNetwork.Time - lastPacketTime);
+
+                Vector3 predictedPosition = photonPosition + velocity * lag;
+
+                transform.position = Vector3.Lerp(transform.position, predictedPosition, Time.deltaTime * 20f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, photonRotation, Time.deltaTime * 20f);
+            }
         }
 
         void FixedUpdate()
         {
             if(photonView.IsMine && isMove)
                 Move();
+        }
+
+        public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        {
+            if (stream.IsWriting)
+            {
+                stream.SendNext(transform.position);
+                stream.SendNext(transform.rotation);
+            }
+            else if (stream.IsReading)
+            {
+                previousPhotonPosition = photonPosition;
+                photonPosition = (Vector3)stream.ReceiveNext();
+                photonRotation = (Quaternion)stream.ReceiveNext();
+                lastPacketTime = info.SentServerTime;
+            }
         }
         
         private void DontMove()

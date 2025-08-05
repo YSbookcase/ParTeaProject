@@ -102,5 +102,29 @@ namespace KYS
             isHit = false;
             gameObject.SetActive(true);
         }
+        
+        /// <summary>
+        /// 지연 시간 후 풀로 반환하는 메서드 (ItemPoolManager에 의존하지 않음)
+        /// </summary>
+        public void ReturnToPoolWithDelay(float delay)
+        {
+            StartCoroutine(ReturnToPoolDelayed(delay));
+        }
+        
+        private System.Collections.IEnumerator ReturnToPoolDelayed(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            
+            // ItemPoolManager가 여전히 유효한지 확인
+            if (returnPool != null && returnPool.gameObject != null && returnPool.gameObject.activeInHierarchy)
+            {
+                returnPool.ReturnToPool(this);
+                Debug.Log($"[ObstacleController] 지연 반환 완료: {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[ObstacleController] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
+            }
+        }
     }
 } 

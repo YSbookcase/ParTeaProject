@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: SFX_MagnetItem
   m_EditorClassIdentifier: 
   clipName: SFX_MagnetItem
-  clip: {fileID: 8300000, guid: 945b3c656c8c8aa46829aba03a904c70, type: 3}
-  volume: 1 
+  clip: {fileID: 8300000, guid: 5297152508bbec84085e9f83c84d50be, type: 3}
+  volume: 1

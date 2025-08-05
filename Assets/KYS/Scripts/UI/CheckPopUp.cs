@@ -53,7 +53,7 @@ namespace KYS
         private void OnConfirm(PointerEventData eventData)
         {
             onConfirm?.Invoke(); // 콜백 함수 실행
-            UIManager.Instance.ClosePopUp(); // 팝업 닫기
+            UIManager.Instance.ClosePopUp(); // 팝업 닫기 (콜백 실행 후)
         }
 
         // 취소 버튼 클릭 시

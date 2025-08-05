@@ -17,12 +17,17 @@ MonoBehaviour:
     visualPrefab: {fileID: 5189002227044462176, guid: 845fa1f7f9eff2844a30a8a63e485d66,
       type: 3}
     itemColor: {r: 1, g: 1, b: 1, a: 1}
-    scale: {x: 2, y: 2, z: 2}
+    scale: {x: 4, y: 4, z: 4}
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
+    playerEffectPrefab: {fileID: 0}
+    effectOffset: {x: 0, y: 0, z: 0}
+    followPlayer: 1
     pointValue: 1
     effectDuration: 0
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 60
@@ -33,65 +38,88 @@ MonoBehaviour:
     visualPrefab: {fileID: 8780654592860833253, guid: 863a3bbeaa1850f4dad75b9cccdabdf7,
       type: 3}
     itemColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-    scale: {x: 2, y: 2, z: 2}
+    scale: {x: 4, y: 4, z: 4}
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
+    playerEffectPrefab: {fileID: 0}
+    effectOffset: {x: 0, y: 0, z: 0}
+    followPlayer: 1
     pointValue: 3
     effectDuration: 0
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2.5
     maxFallSpeed: 12
     rotationSpeed: 90
     bobSpeed: 2
     bobHeight: 0.4
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_BonusItem
   - itemType: 2
     visualPrefab: {fileID: 2199520570192686080, guid: 36f36da7ed2d01042a8849c9b55afe87,
       type: 3}
     itemColor: {r: 0, g: 0, b: 1, a: 1}
-    scale: {x: 2, y: 2, z: 2}
+    scale: {x: 4, y: 4, z: 4}
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
+    playerEffectPrefab: {fileID: 1560195616043144, guid: c2a91d1743645d04494f03a599c79827,
+      type: 3}
+    effectOffset: {x: 0, y: 0, z: 0}
+    followPlayer: 1
     pointValue: 2
     effectDuration: 5
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 120
     bobSpeed: 1.5
     bobHeight: 0.3
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_SpeedItem
   - itemType: 3
     visualPrefab: {fileID: 5296646555204626939, guid: 685c0fc5fa8b9c04ca226db350611cc7,
       type: 3}
     itemColor: {r: 1, g: 0, b: 0, a: 1}
-    scale: {x: 2, y: 2, z: 2}
+    scale: {x: 4, y: 4, z: 4}
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
+    playerEffectPrefab: {fileID: 1560195616043144, guid: d1f6450c586c7234d9c28b82e33fbb61,
+      type: 3}
+    effectOffset: {x: 0, y: 0, z: 0}
+    followPlayer: 1
     pointValue: -1
     effectDuration: 5
+    magnetRadius: 5
+    magnetForce: 10
     bounceForce: 1.5
     maxFallSpeed: 10
     rotationSpeed: 30
     bobSpeed: 1
     bobHeight: 0.2
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_SlowItem
   - itemType: 4
     visualPrefab: {fileID: 8835592703282879395, guid: 346e2afa35d4a7e4e9dae1616ddd6772,
       type: 3}
     itemColor: {r: 0, g: 1, b: 0, a: 1}
-    scale: {x: 2, y: 2, z: 2}
+    scale: {x: 4, y: 4, z: 4}
     useEmission: 0
     emissionColor: {r: 1, g: 1, b: 1, a: 1}
     emissionIntensity: 1
-    pointValue: 1
-    effectDuration: 5
+    playerEffectPrefab: {fileID: 1236643204216662, guid: 59028d75a75a54b4fa74e83abebbce16,
+      type: 3}
+    effectOffset: {x: 0, y: 0, z: 0}
+    followPlayer: 1
+    pointValue: 2
+    effectDuration: 10
+    magnetRadius: 10
+    magnetForce: 200
     bounceForce: 2
     maxFallSpeed: 12
     rotationSpeed: 60
     bobSpeed: 1.5
     bobHeight: 0.3
-    collectSoundName: SFX_NormalItem
+    collectSoundName: SFX_MagnetItem
   defaultVisualPrefab: {fileID: 9206591617620198387, guid: fe2d2f156fa000a4696f74c99b27129c,
     type: 3}

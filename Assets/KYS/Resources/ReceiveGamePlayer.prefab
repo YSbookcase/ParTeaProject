@@ -54,13 +54,17 @@ MonoBehaviour:
   baseMoveSpeed: 5
   speedBoostMultiplier: 1.5
   slowEffectMultiplier: 0.5
-  playerRenderer: {fileID: 189909359735969262}
+  magnetRadius: 5
+  magnetForce: 10
+  playerRenderer: {fileID: 3467787480541739041}
   playerAnimator: {fileID: 4985343708486770554}
   nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
     type: 3}
   nameTagOffset: {x: 0, y: 2.5, z: 0}
   collectEffect: {fileID: 0}
   collectSoundName: SFX_NormalItem
+  effectParent: {fileID: 1427451300138239232}
+  itemConfiguration: {fileID: 0}
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
     type: 3}
 --- !u!136 &2652187264152053537
@@ -83,9 +87,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2
+  m_Height: 3
   m_Direction: 1
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!54 &5162088410726307945
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1196,15 +1200,15 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cabeaf0214bc4974997ebc93152265b5, type: 3}
---- !u!137 &189909359735969262 stripped
-SkinnedMeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 1650388496692557573, guid: cabeaf0214bc4974997ebc93152265b5,
-    type: 3}
-  m_PrefabInstance: {fileID: 1460831049399771883}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1427451300138239232 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: cabeaf0214bc4974997ebc93152265b5,
+    type: 3}
+  m_PrefabInstance: {fileID: 1460831049399771883}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &3467787480541739041 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2622753384463669962, guid: cabeaf0214bc4974997ebc93152265b5,
     type: 3}
   m_PrefabInstance: {fileID: 1460831049399771883}
   m_PrefabAsset: {fileID: 0}

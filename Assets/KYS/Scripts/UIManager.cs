@@ -197,21 +197,43 @@ namespace KYS
         public T ShowPopUp<T>() where T : BaseUI
         {
             string path = $"{prefabPath}/{typeof(T).Name}";
+            Debug.Log($"[UIManager] ShowPopUp 호출: {typeof(T).Name}, 경로: {path}");
+            
             T prefab = Resources.Load<T>(path);
             if (prefab == null)
             {
-                Debug.LogWarning($"[UIManager] 해당 경로에 팝업 프리팹이 없음: {path}");
+                Debug.LogError($"[UIManager] 해당 경로에 팝업 프리팹이 없음: {path}");
                 return null;
             }
+            Debug.Log($"[UIManager] 프리팹 로딩 성공: {prefab.name}");
 
             if (PopUp == null)
             {
                 Debug.LogError("[UIManager] PopUp이 null입니다.");
                 return null;
             }
+            Debug.Log($"[UIManager] PopUp 확인됨: {PopUp.name}");
 
             T instance = Instantiate(prefab, PopUp.transform);
+            if (instance == null)
+            {
+                Debug.LogError("[UIManager] 인스턴스 생성 실패");
+                return null;
+            }
+            Debug.Log($"[UIManager] 인스턴스 생성 성공: {instance.name}");
+            
+            // PushUIStack 호출 전 상태 확인
+            Debug.Log($"[UIManager] PushUIStack 호출 전 - PopUp 스택 개수: {PopUp.StackCount()}");
+            
             PopUp.PushUIStack(instance);
+            
+            // 생성된 팝업의 상태 확인
+            Debug.Log($"[UIManager] {typeof(T).Name} 팝업 생성 및 표시 완료");
+            Debug.Log($"[UIManager] 팝업 활성화 상태: {instance.gameObject.activeInHierarchy}");
+            Debug.Log($"[UIManager] 팝업 부모: {instance.transform.parent?.name}");
+            Debug.Log($"[UIManager] 팝업 위치: {instance.transform.position}");
+            Debug.Log($"[UIManager] PushUIStack 호출 후 - PopUp 스택 개수: {PopUp.StackCount()}");
+            
             return instance;
         }
 
@@ -225,13 +247,18 @@ namespace KYS
 
         public void CleanPopUp()
         {
+            Debug.Log($"[UIManager] CleanPopUp 시작 - 현재 팝업 개수: {PopUp?.StackCount() ?? 0}");
+            
             if (PopUp != null)
             {
                 while (PopUp.StackCount() > 0)
                 {
+                    Debug.Log($"[UIManager] 팝업 제거 중 - 남은 개수: {PopUp.StackCount()}");
                     PopUp.PopUIStack();
                 }
             }
+            
+            Debug.Log("[UIManager] CleanPopUp 완료");
         }
 
         // 모든 UI 정리
@@ -262,6 +289,31 @@ namespace KYS
         public CheckPopUp ShowConfirmPopUp(string message, System.Action confirmCallback)
         {
             return ShowConfirmPopUp(message, "확인", "취소", confirmCallback, null);
+        }
+
+        // 로그아웃 처리 메서드
+        public void PerformLogout()
+        {
+            Debug.Log("[UIManager] 로그아웃 처리 시작");
+
+            // Firebase 로그아웃
+            FirebaseManager.Auth.SignOut();
+
+            // Photon 연결 해제
+            if (PhotonNetwork.IsConnected)
+            {
+                PhotonNetwork.Disconnect();
+                Debug.Log("[UIManager] Photon 연결 해제 완료");
+            }
+
+            // 팝업만 정리 (mainPanels는 유지)
+            CleanPopUp();
+            
+            // LoginPopUp 표시 (2번 호출로 해결)
+            ShowPopUp<LoginPopUp>();
+            ShowPopUp<LoginPopUp>();
+
+            Debug.Log("[UIManager] 로그아웃 처리 완료");
         }
 
         // 특정 타입의 팝업 찾기

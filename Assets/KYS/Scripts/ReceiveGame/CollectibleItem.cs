@@ -24,6 +24,9 @@ namespace KYS
         [SerializeField] private GameObject collectParticle;
         [SerializeField] private string collectSoundName = "SFX_NormalItem"; // AudioData 에셋 이름으로 변경
         
+        [Header("Configuration")]
+        [SerializeField] private ItemConfiguration itemConfiguration; // ScriptableObject 참조 추가
+        
         private Vector3 startPosition;
         private bool isCollected = false;
         private bool hasHitGround = false;
@@ -34,6 +37,9 @@ namespace KYS
         public bool IsCollected => isCollected;
         public int PointValue => pointValue;
         
+        [Header("Item Type")]
+        [SerializeField] public ItemType itemType = ItemType.Normal; // 아이템 타입 설정
+        
         private void Start()
         {
             // PhotonView 컴포넌트 확인 및 추가
@@ -42,6 +48,20 @@ namespace KYS
             {
                 photonView = gameObject.AddComponent<PhotonView>();
                 Debug.Log("CollectibleItem에 PhotonView 컴포넌트를 추가했습니다.");
+            }
+            
+            // PhotonView 초기화 (ViewID가 0인 경우)
+            if (photonView.ViewID == 0)
+            {
+                bool success = PhotonNetwork.AllocateViewID(photonView);
+                if (success)
+                {
+                    Debug.Log($"[CollectibleItem] Start에서 PhotonView 초기화: {gameObject.name}, ViewID = {photonView.ViewID}");
+                }
+                else
+                {
+                    Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
+                }
             }
             
             startPosition = transform.position;
@@ -221,14 +241,25 @@ namespace KYS
                 Destroy(effect, 2f);
             }
             
-            // 수집 사운드 - AudioManager 시스템 사용
-            if (!string.IsNullOrEmpty(collectSoundName) && Manager.Audio != null)
+            // 수집 사운드 - ScriptableObject에서 가져온 설정 사용
+            string soundToPlay = GetCollectSoundName();
+            if (!string.IsNullOrEmpty(soundToPlay) && Manager.Audio != null)
             {
-                Manager.Audio.SfxPlay(collectSoundName, transform);
+                Manager.Audio.SfxPlay(soundToPlay, transform);
+                Debug.Log($"[CollectibleItem] 아이템 수집 사운드 재생: {soundToPlay}, 아이템 타입: {itemType}");
             }
             
             // 머티리얼 투명도 애니메이션
             StartCoroutine(FadeOutAnimation());
+        }
+        
+        /// <summary>
+        /// 아이템 타입에 맞는 수집 사운드 이름을 가져옵니다.
+        /// </summary>
+        private string GetCollectSoundName()
+        {
+            Debug.Log($"[CollectibleItem] GetCollectSoundName 호출 - itemType: {itemType}, collectSoundName: {collectSoundName}");
+            return collectSoundName;
         }
         
         private IEnumerator FadeOutAnimation()
@@ -260,34 +291,97 @@ namespace KYS
         {
             isCollected = false;
             hasHitGround = false;
-            
-            // 리턴 코루틴 중지
-            if (returnCoroutine != null)
-            {
-                StopCoroutine(returnCoroutine);
-                returnCoroutine = null;
-            }
+            startPosition = transform.position;
             
             // Rigidbody 리셋
             if (rb != null)
             {
                 rb.velocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
-                rb.useGravity = true;
             }
             
-            // startPosition으로 되돌리지 않고 현재 위치 유지
-            // transform.position = startPosition; // 이 줄 제거
-            transform.rotation = Quaternion.identity;
-            
-            if (itemRenderer != null && itemRenderer.material != null)
+            // 시각적 효과 리셋
+            if (itemRenderer != null)
             {
-                Color color = itemRenderer.material.color;
-                itemRenderer.material.color = new Color(color.r, color.g, color.b, 1f);
+                Color originalColor = itemRenderer.material.color;
+                originalColor.a = 1f;
+                itemRenderer.material.color = originalColor;
+            }
+            
+            // 기존 코루틴 정리
+            if (returnCoroutine != null)
+            {
+                StopCoroutine(returnCoroutine);
+                returnCoroutine = null;
             }
             
             gameObject.SetActive(true);
-            // StartCoroutine(ItemAnimation()); // 위아래 움직임 비활성화
+            
+            Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
+        }
+        
+        /// <summary>
+        /// 지연 시간 후 풀로 반환하는 메서드 (ItemPoolManager에 의존하지 않음)
+        /// </summary>
+        public void ReturnToPoolWithDelay(float delay)
+        {
+            if (returnCoroutine != null)
+            {
+                StopCoroutine(returnCoroutine);
+            }
+            returnCoroutine = StartCoroutine(ReturnToPoolDelayed(delay));
+        }
+        
+        /// <summary>
+        /// ItemPoolManager에서 ItemConfiguration을 설정하는 메서드
+        /// </summary>
+        public void SetItemConfiguration(ItemConfiguration config)
+        {
+            Debug.Log($"[CollectibleItem] SetItemConfiguration 호출 - config: {(config != null ? "있음" : "없음")}, 현재 itemType: {itemType}");
+            
+            itemConfiguration = config;
+            
+            if (config != null)
+            {
+                // 설정된 ItemConfiguration의 내용 확인
+                Debug.Log($"[CollectibleItem] ItemConfiguration 이름: {config.name}");
+                foreach (ItemConfig itemConfig in config.itemConfigs)
+                {
+                    Debug.Log($"[CollectibleItem] ItemConfig - {itemConfig.itemType}: collectSoundName = {itemConfig.collectSoundName}");
+                }
+                
+                // 현재 아이템 타입에 맞는 collectSoundName 업데이트
+                ItemConfig currentConfig = config.GetItemConfig(itemType);
+                if (currentConfig != null && !string.IsNullOrEmpty(currentConfig.collectSoundName))
+                {
+                    collectSoundName = currentConfig.collectSoundName;
+                    Debug.Log($"[CollectibleItem] collectSoundName 업데이트 완료: {itemType} -> {collectSoundName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
+                }
+            }
+            
+            Debug.Log($"[CollectibleItem] ItemConfiguration 설정 완료: {config != null}, 아이템 타입: {itemType}, collectSoundName: {collectSoundName}");
+        }
+        
+        private IEnumerator ReturnToPoolDelayed(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            
+            // ItemPoolManager가 여전히 유효한지 확인
+            if (returnPool != null && returnPool.gameObject != null && returnPool.gameObject.activeInHierarchy)
+            {
+                returnPool.ReturnToPool(this);
+                Debug.Log($"[CollectibleItem] 지연 반환 완료: {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
+            }
+            
+            returnCoroutine = null;
         }
     }
 } 

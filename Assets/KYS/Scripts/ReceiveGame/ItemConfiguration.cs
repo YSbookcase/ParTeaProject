@@ -19,9 +19,18 @@ namespace KYS
         public Color emissionColor = Color.white; // 발광 색상
         public float emissionIntensity = 1f; // 발광 강도
         
+        [Header("Player Effect Settings")]
+        public GameObject playerEffectPrefab; // 플레이어 주변에 표시할 이펙트 프리팹
+        public Vector3 effectOffset = Vector3.zero; // 이펙트 위치 오프셋
+        public bool followPlayer = true; // 플레이어를 따라다니는지 여부
+        
         [Header("Gameplay Settings")]
         public int pointValue = 1;
         public float effectDuration = 5f;
+        
+        [Header("Magnetic Effect Settings")]
+        public float magnetRadius = 5f; // 자석 효과 범위 (기본값)
+        public float magnetForce = 10f; // 자석 효과 힘 (기본값)
         
         [Header("Physics Settings")]
         public float bounceForce = 2f;

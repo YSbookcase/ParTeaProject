@@ -258,31 +258,8 @@ namespace KYS
         // 실제 로그아웃 처리 메서드
         private void PerformLogout()
         {
-            Debug.Log("로그아웃 처리 시작");
-
-            // Firebase 로그아웃
-            FirebaseManager.Auth.SignOut();
-
-            // 모든 팝업 정리
-            UIManager.Instance.CleanPopUp();
-
-            // 로그인 패널로 이동
-            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
-            if (loginPanel != null)
-            {
-                // 로그인 패널을 비활성화했다가 다시 활성화하여 OnEnable 호출 보장
-                loginPanel.SetActive(false);
-                loginPanel.SetActive(true);
-
-                // 추가로 LoginPanel의 ResetInputs 메서드를 직접 호출
-                LoginPopUp loginPanelScript = loginPanel.GetComponent<LoginPopUp>();
-                if (loginPanelScript != null)
-                {
-                    loginPanelScript.ResetInputs();
-                }
-            }
-
-            Debug.Log("로그아웃 처리 완료");
+            // UIManager의 로그아웃 메서드 호출
+            UIManager.Instance.PerformLogout();
         }
 
         private void EditProfile(PointerEventData eventData)
