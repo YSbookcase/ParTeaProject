@@ -18,6 +18,9 @@ namespace PJW
         [Header("Rank 계산기")]
         [SerializeField] private RankCalculator rankCalculator;
 
+        [Header("JumpRopeController가 붙은 오브젝트")]
+        [SerializeField] private JumpRopeController jumpRopeController;
+
         private int totalPlayers;
         private int deathCount = 0;
 
@@ -25,7 +28,8 @@ namespace PJW
 
         private void Start()
         {
-            totalPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+            if (PhotonNetwork.IsMasterClient)
+                totalPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
 
             // 자신의 로딩 완료 상태 설정
             var props = new PhotonHashtable { { IsLoadedKey, true } };
@@ -56,6 +60,8 @@ namespace PJW
 
         public void BeginCountdown()
         {
+            totalPlayers = PhotonNetwork.PlayerList.Length;
+
             deathCount = 0;
             StopAllCoroutines();
             StartCoroutine(CountdownRoutine());
@@ -63,14 +69,16 @@ namespace PJW
 
         private IEnumerator CountdownRoutine()
         {
+            float lag = PhotonNetwork.GetPing() / 1000f;
+            float startDelay = Mathf.Max(0f, 2f - lag);
+
+            yield return new WaitForSeconds(startDelay);
+
             Time.timeScale = 0f;
             countdownText.gameObject.SetActive(true);
 
             countdownText.text = " ";
-            yield return new WaitForSecondsRealtime(1f);
-
-            countdownText.text = " ";
-            yield return new WaitForSecondsRealtime(1f);
+            yield return new WaitForSecondsRealtime(3f);
 
             countdownText.text = "3";
             yield return new WaitForSecondsRealtime(1f);
@@ -86,6 +94,13 @@ namespace PJW
 
             countdownText.gameObject.SetActive(false);
             Time.timeScale = 1f;
+
+            double startTimestamp = PhotonNetwork.Time + 0.1;
+            jumpRopeController.photonView.RPC(
+                "RPCStartRope",
+                RpcTarget.All,
+                startTimestamp
+            );
         }
 
         public void OnPlayerDied(Player player)

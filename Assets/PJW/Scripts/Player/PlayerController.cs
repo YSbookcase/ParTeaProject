@@ -15,6 +15,9 @@ namespace PJW
         private Rigidbody playerRigidbody;
         private bool isGrounded;
         private bool isDead = false;
+        private bool hasJumped = false;
+
+        public bool HasJumped => hasJumped;
 
         private Vector3 networkPosition;
         private Quaternion networkRotation;
@@ -49,17 +52,29 @@ namespace PJW
             if (photonView.IsMine && isDead) return;
         }
 
+        [PunRPC]
+        public void RPCAddRopePassScore()
+        {
+            if (photonView.IsMine && !isDead && hasJumped)
+            {
+                PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
+                hasJumped = false;
+            }
+        }
+
         private void Jump()
         {
             if (!isGrounded || isDead || !photonView.IsMine) return;
 
-            Vector3 velocity = playerRigidbody.velocity;
-            velocity.y = jumpForce;
-            playerRigidbody.velocity = velocity;
+            playerRigidbody.velocity = new Vector3(
+                playerRigidbody.velocity.x,
+                jumpForce,
+                playerRigidbody.velocity.z
+            );
             isGrounded = false;
+            hasJumped = true;
 
             photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, true);
-
             AudioManager.Instance.SfxPlay("JumpSound", transform);
         }
 
@@ -77,17 +92,13 @@ namespace PJW
             {
                 isGrounded = true;
                 photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, false);
-
-                if (!isDead)
-                {
-                    PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
-                }
+                hasJumped = false;
             }
             else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {
                 BounceDie();
             }
-        }
+        }        
 
         private void OnCollisionExit(Collision collision)
         {
