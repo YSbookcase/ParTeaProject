@@ -7,6 +7,7 @@ using ExitGames.Client.Photon;
 public class RacingColorSynk : MonoBehaviourPunCallbacks
 {
     [SerializeField] private Renderer playerRenderer;
+    [SerializeField] private RacingController racingController;
 
     // ArenaPlayerSpawner, Color와 동일한 색상 배열
     private Color[] colors = {
@@ -17,6 +18,7 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
         };
 
     [SerializeField] List<GameObject> carryFoods = new List<GameObject>();
+    [SerializeField] private AudioData audioData;
 
     private void Start()
     {
@@ -34,7 +36,7 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
                 if(i == colorIndex)
                 {
                     carryFoods[i].SetActive(true);
-                    Debug.Log($"[RacingColorSynk] Player {photonView.Owner.NickName} color index: {colorIndex}, food active: {carryFoods[i].name}");
+                    racingController.SetRacingSound(audioData.clip.name, i);
                 }
                 else
                 {

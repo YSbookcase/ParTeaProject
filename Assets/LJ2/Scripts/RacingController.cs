@@ -41,6 +41,14 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     [SerializeField][Range( 0f, 1f )] private float crashDuration;
     private YieldInstruction crashDelay;
 
+    [SerializeField] float soundMinDistance;
+    [SerializeField] float soundMaxDistance;
+
+    private string soundKey;
+
+    private float currentVolume;
+    private float volumeVelocity;
+
     private void Awake()
     {
         if (rigid == null)
@@ -59,11 +67,9 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             if (virtualCamera != null)
             {
-                //virtualCamera.Follow = transform;
                 virtualCamera.LookAt = transform;
             }
 
-            //Manager.Audio.SfxPlayLoop("low_on", this.transform);
             previousPosition = transform.position;
             linePassed = 0;
         }
@@ -84,6 +90,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private void OnDisable()
     {
         moveAction.action.Disable();
+        Manager.Audio.SfxStopLoop(soundKey);
     }
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
@@ -103,16 +110,23 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
     }
 
+
     private void Update()
     {
         if (photonView.IsMine && isControllable)
         {
             SetRotationByCam();
             DollyCartMove();
-            // TODO : 차량의 속도에 비례하여 소리 조절
-        }
 
+            if (!string.IsNullOrEmpty(soundKey))
+            {
+                float targetVolume = currentSpeed / maxSpeed;
+                currentVolume = Mathf.SmoothDamp(currentVolume, targetVolume, ref volumeVelocity, 0.2f); // 부드러운 음량 변화
+                Manager.Audio.SetVolumeLoopSfx(soundKey, currentVolume, soundMinDistance, soundMaxDistance);
+            }
+        }
     }
+
 
     private void FixedUpdate()
     {
@@ -122,8 +136,8 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            rigid.velocity = Vector3.Lerp(rigid.velocity, networkVelocity, Time.deltaTime * 5);
-            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 5);
+            rigid.MovePosition(Vector3.Lerp(rigid.position, networkPosition, Time.deltaTime * 10));
+            transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
     }
 
@@ -215,33 +229,29 @@ public class RacingController : MonoBehaviourPun, IPunObservable
 
     private void OnCollisionEnter(Collision collision)
     {
-        if(!photonView.IsMine) return;
+        // 모든 클라이언트에서 감지
+        if (!photonView.IsMine) return; // 내 오브젝트에서만 충돌 처리
 
-        float impactForce = collision.relativeVelocity.magnitude;
+        PhotonView otherView = collision.gameObject.GetComponent<PhotonView>();
+        if (otherView == null || otherView == photonView) return;
 
-        if (impactForce < 5f)
+        Vector3 impactDir = (transform.position - collision.transform.position).normalized;
+        float impactForce = Mathf.Clamp(collision.relativeVelocity.magnitude * 0.8f, 5f, 20f);
+
+        // 마스터 클라이언트에게 충돌 판정을 요청
+        if (PhotonNetwork.IsMasterClient)
         {
-            rigid.velocity *= 0.8f; // 약한 충돌은 속도 감소
-        }
-        else
-        {
-            // 강한 충돌은 약간의 반동
-            rigid.AddForce(-collision.relativeVelocity.normalized * impactForce * 0.5f, ForceMode.Impulse);
-        }
-
-        Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
-        float strength = Mathf.Clamp(impactForce * 0.8f , 5f, 20f); // 충돌 강도에 따라 힘 조절
-
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            PhotonView targetView = collision.gameObject.GetComponent<PhotonView>();
-            if (targetView != null && targetView.IsMine == false)
+            if (collision.gameObject.CompareTag("Player"))
             {
-                Debug.Log($"[RacingController] {photonView.ViewID} collided with {targetView.ViewID} with force {strength}");
-                photonView.RPC("RacingCrash", RpcTarget.MasterClient, pushDirection * strength, targetView.ViewID);
+                photonView.RPC("RacingCrash", RpcTarget.All, otherView.ViewID, impactDir, impactForce);
+            }
+            else
+            {
+                photonView.RPC("RacingWorldCrash", RpcTarget.All, photonView.ViewID, impactDir, impactForce);
             }
         }
     }
+
 
 
     private void OnCollisionExit(Collision collision)
@@ -252,13 +262,12 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    public void RacingCrash(Vector3 direction, int targetViewID)
+    public void RacingCrash(int targetViewID, Vector3 direction, float force)
     {
-        // if(photonView.ViewID != targetViewID) return; // 자신의 뷰 ID가 아니면 무시
         RacingController targetController = PhotonView.Find(targetViewID)?.GetComponent<RacingController>();
-        Debug.Log($"{targetViewID} with direction {direction}");
+        if (targetController == null) return;
 
-        if(targetController.crashCoroutine != null)
+        if (targetController.crashCoroutine != null)
         {
             targetController.StopCoroutine(targetController.crashCoroutine);
             targetController.crashCoroutine = null;
@@ -268,6 +277,15 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         targetController.rigid.angularVelocity = Vector3.zero; // 회전 속도 초기화
     }
 
+    [PunRPC]
+    public void RacingWorldCrash(int viewID, Vector3 direction, float force)
+    {
+        RacingController self = PhotonView.Find(viewID)?.GetComponent<RacingController>();
+        if (self == null) return;
+
+        self.rigid.AddForce(direction * force, ForceMode.Impulse);
+        self.rigid.angularVelocity = Vector3.zero;
+    }
     private IEnumerator CrashRoutine()
     {
         isControllable = false;
@@ -281,4 +299,25 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         yield return null;
     }
 
+
+    public void SetRacingSound(string soundName, int i)
+    {
+        soundKey = soundName + $"_{i}";
+        StartCoroutine(SoundDelay(soundName));
+    }
+
+    private IEnumerator SoundDelay(string name)
+    { 
+        yield return null;
+        Manager.Audio.SfxPlayLoop(soundKey, name, this.transform);
+        Manager.Audio.SetVolumeLoopSfx(soundKey, 0.1f, soundMinDistance, soundMaxDistance);
+    }
+
+    public void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(transform.position, soundMinDistance);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, soundMaxDistance);
+    }
 }
