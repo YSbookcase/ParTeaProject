@@ -58,9 +58,15 @@ namespace PJW
             playerRigidbody.velocity = velocity;
             isGrounded = false;
 
-            animator.SetBool("IsJumping", true);
+            photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, true);
 
             AudioManager.Instance.SfxPlay("JumpSound", transform);
+        }
+
+        [PunRPC]
+        private void RPCRopeSetJumping(bool isJumping)
+        {
+            animator.SetBool("IsJumping", isJumping);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -70,7 +76,12 @@ namespace PJW
             if (collision.gameObject.CompareTag("Ground"))
             {
                 isGrounded = true;
-                animator.SetBool("IsJumping", false);
+                photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, false);
+
+                if (!isDead)
+                {
+                    PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
+                }
             }
             else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {

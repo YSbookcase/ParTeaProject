@@ -32,14 +32,14 @@ namespace PJW
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
         }
 
-        // 모든 플레이어가 준비되면 호출
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
         {
             if (!PhotonNetwork.IsMasterClient) return;
 
             if (changedProps.ContainsKey(IsLoadedKey))
             {
-                bool allLoaded = PhotonNetwork.PlayerList.All(p => p.CustomProperties.ContainsKey(IsLoadedKey) && (bool)p.CustomProperties[IsLoadedKey]);
+                bool allLoaded = PhotonNetwork.PlayerList
+                    .All(p => p.CustomProperties.ContainsKey(IsLoadedKey) && (bool)p.CustomProperties[IsLoadedKey]);
 
                 if (allLoaded)
                 {
@@ -94,21 +94,19 @@ namespace PJW
                 return;
 
             deathCount++;
+
             if (deathCount >= totalPlayers)
             {
-                rankCalculator?.CalculateRanks();
+                RankCalculator.CalculateRanks();
 
-                string winnerName = player.NickName;
-                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer, winnerName);
+                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer);
             }
         }
 
-        [PunRPC]
-        private void RPCRopeShowDeathPanel(string winnerName)
-        {
-            if (RopeUIManager.Instance != null)
-                RopeUIManager.Instance.ShowDeathPanel(winnerName);
 
+        [PunRPC]
+        private void RPCRopeShowDeathPanel()
+        {
             StartCoroutine(LoadScoreAfterDelay());
         }
 
