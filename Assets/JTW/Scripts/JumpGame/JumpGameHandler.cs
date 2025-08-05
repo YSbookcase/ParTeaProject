@@ -123,8 +123,8 @@ namespace JTW_JumpGame
                     photonView.RPC("DeleteJumpGamePlayer", RpcTarget.MasterClient);
                 }
 
-                timer += 2;
-                yield return new WaitForSeconds(2f);
+                timer += 0.5f;
+                yield return new WaitForSeconds(0.5f);
 
                 if(PhotonNetwork.IsMasterClient && alivePlayers.Count <= 0)
                 {
