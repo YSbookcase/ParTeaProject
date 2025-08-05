@@ -93,6 +93,11 @@ namespace KSH
 
         private void TileCheck()
         {
+            redTeamPanel.gameObject.SetActive(false);
+            blueTeamPanel.gameObject.SetActive(false);
+            redText.gameObject.SetActive(false);
+            blueText.gameObject.SetActive(false);
+            vsImage.gameObject.SetActive(false);
             winnerPanel.SetActive(true);
             
             int redTile = TileManager.Instance.redTileCount;
