@@ -11,7 +11,6 @@ namespace PJW
         public static RopeUIManager Instance { get; private set; }
         
         [SerializeField] private GameObject deathPanel;
-        [SerializeField] private TextMeshProUGUI winnerText;
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -31,11 +30,7 @@ namespace PJW
         {
             if (deathPanel != null)
                 deathPanel.SetActive(true);
-
-            if (winnerText != null)
-                winnerText.text = $"{winnerName}님이 마지막 생존자입니다!";
         }
 
-       // public void ShowDeathPanel() => RPCShowDeathPanel();
     }
 }

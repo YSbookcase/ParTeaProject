@@ -3,7 +3,8 @@ using Photon.Pun;
 
 namespace PJW
 {
-    public class JumpRopeController : MonoBehaviourPun, IPunObservable
+    [RequireComponent(typeof(PhotonView))]
+    public class JumpRopeController : MonoBehaviourPun
     {
         [Header("회전 대상")]
         public Transform ropeTransform;
@@ -17,48 +18,52 @@ namespace PJW
         public float maxSpeed = 360f;
         public float acceleration = 10f;
 
-        private float currentSpeed;
+        private bool hasStarted = false;
+        private double ropeStartTime;
 
-        // 동기화용 값
-        private Vector3 networkPosition;
-        private Quaternion networkRotation;
+        private float cumulativeAngle = 0f;
 
-        private void Start()
+        [PunRPC]
+        public void RPCStartRope(double startTimestamp)
         {
-            currentSpeed = initialSpeed;
-            if (!PhotonNetwork.IsMasterClient)
-            {
-                networkPosition = ropeTransform.position;
-                networkRotation = ropeTransform.rotation;
-            }
+            ropeStartTime = startTimestamp;
+            hasStarted = true;
         }
 
         private void Update()
         {
+            if (!hasStarted) return;
+
+            double elapsed = PhotonNetwork.Time - ropeStartTime;
+            if (elapsed < 0) return;
+
+            float currentSpeed = Mathf.Min(initialSpeed + acceleration * (float)elapsed, maxSpeed);
+            float deltaAngle = currentSpeed * Time.deltaTime;
+            ropeTransform.RotateAround(centerPoint.position, rotationAxis, deltaAngle);
+
             if (PhotonNetwork.IsMasterClient)
             {
-                currentSpeed = Mathf.Min(currentSpeed + acceleration * Time.deltaTime, maxSpeed);
-                ropeTransform.RotateAround(centerPoint.position, rotationAxis, currentSpeed * Time.deltaTime);
-            }
-            else
-            {
-                // 위치와 회전을 함께 보간
-                ropeTransform.position = Vector3.Lerp(ropeTransform.position, networkPosition, Time.deltaTime * 10f);
-                ropeTransform.rotation = Quaternion.Lerp(ropeTransform.rotation, networkRotation, Time.deltaTime * 10f);
+                cumulativeAngle += deltaAngle;
+                if (cumulativeAngle >= 360f)
+                {
+                    cumulativeAngle -= 360f;
+                    DistributePassScore();
+                }
             }
         }
 
-        public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        // 한 바퀴 돌 때마다 모든 PlayerController에 RPC 호출
+        private void DistributePassScore()
         {
-            if (stream.IsWriting)
+            foreach (var pc in FindObjectsOfType<PlayerController>())
             {
-                stream.SendNext(ropeTransform.position);
-                stream.SendNext(ropeTransform.rotation);
-            }
-            else
-            {
-                networkPosition = (Vector3)stream.ReceiveNext();
-                networkRotation = (Quaternion)stream.ReceiveNext();
+                if (pc.photonView != null)
+                {
+                    pc.photonView.RPC(
+                        nameof(PlayerController.RPCAddRopePassScore),
+                        pc.photonView.Owner  // 해당 플레이어의 클라이언트로만 RPC
+                    );
+                }
             }
         }
     }
