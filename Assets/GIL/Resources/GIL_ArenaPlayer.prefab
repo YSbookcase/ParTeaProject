@@ -121,7 +121,7 @@ GameObject:
   - component: {fileID: -840238200679180440}
   m_Layer: 0
   m_Name: GIL_ArenaPlayer
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -256,7 +256,9 @@ MonoBehaviour:
   maxSpeed: 50
   rotTorque: 15
   drag: 0.95
-  pushForce: 30
+  pushForce: 1.5
+  effectPrefab: {fileID: 2965222256817593503, guid: 304b90dd259c18143a73d201d3898d02,
+    type: 3}
 --- !u!114 &5067074703783935331
 MonoBehaviour:
   m_ObjectHideFlags: 0

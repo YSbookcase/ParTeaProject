@@ -11,13 +11,15 @@ namespace GIL.Scripts
         [SerializeField] private float rotTorque = 10f;
         [SerializeField] private float drag = 0.95f;
         [SerializeField] private float pushForce = 30f;
+        [Header("Effect")]
+        [SerializeField] private GameObject effectPrefab;
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
         
         private PhotonView _photonView;
 
         private Vector2 _startTouchPos;
-        private bool _isTouching = false;
+        private bool _isTouching;
         
         private Vector3 _networkPosition;
         private Quaternion _networkRotation;
@@ -137,9 +139,21 @@ namespace GIL.Scripts
                 PhotonView otherPhotonView = collision.gameObject.GetComponent<PhotonView>();
                 if (otherPhotonView != null)
                 {
+                    Vector3 hitPos = collision.contacts[0].point;
                     otherPhotonView.RPC(nameof(ArenaApplyPushForce), RpcTarget.AllBuffered, pushDir * pushForce);
+                    
+                    if (PhotonNetwork.IsConnected == false) 
+                        Instantiate(effectPrefab, hitPos, Quaternion.identity);
+                    
+                    otherPhotonView.RPC(nameof(ArenaHitEffect), RpcTarget.All, hitPos);
                 }
             }
+        }
+
+        [PunRPC]
+        public void ArenaHitEffect(Vector3 pos)
+        {
+            Instantiate(effectPrefab, pos, Quaternion.identity);
         }
         
         [PunRPC]
@@ -147,6 +161,5 @@ namespace GIL.Scripts
         {
             _rigidbody.AddForce(force, ForceMode.Impulse);
         }
-
     }
 }
