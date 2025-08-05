@@ -105,14 +105,14 @@ namespace KYS
             }
             else
             {
-                Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
+                //Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
             // Collider 확인
             playerCollider = GetComponent<Collider>();
             if (playerCollider == null)
             {
-                Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
+                //Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
             // ReceiveGameUI 찾기 및 할당
@@ -225,7 +225,7 @@ namespace KYS
                 }
                 else
                 {
-                    Debug.LogWarning("playerAnimator가 null입니다. Inspector에서 Animator를 할당해주세요.");
+                    //Debug.LogWarning("playerAnimator가 null입니다. Inspector에서 Animator를 할당해주세요.");
                 }
             }
             else
@@ -326,7 +326,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                //Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
             }
         }
         
@@ -369,7 +369,7 @@ namespace KYS
                 playerRenderer.material.color = playerColor;
                 isColorSet = true;
                 
-                Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
+                //Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
             }
         }
         
@@ -422,7 +422,7 @@ namespace KYS
             Canvas overlayCanvas = FindObjectOfType<Canvas>();
             if (overlayCanvas == null || overlayCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
             {
-                Debug.Log("Screen Space - Overlay Canvas를 자동으로 생성합니다.");
+                //Debug.Log("Screen Space - Overlay Canvas를 자동으로 생성합니다.");
                 overlayCanvas = CreateOverlayCanvas();
             }
             
@@ -444,7 +444,7 @@ namespace KYS
                 if (photonView.Owner != null)
                 {
                     nicknamePanel.SetInfo(photonView.Owner.NickName, transform);
-                    Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
+                    //Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
                 }
                 else
                 {
@@ -516,7 +516,7 @@ namespace KYS
             // Graphic Raycaster 추가
             canvasObj.AddComponent<GraphicRaycaster>();
             
-            Debug.Log("Screen Space - Overlay Canvas 생성 완료");
+            //Debug.Log("Screen Space - Overlay Canvas 생성 완료");
             return canvas;
         }
         
@@ -559,7 +559,7 @@ namespace KYS
                         Color playerColor = GetColorByIndex(playerColorIndex);
                         playerRenderer.material.color = playerColor;
                         isColorSet = true;
-                        Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
+                        //Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
                     }
                 }
                 
@@ -641,7 +641,7 @@ namespace KYS
                 hasSpeedBoost = false;
                 moveSpeed = baseMoveSpeed;
                 DeactivateEffect(ItemType.Speed);
-                Debug.Log("속도 부스트 효과 종료");
+                //Debug.Log("속도 부스트 효과 종료");
             }
             
             // 슬로우 효과 체크
@@ -650,7 +650,7 @@ namespace KYS
                 hasSlowEffect = false;
                 moveSpeed = baseMoveSpeed;
                 DeactivateEffect(ItemType.Slow);
-                Debug.Log("슬로우 효과 종료");
+                //Debug.Log("슬로우 효과 종료");
             }
             
             // 자석 효과 체크
@@ -658,7 +658,7 @@ namespace KYS
             {
                 hasMagnetEffect = false;
                 DeactivateEffect(ItemType.Magnet);
-                Debug.Log("자석 효과 종료");
+                //Debug.Log("자석 효과 종료");
             }
         }
         
@@ -673,7 +673,7 @@ namespace KYS
                 // 스피드 부스트 이펙트 활성화
                 ActivateEffect(ItemType.Speed, duration);
                 
-                Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
+                //Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
             }
         }
         
@@ -688,7 +688,7 @@ namespace KYS
                 // 슬로우 이펙트 활성화
                 ActivateEffect(ItemType.Slow, duration);
                 
-                Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
+                //Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
             }
         }
         
@@ -703,22 +703,22 @@ namespace KYS
                 if (customMagnetRadius > 0f)
                 {
                     magnetRadius = customMagnetRadius;
-                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 범위 적용: {customMagnetRadius}");
+                    //Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 범위 적용: {customMagnetRadius}");
                 }
                 if (customMagnetForce > 0f)
                 {
                     magnetForce = customMagnetForce;
-                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 힘 적용: {customMagnetForce}");
+                    //Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 힘 적용: {customMagnetForce}");
                 }
                 else
                 {
-                    Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
+                    //Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
                 }
                 
                 // 마그네틱 이펙트 활성화
                 ActivateEffect(ItemType.Magnet, duration);
                 
-                Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
+                //Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
             }
         }
         
@@ -748,7 +748,7 @@ namespace KYS
                 isMobilePlatform = true; // 테스트용으로 모바일로 설정
             #endif
             
-            Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
+            //Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
         }
         
         // 모바일 입력 처리 (ReceiveGameUI 조이스틱만 사용)
@@ -769,7 +769,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning("ReceiveGameUI가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
+                //Debug.LogWarning("ReceiveGameUI가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
             }
         }
         
@@ -809,7 +809,7 @@ namespace KYS
                 if (Input.GetKeyDown(KeyCode.Space))
                 {
                     jumpPressed = true;
-                    Debug.Log("점프!");
+                    //Debug.Log("점프!");
                 }
                 else
                 {
@@ -820,7 +820,7 @@ namespace KYS
                 if (Input.GetKeyDown(KeyCode.E))
                 {
                     actionPressed = true;
-                    Debug.Log("액션!");
+                    //Debug.Log("액션!");
                 }
                 else
                 {
@@ -836,7 +836,7 @@ namespace KYS
             if (inputActions == null)
             {
                 // 임시로 기본 Input.GetKey 사용
-                Debug.LogWarning("Input Actions가 할당되지 않았습니다. 기본 입력을 사용합니다.");
+                //Debug.LogWarning("Input Actions가 할당되지 않았습니다. 기본 입력을 사용합니다.");
                 return;
             }
             
@@ -864,11 +864,11 @@ namespace KYS
                 
                 // Input System 활성화
                 inputActions.Enable();
-                Debug.Log("Input System 초기화 완료");
+                //Debug.Log("Input System 초기화 완료");
             }
             else
             {
-                Debug.LogError("Player Action Map을 찾을 수 없습니다.");
+                //Debug.LogError("Player Action Map을 찾을 수 없습니다.");
             }
         }
         
@@ -883,7 +883,7 @@ namespace KYS
             if (jumpPressed)
             {
                 // 점프 로직 (필요시 구현)
-                Debug.Log("점프!");
+                //Debug.Log("점프!");
             }
         }
         
@@ -893,7 +893,7 @@ namespace KYS
             if (actionPressed)
             {
                 // 액션 로직 (필요시 구현)
-                Debug.Log("액션!");
+                //Debug.Log("액션!");
             }
         }
         
@@ -912,7 +912,7 @@ namespace KYS
                 effectParent.SetParent(transform);
                 effectParent.localPosition = Vector3.zero;
                 effectParent.localRotation = Quaternion.identity;
-                Debug.Log("[ReceiveGamePlayer] 이펙트 부모 자동 생성 완료");
+                //Debug.Log("[ReceiveGamePlayer] 이펙트 부모 자동 생성 완료");
             }
             
             // ItemConfiguration 로드
@@ -921,7 +921,7 @@ namespace KYS
                 itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
                 if (itemConfiguration == null)
                 {
-                    Debug.LogWarning("[ReceiveGamePlayer] ItemConfiguration을 Resources에서 로드할 수 없습니다.");
+                    //Debug.LogWarning("[ReceiveGamePlayer] ItemConfiguration을 Resources에서 로드할 수 없습니다.");
                 }
             }
         }
@@ -940,14 +940,14 @@ namespace KYS
             
             if (itemConfiguration == null)
             {
-                Debug.LogWarning($"[ReceiveGamePlayer] ItemConfiguration이 없어 {itemType} 이펙트를 활성화할 수 없습니다.");
+                //Debug.LogWarning($"[ReceiveGamePlayer] ItemConfiguration이 없어 {itemType} 이펙트를 활성화할 수 없습니다.");
                 return;
             }
             
             ItemConfig config = itemConfiguration.GetItemConfig(itemType);
             if (config == null || config.playerEffectPrefab == null)
             {
-                Debug.LogWarning($"[ReceiveGamePlayer] {itemType} 타입의 이펙트 프리팹이 설정되지 않았습니다.");
+                //Debug.LogWarning($"[ReceiveGamePlayer] {itemType} 타입의 이펙트 프리팹이 설정되지 않았습니다.");
                 return;
             }
             
@@ -962,7 +962,7 @@ namespace KYS
             Coroutine effectCoroutine = StartCoroutine(DeactivateEffectAfterDuration(itemType, duration));
             effectCoroutines[itemType] = effectCoroutine;
             
-            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초");
+            //Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초");
         }
         
         /// <summary>
@@ -979,7 +979,7 @@ namespace KYS
                     Destroy(effect);
                 }
                 activeEffects.Remove(itemType);
-                Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료");
+                //Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료");
             }
             
             // 코루틴이 실행 중인지 확인하고 중지
@@ -1018,7 +1018,7 @@ namespace KYS
             }
             effectCoroutines.Clear();
             
-            Debug.Log("[ReceiveGamePlayer] 모든 이펙트 정리 완료");
+            //Debug.Log("[ReceiveGamePlayer] 모든 이펙트 정리 완료");
         }
         
         /// <summary>
@@ -1053,11 +1053,11 @@ namespace KYS
                 
                 if (gameUI != null)
                 {
-                    Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
+                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
                 }
                 else
                 {
-                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
+                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
                 }
             }
             
@@ -1068,11 +1068,11 @@ namespace KYS
                 
                 if (gameManager != null)
                 {
-                    Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
+                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
                 }
                 else
                 {
-                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
+                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
                 }
             }
         }

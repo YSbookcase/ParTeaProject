@@ -51,7 +51,7 @@ namespace KYS
             
             if (photonView == null)
             {
-                Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
+                //Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
                 return;
             }
             
@@ -107,7 +107,7 @@ namespace KYS
         private void OnHitGround()
         {
             hasHitGround = true;
-            //Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
+            ////Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
             
             // 바운스 효과
             if (rb != null)
@@ -130,7 +130,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 Destroy(gameObject);
             }
         }
@@ -197,7 +197,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 // 중복 파괴 방지를 위해 즉시 비활성화
                 gameObject.SetActive(false);
                 if (PhotonNetwork.IsMasterClient)
@@ -301,7 +301,7 @@ namespace KYS
             
             gameObject.SetActive(true);
             
-            //Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
+            ////Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
         }
         
         /// <summary>
@@ -333,7 +333,7 @@ namespace KYS
                 }
                 else
                 {
-                    Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
+                    //Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
                 }
             }
         }
@@ -349,7 +349,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
             }
             
             returnCoroutine = null;

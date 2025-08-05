@@ -27,7 +27,7 @@ namespace KYS
             if (photonView == null)
             {
                 photonView = gameObject.AddComponent<PhotonView>();
-                Debug.Log("ObstacleController에 PhotonView 컴포넌트를 추가했습니다.");
+                //Debug.Log("ObstacleController에 PhotonView 컴포넌트를 추가했습니다.");
             }
             
             // AudioSource 제거 - AudioManager 시스템 사용
@@ -54,7 +54,7 @@ namespace KYS
             
             isHit = true;
             
-            Debug.Log($"[ObstacleController] 플레이어 {player.GetPlayerActorNumber()}가 방해물과 충돌!");
+            //Debug.Log($"[ObstacleController] 플레이어 {player.GetPlayerActorNumber()}가 방해물과 충돌!");
             
             // 부정적인 효과는 현재 제외
             // player.ApplySlowEffect(slowEffectDuration);
@@ -119,11 +119,11 @@ namespace KYS
             if (returnPool != null && returnPool.gameObject != null && returnPool.gameObject.activeInHierarchy)
             {
                 returnPool.ReturnToPool(this);
-                Debug.Log($"[ObstacleController] 지연 반환 완료: {gameObject.name}");
+                //Debug.Log($"[ObstacleController] 지연 반환 완료: {gameObject.name}");
             }
             else
             {
-                Debug.LogWarning($"[ObstacleController] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
+                //Debug.LogWarning($"[ObstacleController] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
             }
         }
     }

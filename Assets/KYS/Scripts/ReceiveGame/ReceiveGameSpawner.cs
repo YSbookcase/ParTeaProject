@@ -32,7 +32,7 @@ namespace KYS
             playerPrefab = Resources.Load<GameObject>("ReceiveGamePlayer");
             if (playerPrefab == null)
             {
-                Debug.LogError("ReceiveGamePlayer 프리팹을 Resources 폴더에서 찾을 수 없습니다!");
+                //Debug.LogError("ReceiveGamePlayer 프리팹을 Resources 폴더에서 찾을 수 없습니다!");
             }
         }
         
@@ -79,14 +79,14 @@ namespace KYS
             // 플레이어 프리팹 확인
             if (playerPrefab == null)
             {
-                Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
+                //Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
                 return;
             }
             
             // 스폰 포인트 확인
             if (spawnPoints == null || spawnPoints.Length == 0)
             {
-                Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
+                //Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
                 return;
             }
             
@@ -106,12 +106,12 @@ namespace KYS
                 }
                 else
                 {
-                    Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
+                    //Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
                 }
             }
             else
             {
-                Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
+                //Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
             }
         }
         
@@ -159,24 +159,24 @@ namespace KYS
         
         public void SpawnPlayer(Player player)
         {
-            Debug.Log($"플레이어 스폰 시도: {player.NickName} (ActorNumber: {player.ActorNumber})");
+            //Debug.Log($"플레이어 스폰 시도: {player.NickName} (ActorNumber: {player.ActorNumber})");
             
             // 이미 스폰된 플레이어인지 확인
             if (spawnedPlayers.ContainsKey(player.ActorNumber))
             {
-                Debug.LogWarning($"플레이어 {player.NickName}는 이미 스폰되어 있습니다. 중복 스폰 방지.");
+                //Debug.LogWarning($"플레이어 {player.NickName}는 이미 스폰되어 있습니다. 중복 스폰 방지.");
                 return;
             }
             
             if (playerPrefab == null)
             {
-                Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
+                //Debug.LogError("플레이어 프리팹이 설정되지 않았습니다!");
                 return;
             }
             
             if (spawnPoints.Length == 0)
             {
-                Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
+                //Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
                 return;
             }
             
@@ -184,14 +184,14 @@ namespace KYS
             int spawnIndex = (player.ActorNumber - 1) % spawnPoints.Length;
             Vector3 spawnPosition = spawnPoints[spawnIndex].position;
             
-            Debug.Log($"스폰 위치: {spawnPosition} (인덱스: {spawnIndex})");
+            //Debug.Log($"스폰 위치: {spawnPosition} (인덱스: {spawnIndex})");
             
             // 플레이어 스폰
             GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
             
             if (playerObject == null)
             {
-                Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
+                //Debug.LogError($"플레이어 스폰 실패: {playerPrefab.name}");
                 return;
             }
             
@@ -203,14 +203,14 @@ namespace KYS
             {
                 // 플레이어 이름 설정
                 playerObject.name = $"Player_{player.NickName}";
-                Debug.Log($"플레이어 컨트롤러 설정 완료: {playerObject.name}");
+                //Debug.Log($"플레이어 컨트롤러 설정 완료: {playerObject.name}");
             }
             else
             {
-                Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
+                //Debug.LogWarning($"플레이어 오브젝트에 ReceiveGamePlayer 컴포넌트가 없습니다: {playerObject.name}");
             }
             
-            Debug.Log($"플레이어 {player.NickName} 스폰 완료: {spawnPosition}");
+            //Debug.Log($"플레이어 {player.NickName} 스폰 완료: {spawnPosition}");
         }
         
         public override void OnPlayerLeftRoom(Player otherPlayer)

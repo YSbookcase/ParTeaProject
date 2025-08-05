@@ -211,7 +211,7 @@ namespace KYS
             // playerScorePrefab이 할당되지 않은 경우 처리
             if (playerScorePrefab == null)
             {
-                Debug.LogWarning("PlayerScorePrefab이 할당되지 않았습니다. 기본 UI를 생성합니다.");
+                //Debug.LogWarning("PlayerScorePrefab이 할당되지 않았습니다. 기본 UI를 생성합니다.");
                 CreateDefaultScoreUI();
                 return;
             }

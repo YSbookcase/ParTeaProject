@@ -49,7 +49,7 @@ namespace KYS
                     particleSystem.Play();
                 }
                 
-                Debug.Log($"[PlayerEffectController] 파티클 시스템 감지됨: {gameObject.name}");
+                //Debug.Log($"[PlayerEffectController] 파티클 시스템 감지됨: {gameObject.name}");
             }
             else
             {
@@ -69,7 +69,7 @@ namespace KYS
                 }
             }
             
-            Debug.Log($"[PlayerEffectController] 이펙트 초기화 완료: {gameObject.name} (파티클: {useParticleSystem})");
+            //Debug.Log($"[PlayerEffectController] 이펙트 초기화 완료: {gameObject.name} (파티클: {useParticleSystem})");
         }
         
         private void Update()

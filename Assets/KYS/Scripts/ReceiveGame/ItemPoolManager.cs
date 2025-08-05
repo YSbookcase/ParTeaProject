@@ -17,7 +17,7 @@ namespace KYS
                     instance = FindObjectOfType<ItemPoolManager>();
                     if (instance == null)
                     {
-                        Debug.LogWarning("[ItemPoolManager] 씬에 ItemPoolManager가 없습니다. 새로 생성합니다.");
+                        //Debug.LogWarning("[ItemPoolManager] 씬에 ItemPoolManager가 없습니다. 새로 생성합니다.");
                         GameObject go = new GameObject("ItemPoolManager");
                         instance = go.AddComponent<ItemPoolManager>();
                     }
@@ -68,11 +68,11 @@ namespace KYS
             {
                 instance = this;
                 DontDestroyOnLoad(gameObject);
-                Debug.Log("[ItemPoolManager] 싱글톤 인스턴스 생성 및 DontDestroyOnLoad 설정");
+                //Debug.Log("[ItemPoolManager] 싱글톤 인스턴스 생성 및 DontDestroyOnLoad 설정");
             }
             else if (instance != this)
             {
-                Debug.LogWarning("[ItemPoolManager] 중복된 ItemPoolManager 발견. 기존 인스턴스를 유지하고 새 인스턴스를 파괴합니다.");
+                //Debug.LogWarning("[ItemPoolManager] 중복된 ItemPoolManager 발견. 기존 인스턴스를 유지하고 새 인스턴스를 파괴합니다.");
                 Destroy(gameObject);
                 return;
             }
@@ -83,7 +83,7 @@ namespace KYS
             // 이미 초기화된 경우 스킵
             if (isInitialized)
             {
-                Debug.Log("[ItemPoolManager] 이미 초기화되어 있습니다. 스킵합니다.");
+                //Debug.Log("[ItemPoolManager] 이미 초기화되어 있습니다. 스킵합니다.");
                 return;
             }
             
@@ -100,7 +100,7 @@ namespace KYS
             itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
             if (itemConfiguration != null)
             {
-                Debug.Log("[ItemPoolManager] Resources에서 ItemConfiguration 로드 완료");
+                //Debug.Log("[ItemPoolManager] Resources에서 ItemConfiguration 로드 완료");
                 LogItemConfigurationDetails();
                 return;
             }
@@ -109,7 +109,7 @@ namespace KYS
             itemConfiguration = Resources.Load<ItemConfiguration>("KYS/Resources/ItemConfiguration");
             if (itemConfiguration != null)
             {
-                Debug.Log("[ItemPoolManager] KYS/Resources에서 ItemConfiguration 로드 완료");
+                //Debug.Log("[ItemPoolManager] KYS/Resources에서 ItemConfiguration 로드 완료");
                 LogItemConfigurationDetails();
                 return;
             }
@@ -118,7 +118,7 @@ namespace KYS
             itemConfiguration = Resources.Load<ItemConfiguration>("KYS/ScriptableObject/ItemConfiguration");
             if (itemConfiguration != null)
             {
-                Debug.Log("[ItemPoolManager] KYS/ScriptableObject에서 ItemConfiguration 로드 완료");
+                //Debug.Log("[ItemPoolManager] KYS/ScriptableObject에서 ItemConfiguration 로드 완료");
                 LogItemConfigurationDetails();
                 return;
             }
@@ -129,31 +129,31 @@ namespace KYS
             if (configs.Length > 0)
             {
                 itemConfiguration = configs[0];
-                Debug.Log($"[ItemPoolManager] FindObjectsOfTypeAll로 ItemConfiguration 로드 완료: {itemConfiguration.name}");
+                //Debug.Log($"[ItemPoolManager] FindObjectsOfTypeAll로 ItemConfiguration 로드 완료: {itemConfiguration.name}");
                 LogItemConfigurationDetails();
                 return;
             }
             #endif
             
-            Debug.LogError("[ItemPoolManager] ItemConfiguration을 찾을 수 없습니다! 모든 경로에서 시도했지만 실패했습니다.");
+            //Debug.LogError("[ItemPoolManager] ItemConfiguration을 찾을 수 없습니다! 모든 경로에서 시도했지만 실패했습니다.");
         }
         
         private void LogItemConfigurationDetails()
         {
             if (itemConfiguration == null) return;
             
-            Debug.Log($"[ItemPoolManager] ItemConfiguration 상세 정보:");
-            Debug.Log($"  - 이름: {itemConfiguration.name}");
+            //Debug.Log($"[ItemPoolManager] ItemConfiguration 상세 정보:");
+            //Debug.Log($"  - 이름: {itemConfiguration.name}");
             
             foreach (ItemConfig config in itemConfiguration.itemConfigs)
             {
-                Debug.Log($"  - {config.itemType}: 색상={config.itemColor}, 크기={config.scale}, 사운드={config.collectSoundName}");
+                //Debug.Log($"  - {config.itemType}: 색상={config.itemColor}, 크기={config.scale}, 사운드={config.collectSoundName}");
             }
         }
         
         private void InitializePools()
         {
-            Debug.Log("[ItemPoolManager] 풀 초기화 시작");
+            //Debug.Log("[ItemPoolManager] 풀 초기화 시작");
             
             // 컨테이너 생성
             if (itemPoolContainer == null)
@@ -189,14 +189,14 @@ namespace KYS
             // 장애물 풀 초기화
             InitializeObstaclePool();
             
-            Debug.Log($"[ItemPoolManager] 풀 초기화 완료 - 아이템: {itemPoolSize}개, 파워업(타입별): {powerUpPoolSizePerType}개, 장애물: {obstaclePoolSize}개");
+            //Debug.Log($"[ItemPoolManager] 풀 초기화 완료 - 아이템: {itemPoolSize}개, 파워업(타입별): {powerUpPoolSizePerType}개, 장애물: {obstaclePoolSize}개");
         }
         
         private void InitializeItemPool()
         {
             if (itemPrefab == null)
             {
-                Debug.LogError("[ItemPoolManager] 아이템 프리팹이 설정되지 않았습니다!");
+                //Debug.LogError("[ItemPoolManager] 아이템 프리팹이 설정되지 않았습니다!");
                 return;
             }
             
@@ -213,7 +213,7 @@ namespace KYS
             PooledObject pooledItemPrefab = itemPrefab.GetComponent<PooledObject>();
             if (pooledItemPrefab == null)
             {
-                Debug.LogError("[ItemPoolManager] 아이템 프리팹에 PooledObject 컴포넌트가 없습니다!");
+                //Debug.LogError("[ItemPoolManager] 아이템 프리팹에 PooledObject 컴포넌트가 없습니다!");
                 return;
             }
             itemPool.poolObject = pooledItemPrefab;
@@ -232,13 +232,13 @@ namespace KYS
             if (!poolObject.activeInHierarchy)
             {
                 poolObject.SetActive(true);
-                Debug.Log("[ItemPoolManager] 아이템 풀 오브젝트를 활성화했습니다.");
+                //Debug.Log("[ItemPoolManager] 아이템 풀 오브젝트를 활성화했습니다.");
             }
         }
         
         private void InitializePowerUpPools()
         {
-            Debug.Log("[ItemPoolManager] InitializePowerUpPools 시작");
+            //Debug.Log("[ItemPoolManager] InitializePowerUpPools 시작");
             
             // PowerUp 풀 딕셔너리 초기화
             powerUpPools = new Dictionary<ItemType, ObjectPool>();
@@ -253,7 +253,7 @@ namespace KYS
                 { ItemType.Bonus, bonusPowerUpPrefab }
             };
             
-            Debug.Log($"[ItemPoolManager] 파워업 프리팹 상태 - Speed: {(speedPowerUpPrefab != null ? "있음" : "없음")}, Slow: {(slowPowerUpPrefab != null ? "있음" : "없음")}, Magnet: {(magnetPowerUpPrefab != null ? "있음" : "없음")}, Bonus: {(bonusPowerUpPrefab != null ? "있음" : "없음")}");
+            //Debug.Log($"[ItemPoolManager] 파워업 프리팹 상태 - Speed: {(speedPowerUpPrefab != null ? "있음" : "없음")}, Slow: {(slowPowerUpPrefab != null ? "있음" : "없음")}, Magnet: {(magnetPowerUpPrefab != null ? "있음" : "없음")}, Bonus: {(bonusPowerUpPrefab != null ? "있음" : "없음")}");
             
             // 각 PowerUp 타입별로 풀 생성
             foreach (var kvp in powerUpPrefabs)
@@ -263,7 +263,7 @@ namespace KYS
                 
                 if (prefab == null)
                 {
-                    Debug.LogWarning($"[ItemPoolManager] {powerUpType} 파워업 프리팹이 설정되지 않았습니다!");
+                    //Debug.LogWarning($"[ItemPoolManager] {powerUpType} 파워업 프리팹이 설정되지 않았습니다!");
                     continue;
                 }
                 
@@ -278,7 +278,7 @@ namespace KYS
                 PooledObject pooledPowerUpPrefab = prefab.GetComponent<PooledObject>();
                 if (pooledPowerUpPrefab == null)
                 {
-                    Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 프리팹에 PooledObject 컴포넌트가 없습니다!");
+                    //Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 프리팹에 PooledObject 컴포넌트가 없습니다!");
                     continue;
                 }
                 powerUpPool.poolObject = pooledPowerUpPrefab;
@@ -303,7 +303,7 @@ namespace KYS
                 powerUpPools[powerUpType] = powerUpPool;
                 activePowerUps[powerUpType] = new List<CollectibleItem>();
                 
-                Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 풀 초기화 완료 (크기: {powerUpPoolSizePerType})");
+                //Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 풀 초기화 완료 (크기: {powerUpPoolSizePerType})");
             }
         }
         
@@ -311,7 +311,7 @@ namespace KYS
         {
             if (obstaclePrefab == null)
             {
-                Debug.LogError("[ItemPoolManager] 장애물 프리팹이 설정되지 않았습니다!");
+                //Debug.LogError("[ItemPoolManager] 장애물 프리팹이 설정되지 않았습니다!");
                 return;
             }
             
@@ -328,7 +328,7 @@ namespace KYS
             PooledObject pooledObstaclePrefab = obstaclePrefab.GetComponent<PooledObject>();
             if (pooledObstaclePrefab == null)
             {
-                Debug.LogError("[ItemPoolManager] 장애물 프리팹에 PooledObject 컴포넌트가 없습니다!");
+                //Debug.LogError("[ItemPoolManager] 장애물 프리팹에 PooledObject 컴포넌트가 없습니다!");
                 return;
             }
             obstaclePool.poolObject = pooledObstaclePrefab;
@@ -347,7 +347,7 @@ namespace KYS
             if (!poolObject.activeInHierarchy)
             {
                 poolObject.SetActive(true);
-                Debug.Log("[ItemPoolManager] 장애물 풀 오브젝트를 활성화했습니다.");
+                //Debug.Log("[ItemPoolManager] 장애물 풀 오브젝트를 활성화했습니다.");
             }
         }
         
@@ -356,7 +356,7 @@ namespace KYS
         {
             if (itemPool == null)
             {
-                Debug.LogError("[ItemPoolManager] 아이템 풀이 초기화되지 않았습니다!");
+                //Debug.LogError("[ItemPoolManager] 아이템 풀이 초기화되지 않았습니다!");
                 return null;
             }
             
@@ -366,7 +366,7 @@ namespace KYS
             // null 체크 추가
             if (pooledObj == null)
             {
-                Debug.LogError("[ItemPoolManager] ObjectPool.ObjectOut()에서 null을 반환했습니다!");
+                //Debug.LogError("[ItemPoolManager] ObjectPool.ObjectOut()에서 null을 반환했습니다!");
                 return null;
             }
             
@@ -397,11 +397,11 @@ namespace KYS
                     activeItems.Add(item);
                 }
 
-                Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, 활성 아이템 수: {activeItems?.Count ?? 0}");
+                //Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, 활성 아이템 수: {activeItems?.Count ?? 0}");
             }
             else
             {
-                Debug.LogError("[ItemPoolManager] PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
+                //Debug.LogError("[ItemPoolManager] PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
             }
 
             return item;
@@ -410,24 +410,24 @@ namespace KYS
         // 타입별 PowerUp 풀에서 가져오기
         public CollectibleItem GetPowerUp(Vector3 position, ItemType powerUpType)
         {
-            Debug.Log($"[ItemPoolManager] GetPowerUp 시작 - 타입: {powerUpType}, 위치: {position}");
+            //Debug.Log($"[ItemPoolManager] GetPowerUp 시작 - 타입: {powerUpType}, 위치: {position}");
             
             if (powerUpPools == null)
             {
-                Debug.LogError("[ItemPoolManager] powerUpPools가 null입니다!");
+                //Debug.LogError("[ItemPoolManager] powerUpPools가 null입니다!");
                 return null;
             }
             
             if (!powerUpPools.ContainsKey(powerUpType))
             {
-                Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 풀이 초기화되지 않았습니다! 사용 가능한 풀: {string.Join(", ", powerUpPools.Keys)}");
+                //Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 풀이 초기화되지 않았습니다! 사용 가능한 풀: {string.Join(", ", powerUpPools.Keys)}");
                 return null;
             }
 
             ObjectPool powerUpPool = powerUpPools[powerUpType];
             if (powerUpPool == null)
             {
-                Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 풀이 null입니다!");
+                //Debug.LogError($"[ItemPoolManager] {powerUpType} 파워업 풀이 null입니다!");
                 return null;
             }
 
@@ -437,7 +437,7 @@ namespace KYS
             // null 체크 추가
             if (pooledObj == null)
             {
-                Debug.LogError($"[ItemPoolManager] {powerUpType} ObjectPool.ObjectOut()에서 null을 반환했습니다!");
+                //Debug.LogError($"[ItemPoolManager] {powerUpType} ObjectPool.ObjectOut()에서 null을 반환했습니다!");
                 return null;
             }
             
@@ -468,11 +468,11 @@ namespace KYS
                     activePowerUps[powerUpType].Add(powerUp);
                 }
 
-                Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 활성화 - 위치: {position}, 활성 {powerUpType} 수: {activePowerUps?[powerUpType]?.Count ?? 0}");
+                //Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 활성화 - 위치: {position}, 활성 {powerUpType} 수: {activePowerUps?[powerUpType]?.Count ?? 0}");
             }
             else
             {
-                Debug.LogError($"[ItemPoolManager] {powerUpType} PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
+                //Debug.LogError($"[ItemPoolManager] {powerUpType} PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
             }
 
             return powerUp;
@@ -481,34 +481,34 @@ namespace KYS
         // 개별 확률 기반 PowerUp 타입 선택 (ReceiveGameManagerEnhanced에서 확률 전달)
         public CollectibleItem GetRandomPowerUp(Vector3 position, float speedChance = 0.4f, float slowChance = 0.3f, float magnetChance = 0.3f)
         {
-            Debug.Log($"[ItemPoolManager] GetRandomPowerUp 시작 - 위치: {position}, Speed: {speedChance}, Slow: {slowChance}, Magnet: {magnetChance}");
+            //Debug.Log($"[ItemPoolManager] GetRandomPowerUp 시작 - 위치: {position}, Speed: {speedChance}, Slow: {slowChance}, Magnet: {magnetChance}");
             
             // 확률 기반 타입 선택
             float randomValue = Random.Range(0f, 1f);
             float cumulativeChance = 0f;
             
-            Debug.Log($"[ItemPoolManager] 랜덤 값: {randomValue}");
+            //Debug.Log($"[ItemPoolManager] 랜덤 값: {randomValue}");
             
             // Speed PowerUp 확률
             cumulativeChance += speedChance;
-            Debug.Log($"[ItemPoolManager] Speed 체크 - 누적 확률: {cumulativeChance}, 랜덤 값: {randomValue}");
+            //Debug.Log($"[ItemPoolManager] Speed 체크 - 누적 확률: {cumulativeChance}, 랜덤 값: {randomValue}");
             if (randomValue <= cumulativeChance)
             {
-                Debug.Log("[ItemPoolManager] Speed PowerUp 선택됨");
+                //Debug.Log("[ItemPoolManager] Speed PowerUp 선택됨");
                 return GetPowerUp(position, ItemType.Speed);
             }
             
             // Slow PowerUp 확률
             cumulativeChance += slowChance;
-            Debug.Log($"[ItemPoolManager] Slow 체크 - 누적 확률: {cumulativeChance}, 랜덤 값: {randomValue}");
+            //Debug.Log($"[ItemPoolManager] Slow 체크 - 누적 확률: {cumulativeChance}, 랜덤 값: {randomValue}");
             if (randomValue <= cumulativeChance)
             {
-                Debug.Log("[ItemPoolManager] Slow PowerUp 선택됨");
+                //Debug.Log("[ItemPoolManager] Slow PowerUp 선택됨");
                 return GetPowerUp(position, ItemType.Slow);
             }
             
             // Magnet PowerUp 확률 (나머지)
-            Debug.Log("[ItemPoolManager] Magnet PowerUp 선택됨 (기본값)");
+            //Debug.Log("[ItemPoolManager] Magnet PowerUp 선택됨 (기본값)");
             return GetPowerUp(position, ItemType.Magnet);
         }
         
@@ -530,7 +530,7 @@ namespace KYS
             // ItemConfiguration에서 설정 가져오기
             if (itemConfiguration == null)
             {
-                Debug.LogWarning("[ItemPoolManager] ItemConfiguration이 null입니다.");
+                //Debug.LogWarning("[ItemPoolManager] ItemConfiguration이 null입니다.");
                 return;
             }
             
@@ -543,7 +543,7 @@ namespace KYS
                 {
                     // EnhancedItemController의 SetItemType을 호출하여 모든 설정을 적용
                     itemController.SetItemType(itemType);
-                    Debug.Log($"[ItemPoolManager] {itemType} 아이템의 EnhancedItemController 설정 적용 완료");
+                    //Debug.Log($"[ItemPoolManager] {itemType} 아이템의 EnhancedItemController 설정 적용 완료");
                 }
                 else
                 {
@@ -557,12 +557,12 @@ namespace KYS
                 {
                     // SetItemConfiguration 메서드를 사용하여 ItemConfiguration 참조 설정
                     collectibleItem.SetItemConfiguration(itemConfiguration);
-                    Debug.Log($"[ItemPoolManager] {itemType} 아이템의 CollectibleItem에 ItemConfiguration 참조 설정 완료");
+                    //Debug.Log($"[ItemPoolManager] {itemType} 아이템의 CollectibleItem에 ItemConfiguration 참조 설정 완료");
                 }
             }
             else
             {
-                Debug.LogWarning($"[ItemPoolManager] {itemType} 타입에 대한 설정을 찾을 수 없습니다.");
+                //Debug.LogWarning($"[ItemPoolManager] {itemType} 타입에 대한 설정을 찾을 수 없습니다.");
             }
         }
         
@@ -585,7 +585,7 @@ namespace KYS
                 renderer.material.SetColor("_EmissionColor", config.emissionColor * config.emissionIntensity);
             }
             
-            Debug.Log($"[ItemPoolManager] {config.itemType} 아이템 기본 시각적 설정 적용: 색상={config.itemColor}, 크기={config.scale}");
+            //Debug.Log($"[ItemPoolManager] {config.itemType} 아이템 기본 시각적 설정 적용: 색상={config.itemColor}, 크기={config.scale}");
         }
         
         // 장애물 풀에서 가져오기
@@ -593,7 +593,7 @@ namespace KYS
         {
             if (obstaclePool == null)
             {
-                Debug.LogError("[ItemPoolManager] 장애물 풀이 초기화되지 않았습니다!");
+                //Debug.LogError("[ItemPoolManager] 장애물 풀이 초기화되지 않았습니다!");
                 return null;
             }
             
@@ -617,11 +617,11 @@ namespace KYS
                     bool success = PhotonNetwork.AllocateViewID(photonView);
                     if (success)
                     {
-                        Debug.Log($"[ItemPoolManager] PhotonView 초기화: ViewID = {photonView.ViewID}");
+                        //Debug.Log($"[ItemPoolManager] PhotonView 초기화: ViewID = {photonView.ViewID}");
                     }
                     else
                     {
-                        Debug.LogError("[ItemPoolManager] PhotonView 초기화 실패");
+                        //Debug.LogError("[ItemPoolManager] PhotonView 초기화 실패");
                     }
                 }
 
@@ -634,11 +634,11 @@ namespace KYS
                     activeObstacles.Add(obstacle);
                 }
 
-                Debug.Log($"[ItemPoolManager] 장애물 활성화 - 위치: {position}, ViewID: {photonView?.ViewID}, 활성 장애물 수: {activeObstacles?.Count ?? 0}");
+                //Debug.Log($"[ItemPoolManager] 장애물 활성화 - 위치: {position}, ViewID: {photonView?.ViewID}, 활성 장애물 수: {activeObstacles?.Count ?? 0}");
             }
             else
             {
-                Debug.LogError("[ItemPoolManager] PooledObject를 ObstacleController로 캐스팅할 수 없습니다!");
+                //Debug.LogError("[ItemPoolManager] PooledObject를 ObstacleController로 캐스팅할 수 없습니다!");
             }
 
             return obstacle;
@@ -663,11 +663,11 @@ namespace KYS
                 if (item.returnPool != null)
                 {
                     item.returnPool.ReturnToPool(item);
-                    Debug.Log($"[ItemPoolManager] 아이템 반환: {item.name}");
+                    //Debug.Log($"[ItemPoolManager] 아이템 반환: {item.name}");
                 }
                 else
                 {
-                    Debug.LogWarning($"[ItemPoolManager] 아이템의 returnPool이 null입니다: {item.name}");
+                    //Debug.LogWarning($"[ItemPoolManager] 아이템의 returnPool이 null입니다: {item.name}");
                 }
             }
         }
@@ -694,11 +694,11 @@ namespace KYS
                 if (powerUp.returnPool != null)
                 {
                     powerUp.returnPool.ReturnToPool(powerUp);
-                    Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 반환: {powerUp.name}");
+                    //Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 반환: {powerUp.name}");
                 }
                 else
                 {
-                    Debug.LogWarning($"[ItemPoolManager] PowerUp의 returnPool이 null입니다: {powerUp.name}");
+                    //Debug.LogWarning($"[ItemPoolManager] PowerUp의 returnPool이 null입니다: {powerUp.name}");
                 }
             }
         }
@@ -722,11 +722,11 @@ namespace KYS
                 if (obstacle.returnPool != null)
                 {
                     obstacle.returnPool.ReturnToPool(obstacle);
-                    Debug.Log($"[ItemPoolManager] 장애물 반환: {obstacle.name}");
+                    //Debug.Log($"[ItemPoolManager] 장애물 반환: {obstacle.name}");
                 }
                 else
                 {
-                    Debug.LogWarning($"[ItemPoolManager] 장애물의 returnPool이 null입니다: {obstacle.name}");
+                    //Debug.LogWarning($"[ItemPoolManager] 장애물의 returnPool이 null입니다: {obstacle.name}");
                 }
             }
         }
@@ -753,7 +753,7 @@ namespace KYS
         // 모든 활성 오브젝트 정리
         public void ClearAllActiveObjects()
         {
-            Debug.Log("[ItemPoolManager] 모든 활성 오브젝트 정리 시작");
+            //Debug.Log("[ItemPoolManager] 모든 활성 오브젝트 정리 시작");
             
             // 활성 아이템들 정리
             if (activeItems != null)
@@ -800,13 +800,13 @@ namespace KYS
                 activeObstacles.Clear();
             }
             
-            Debug.Log("[ItemPoolManager] 모든 활성 오브젝트 정리 완료");
+            //Debug.Log("[ItemPoolManager] 모든 활성 오브젝트 정리 완료");
         }
         
         // 모든 풀 완전 정리 (게임 세션 종료 시 사용)
         public void DestroyAllPools()
         {
-            Debug.Log("[ItemPoolManager] 모든 풀 완전 정리 시작");
+            //Debug.Log("[ItemPoolManager] 모든 풀 완전 정리 시작");
             
             // 활성 오브젝트들 먼저 정리
             ClearAllActiveObjects();
@@ -872,7 +872,7 @@ namespace KYS
             // 초기화 상태 리셋
             isInitialized = false;
             
-            Debug.Log("[ItemPoolManager] 모든 풀 완전 정리 완료");
+            //Debug.Log("[ItemPoolManager] 모든 풀 완전 정리 완료");
         }
         
         // 싱글톤 인스턴스 완전 정리 (게임 종료 시 사용)
@@ -883,23 +883,23 @@ namespace KYS
                 instance.DestroyAllPools();
                 Destroy(instance.gameObject);
                 instance = null;
-                Debug.Log("[ItemPoolManager] 싱글톤 인스턴스 완전 정리 완료");
+                //Debug.Log("[ItemPoolManager] 싱글톤 인스턴스 완전 정리 완료");
             }
         }
         
         // 풀 상태 로깅
         public void LogPoolStatus()
         {
-            Debug.Log($"[ItemPoolManager] === 풀 상태 ===");
-            Debug.Log($"[ItemPoolManager] 활성 아이템: {activeItems.Count}개");
+            //Debug.Log($"[ItemPoolManager] === 풀 상태 ===");
+            //Debug.Log($"[ItemPoolManager] 활성 아이템: {activeItems.Count}개");
             
             foreach (var kvp in activePowerUps)
             {
-                Debug.Log($"[ItemPoolManager] 활성 {kvp.Key} 파워업: {kvp.Value.Count}개");
+                //Debug.Log($"[ItemPoolManager] 활성 {kvp.Key} 파워업: {kvp.Value.Count}개");
             }
             
-            Debug.Log($"[ItemPoolManager] 활성 장애물: {activeObstacles.Count}개");
-            Debug.Log($"[ItemPoolManager] =================");
+            //Debug.Log($"[ItemPoolManager] 활성 장애물: {activeObstacles.Count}개");
+            //Debug.Log($"[ItemPoolManager] =================");
         }
         
         private void OnDestroy()
@@ -907,18 +907,18 @@ namespace KYS
             // 초기화되지 않은 경우 정리 작업 스킵
             if (!isInitialized)
             {
-                Debug.Log("[ItemPoolManager] 초기화되지 않은 상태에서 파괴됨. 정리 작업을 스킵합니다.");
+                //Debug.Log("[ItemPoolManager] 초기화되지 않은 상태에서 파괴됨. 정리 작업을 스킵합니다.");
                 return;
             }
             
             // 게임 오브젝트가 이미 비활성화된 경우 정리 작업 스킵
             if (gameObject == null || !gameObject.activeInHierarchy)
             {
-                Debug.Log("[ItemPoolManager] 게임 오브젝트가 비활성화된 상태에서 파괴됨. 정리 작업을 스킵합니다.");
+                //Debug.Log("[ItemPoolManager] 게임 오브젝트가 비활성화된 상태에서 파괴됨. 정리 작업을 스킵합니다.");
                 return;
             }
             
-            Debug.Log("[ItemPoolManager] OnDestroy 호출 - 활성 오브젝트 정리 시작");
+            //Debug.Log("[ItemPoolManager] OnDestroy 호출 - 활성 오브젝트 정리 시작");
             
             try
             {
