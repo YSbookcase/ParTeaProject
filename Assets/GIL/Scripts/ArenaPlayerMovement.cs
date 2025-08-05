@@ -8,15 +8,20 @@ namespace GIL.Scripts
         [Header("Movement Settings")]
         [SerializeField] private float movePower = 30f;
         [SerializeField] private float maxSpeed = 50f;
+        [SerializeField] private float rotTorque = 10f;
         [SerializeField] private float drag = 0.95f;
         [SerializeField] private float pushForce = 30f;
+        [Header("Effect")]
+        [SerializeField] private GameObject effectPrefab;
+
+        [SerializeField] private string soundEffectName;
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
         
         private PhotonView _photonView;
 
         private Vector2 _startTouchPos;
-        private bool _isTouching = false;
+        private bool _isTouching;
         
         private Vector3 _networkPosition;
         private Quaternion _networkRotation;
@@ -89,7 +94,10 @@ namespace GIL.Scripts
                     Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
 
                     if (_rigidbody.velocity.magnitude < maxSpeed)
+                    {
                         _rigidbody.AddForce(dir * movePower, ForceMode.Force);
+                        _rigidbody.AddTorque(dir * rotTorque, ForceMode.Force);
+                    }
                 }
             }
             else
@@ -97,6 +105,7 @@ namespace GIL.Scripts
                 _isTouching = false;
             }
             _rigidbody.velocity *= drag;
+            _rigidbody.angularVelocity *= drag;
         }
 
         public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -132,9 +141,25 @@ namespace GIL.Scripts
                 PhotonView otherPhotonView = collision.gameObject.GetComponent<PhotonView>();
                 if (otherPhotonView != null)
                 {
+                    Vector3 hitPos = collision.contacts[0].point;
                     otherPhotonView.RPC(nameof(ArenaApplyPushForce), RpcTarget.AllBuffered, pushDir * pushForce);
+
+                    if (PhotonNetwork.IsConnected == false)
+                    {
+                        Instantiate(effectPrefab, hitPos, Quaternion.identity);
+                        Manager.Audio.SfxPlay(soundEffectName);
+                    }
+                    
+                    otherPhotonView.RPC(nameof(ArenaHitEffect), RpcTarget.All, hitPos);
                 }
             }
+        }
+
+        [PunRPC]
+        public void ArenaHitEffect(Vector3 pos)
+        {
+            Instantiate(effectPrefab, pos, Quaternion.identity);
+            Manager.Audio.SfxPlay(soundEffectName);
         }
         
         [PunRPC]
@@ -142,6 +167,5 @@ namespace GIL.Scripts
         {
             _rigidbody.AddForce(force, ForceMode.Impulse);
         }
-
     }
 }

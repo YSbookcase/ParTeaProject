@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
@@ -10,8 +11,9 @@ namespace GIL.Scripts
     {
         public static ArenaGameManager Instance;
 
-        private List<Player> alivePlayers = new List<Player>();
-        private int currentRank;
+        [SerializeField] private string bgmName;
+        private List<Player> _alivePlayers = new List<Player>();
+        private int _currentRank;
     
         private void Awake()
         {
@@ -23,13 +25,21 @@ namespace GIL.Scripts
         {
             if (PhotonNetwork.IsMasterClient)
             {
-                alivePlayers.Clear();
+                _alivePlayers.Clear();
                 foreach (var kvp in PhotonNetwork.CurrentRoom.Players)
                 {
-                    alivePlayers.Add(kvp.Value);
+                    _alivePlayers.Add(kvp.Value);
                 }
-                currentRank = alivePlayers.Count;
+                _currentRank = _alivePlayers.Count;
             }
+
+            StartCoroutine(StartBGM());
+        }
+
+        private IEnumerator StartBGM()
+        {
+            yield return new WaitForSeconds(1f);
+            Manager.Audio.SfxPlay(bgmName);
         }
 
         /// <summary>
@@ -47,22 +57,22 @@ namespace GIL.Scripts
                 return;
             }
 
-            if (alivePlayers.Contains(deadPlayer))
+            if (_alivePlayers.Contains(deadPlayer))
             {
-                alivePlayers.Remove(deadPlayer);
+                _alivePlayers.Remove(deadPlayer);
 
                 // 랭크 설정
-                deadPlayer.SetRank(currentRank);
-                Debug.Log($"{deadPlayer.NickName} 탈락! {currentRank}위");
+                deadPlayer.SetRank(_currentRank);
+                Debug.Log($"{deadPlayer.NickName} 탈락! {_currentRank}위");
 
-                currentRank--;
+                _currentRank--;
 
                 // 게임 종료 조건 확인
-                if (alivePlayers.Count <= 1)
+                if (_alivePlayers.Count <= 1)
                 {
-                    if (alivePlayers.Count == 1)
+                    if (_alivePlayers.Count == 1)
                     {
-                        alivePlayers[0].SetRank(1);
+                        _alivePlayers[0].SetRank(1);
                     }
 
                     photonView.RPC(nameof(ArenaEndGame), RpcTarget.All);
