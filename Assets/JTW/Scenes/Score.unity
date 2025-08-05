@@ -640,6 +640,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scorePresenter: {fileID: 1679854205}
+  nextButton: {fileID: 502648305}
 --- !u!114 &1679854207
 MonoBehaviour:
   m_ObjectHideFlags: 0

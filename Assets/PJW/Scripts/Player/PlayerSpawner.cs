@@ -1,5 +1,6 @@
 using Photon.Pun;
 using Photon.Realtime;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -34,19 +35,28 @@ namespace PJW
 
         private void SpawnMyPlayer()
         {
-            // ActorNumber 에 따라 스폰 포인트 선택
-            int idx = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+            int idx = GetJoinOrderIndex();
             idx = Mathf.Clamp(idx, 0, spawnPoints.Length - 1);
 
             Quaternion spawnRotation = Quaternion.Euler(0, 180f, 0);
-
             GameObject myPlayer = PhotonNetwork.Instantiate(
-            playerPrefab.name,
-            spawnPoints[idx].position,
-            spawnRotation
-    );
+                playerPrefab.name,
+                spawnPoints[idx].position,
+                spawnRotation
+            );
 
             IgnorePlayerCollisions(myPlayer);
+        }
+
+        private int GetJoinOrderIndex()
+        {
+            var players = PhotonNetwork.PlayerList.OrderBy(p => p.ActorNumber).ToArray();
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i] == PhotonNetwork.LocalPlayer)
+                    return i;
+            }
+            return 0; 
         }
 
         private void IgnorePlayerCollisions(GameObject myPlayer)

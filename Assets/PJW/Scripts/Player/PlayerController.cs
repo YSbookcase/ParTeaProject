@@ -15,6 +15,9 @@ namespace PJW
         private Rigidbody playerRigidbody;
         private bool isGrounded;
         private bool isDead = false;
+        private bool hasJumped = false;
+
+        public bool HasJumped => hasJumped;
 
         private Vector3 networkPosition;
         private Quaternion networkRotation;
@@ -49,18 +52,38 @@ namespace PJW
             if (photonView.IsMine && isDead) return;
         }
 
+        [PunRPC]
+        public void RPCAddRopePassScore()
+        {
+
+            Debug.Log($"[RPCAddRopePassScore] »£√‚µ , isMine={photonView.IsMine}, hasJumped={hasJumped}");
+            if (photonView.IsMine && !isDead && hasJumped)
+            {
+                PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
+                hasJumped = false;
+            }
+        }
+
         private void Jump()
         {
             if (!isGrounded || isDead || !photonView.IsMine) return;
 
-            Vector3 velocity = playerRigidbody.velocity;
-            velocity.y = jumpForce;
-            playerRigidbody.velocity = velocity;
+            playerRigidbody.velocity = new Vector3(
+                playerRigidbody.velocity.x,
+                jumpForce,
+                playerRigidbody.velocity.z
+            );
             isGrounded = false;
+            hasJumped = true;
 
-            animator.SetBool("IsJumping", true);
-
+            photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, true);
             AudioManager.Instance.SfxPlay("JumpSound", transform);
+        }
+
+        [PunRPC]
+        private void RPCRopeSetJumping(bool isJumping)
+        {
+            animator.SetBool("IsJumping", isJumping);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -70,13 +93,14 @@ namespace PJW
             if (collision.gameObject.CompareTag("Ground"))
             {
                 isGrounded = true;
-                animator.SetBool("IsJumping", false);
+                photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, false);
+                hasJumped = false;
             }
             else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {
                 BounceDie();
             }
-        }
+        }        
 
         private void OnCollisionExit(Collision collision)
         {

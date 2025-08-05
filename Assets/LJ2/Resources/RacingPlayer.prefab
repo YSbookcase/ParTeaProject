@@ -114,6 +114,8 @@ MonoBehaviour:
   linePassed: 0
   isControllable: 0
   crashDuration: 0.5
+  soundMinDistance: 500
+  soundMaxDistance: 600
 --- !u!114 &-1325575301692957695
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -150,11 +152,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerRenderer: {fileID: 9075933430876231381}
+  racingController: {fileID: 3983210834873872367}
   carryFoods:
   - {fileID: 6275789201186527745}
   - {fileID: 2137250159508350007}
   - {fileID: 3112145259432194371}
   - {fileID: 86340366211742747}
+  audioData: {fileID: 11400000, guid: ca2a667edc46cd94ab191667f0e2551f, type: 2}
 --- !u!1 &6079455596860033062
 GameObject:
   m_ObjectHideFlags: 0
