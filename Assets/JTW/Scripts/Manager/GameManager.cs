@@ -23,12 +23,12 @@ public class GameManager : Singleton<GameManager>
         "TileGame",
     };
 
-    private List<string> remainingGameList = new List<string>();
-    private List<string> remainingTeamGameList = new List<string>();
+    public List<string> remainingGameList = new List<string>();
+    public List<string> remainingTeamGameList = new List<string>();
 
     // 몇개의 게임을 연속으로 할 것인지에 대한 카운트.
     public int maxGameCount;
-    private int curGameCount;
+    public int curGameCount;
 
     private void OnEnable()
     {
@@ -39,6 +39,17 @@ public class GameManager : Singleton<GameManager>
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void SetGameInfo()
+    {
+        Hashtable roomProperty = new Hashtable();
+        roomProperty["remainingGameList"] = remainingGameList.ToArray();
+        roomProperty["remainingTeamGameList"] = remainingTeamGameList.ToArray();
+        roomProperty["maxGameCount"] = maxGameCount;
+        roomProperty["curGameCount"] = curGameCount;
+
+        PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
     }
 
     public void GameStart(string sceneName = null, int maxGameCount = 1)
@@ -57,6 +68,8 @@ public class GameManager : Singleton<GameManager>
 
         this.maxGameCount = maxGameCount;
         curGameCount = 0;
+
+        SetGameInfo();
 
         GoNextMiniGame(sceneName);
     }
@@ -106,6 +119,7 @@ public class GameManager : Singleton<GameManager>
         {
             remainingGameList.Remove(sceneName);
             remainingTeamGameList.Remove(sceneName);
+            SetGameInfo();
 
             PhotonNetwork.LoadLevel(sceneName);
             return;
@@ -129,6 +143,7 @@ public class GameManager : Singleton<GameManager>
 
         remainingGameList.Remove(sceneName);
         remainingTeamGameList.Remove(sceneName);
+        SetGameInfo();
 
         PhotonNetwork.LoadLevel(sceneName);
     }
