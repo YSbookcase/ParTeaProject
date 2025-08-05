@@ -8,6 +8,7 @@ namespace GIL.Scripts
         [Header("Movement Settings")]
         [SerializeField] private float movePower = 30f;
         [SerializeField] private float maxSpeed = 50f;
+        [SerializeField] private float rotTorque = 10f;
         [SerializeField] private float drag = 0.95f;
         [SerializeField] private float pushForce = 30f;
         private ArenaPlayerActions _inputActions;
@@ -89,7 +90,10 @@ namespace GIL.Scripts
                     Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
 
                     if (_rigidbody.velocity.magnitude < maxSpeed)
+                    {
                         _rigidbody.AddForce(dir * movePower, ForceMode.Force);
+                        _rigidbody.AddTorque(dir * rotTorque, ForceMode.Force);
+                    }
                 }
             }
             else
@@ -97,6 +101,7 @@ namespace GIL.Scripts
                 _isTouching = false;
             }
             _rigidbody.velocity *= drag;
+            _rigidbody.angularVelocity *= drag;
         }
 
         public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
