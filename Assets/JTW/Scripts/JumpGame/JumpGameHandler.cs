@@ -202,11 +202,12 @@ namespace JTW_JumpGame
             {
                 if (Manager.game.isAllPlayerLoaded())
                 {
-                    foreach(Player player in PhotonNetwork.PlayerList)
+                    bool result = Random.value < 0.5f;
+                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
+
+                    foreach (Player player in PhotonNetwork.PlayerList)
                     {
                         player.SetJumpGameScore(0);
-                        bool result = Random.value < 0.5f;
-                        photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
                     }
 
                     photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
