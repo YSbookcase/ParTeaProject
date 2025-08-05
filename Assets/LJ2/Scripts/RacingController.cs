@@ -41,6 +41,14 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     [SerializeField][Range( 0f, 1f )] private float crashDuration;
     private YieldInstruction crashDelay;
 
+    [SerializeField] float soundMinDistance;
+    [SerializeField] float soundMaxDistance;
+
+    private string soundKey;
+
+    private float currentVolume;
+    private float volumeVelocity;
+
     private void Awake()
     {
         if (rigid == null)
@@ -59,11 +67,9 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             if (virtualCamera != null)
             {
-                //virtualCamera.Follow = transform;
                 virtualCamera.LookAt = transform;
             }
 
-            //Manager.Audio.SfxPlayLoop("low_on", this.transform);
             previousPosition = transform.position;
             linePassed = 0;
         }
@@ -84,6 +90,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private void OnDisable()
     {
         moveAction.action.Disable();
+        Manager.Audio.SfxStopLoop(soundKey);
     }
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
@@ -103,16 +110,23 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
     }
 
+
     private void Update()
     {
         if (photonView.IsMine && isControllable)
         {
             SetRotationByCam();
             DollyCartMove();
-            // TODO : 차량의 속도에 비례하여 소리 조절
-        }
 
+            if (!string.IsNullOrEmpty(soundKey))
+            {
+                float targetVolume = currentSpeed / maxSpeed;
+                currentVolume = Mathf.SmoothDamp(currentVolume, targetVolume, ref volumeVelocity, 0.2f); // 부드러운 음량 변화
+                Manager.Audio.SetVolumeLoopSfx(soundKey, currentVolume, soundMinDistance, soundMaxDistance);
+            }
+        }
     }
+
 
     private void FixedUpdate()
     {
@@ -122,15 +136,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            //float distance = Vector3.Distance(rigid.position, networkPosition);
-            //if (distance > 2f) // 적당한 거리 기준
-            //{
-            //    rigid.position = networkPosition; // 즉시 보정
-            //}
-            //else
-            //{
-            //    rigid.MovePosition(Vector3.Lerp(rigid.position, networkPosition, Time.deltaTime * 10));
-            //}
             rigid.MovePosition(Vector3.Lerp(rigid.position, networkPosition, Time.deltaTime * 10));
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
@@ -294,4 +299,25 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         yield return null;
     }
 
+
+    public void SetRacingSound(string soundName, int i)
+    {
+        soundKey = soundName + $"_{i}";
+        StartCoroutine(SoundDelay(soundName));
+    }
+
+    private IEnumerator SoundDelay(string name)
+    { 
+        yield return null;
+        Manager.Audio.SfxPlayLoop(soundKey, name, this.transform);
+        Manager.Audio.SetVolumeLoopSfx(soundKey, 0.1f, soundMinDistance, soundMaxDistance);
+    }
+
+    public void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(transform.position, soundMinDistance);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, soundMaxDistance);
+    }
 }
