@@ -22,8 +22,16 @@ namespace JTW_JumpGame
         public void InitInfo(int rank, string name, int score, int rankScore)
         {
             rankText.text = rankTexts[rank];
-            nameText.text = $"{name} :";
-            scoreText.text = $"{score} + {rankScore}";
+            nameText.text = $"{name}";
+            if(Manager.game.maxGameCount > 1)
+            {
+                scoreText.text = $": {score} + {rankScore}";
+            }
+            else
+            {
+                scoreText.text = "";
+            }
+            
         }
     }
 }

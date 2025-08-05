@@ -27,7 +27,7 @@ public class GameManager : Singleton<GameManager>
     private List<string> remainingTeamGameList = new List<string>();
 
     // 몇개의 게임을 연속으로 할 것인지에 대한 카운트.
-    private int maxGameCount;
+    public int maxGameCount;
     private int curGameCount;
 
     private void OnEnable()
