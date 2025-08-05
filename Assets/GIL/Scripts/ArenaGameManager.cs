@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
@@ -10,6 +11,7 @@ namespace GIL.Scripts
     {
         public static ArenaGameManager Instance;
 
+        [SerializeField] private string bgmName;
         private List<Player> _alivePlayers = new List<Player>();
         private int _currentRank;
     
@@ -30,6 +32,14 @@ namespace GIL.Scripts
                 }
                 _currentRank = _alivePlayers.Count;
             }
+
+            StartCoroutine(StartBGM());
+        }
+
+        private IEnumerator StartBGM()
+        {
+            yield return new WaitForSeconds(1f);
+            Manager.Audio.SfxPlay(bgmName);
         }
 
         /// <summary>

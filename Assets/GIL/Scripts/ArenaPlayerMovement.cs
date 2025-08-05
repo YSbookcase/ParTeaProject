@@ -13,6 +13,8 @@ namespace GIL.Scripts
         [SerializeField] private float pushForce = 30f;
         [Header("Effect")]
         [SerializeField] private GameObject effectPrefab;
+
+        [SerializeField] private string soundEffectName;
         private ArenaPlayerActions _inputActions;
         private Rigidbody _rigidbody;
         
@@ -145,7 +147,7 @@ namespace GIL.Scripts
                     if (PhotonNetwork.IsConnected == false)
                     {
                         Instantiate(effectPrefab, hitPos, Quaternion.identity);
-                        Manager.Audio.SfxPlay("ArenaHitSound");
+                        Manager.Audio.SfxPlay(soundEffectName);
                     }
                     
                     otherPhotonView.RPC(nameof(ArenaHitEffect), RpcTarget.All, hitPos);
@@ -157,7 +159,7 @@ namespace GIL.Scripts
         public void ArenaHitEffect(Vector3 pos)
         {
             Instantiate(effectPrefab, pos, Quaternion.identity);
-            Manager.Audio.SfxPlay("ArenaHitSound");
+            Manager.Audio.SfxPlay(soundEffectName);
         }
         
         [PunRPC]

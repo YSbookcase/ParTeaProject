@@ -259,6 +259,7 @@ MonoBehaviour:
   pushForce: 1.5
   effectPrefab: {fileID: 2965222256817593503, guid: 304b90dd259c18143a73d201d3898d02,
     type: 3}
+  soundEffectName: ArenaHitSound
 --- !u!114 &5067074703783935331
 MonoBehaviour:
   m_ObjectHideFlags: 0
