@@ -38,6 +38,9 @@ namespace KSH
 
         private IEnumerator Start()
         {
+            PhotonNetwork.SendRate = 30;
+            PhotonNetwork.SerializationRate = 20;
+            
             UIManager.Instance.OnCountDownEnd += StartGame; //카운트 다운이 끝나면 게임 시작
             
             if (!isTimeLine)
