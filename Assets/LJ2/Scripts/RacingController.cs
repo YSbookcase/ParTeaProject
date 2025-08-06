@@ -90,7 +90,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     private void OnDisable()
     {
         moveAction.action.Disable();
-        Manager.Audio.SfxStopLoop(soundKey);
     }
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
