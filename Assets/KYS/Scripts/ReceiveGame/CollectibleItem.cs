@@ -19,6 +19,7 @@ namespace KYS
         [SerializeField] private float bounceForce = 3f; // 바운스 힘
         [SerializeField] private float maxFallSpeed = 15f; // 최대 낙하 속도
         [SerializeField] private float returnDelay = 3f; // 바닥 닿은 후 리턴 지연 시간
+        [SerializeField] private float mobileReturnDelay = 5f; // 모바일용 리턴 지연 시간 (더 길게)
         
         [Header("Effects")]
         [SerializeField] private GameObject collectParticle;
@@ -39,6 +40,9 @@ namespace KYS
         
         [Header("Item Type")]
         [SerializeField] public ItemType itemType = ItemType.Normal; // 아이템 타입 설정
+        
+        // 모바일 플랫폼 감지
+        private bool isMobilePlatform => Application.isMobilePlatform;
         
         private void Start()
         {
@@ -121,7 +125,16 @@ namespace KYS
         
         private IEnumerator ReturnToPoolAfterDelay()
         {
-            yield return new WaitForSeconds(returnDelay);
+            // 플랫폼별 리턴 지연 시간 적용
+            float currentReturnDelay = isMobilePlatform ? mobileReturnDelay : returnDelay;
+            
+            // 모바일 디버깅 로그
+            if (isMobilePlatform)
+            {
+                Debug.Log($"[CollectibleItem] 모바일에서 아이템 바닥 도착: {gameObject.name}, 리턴 지연: {currentReturnDelay}초");
+            }
+            
+            yield return new WaitForSeconds(currentReturnDelay);
             
             // 오브젝트 풀로 반환
             if (returnPool != null)

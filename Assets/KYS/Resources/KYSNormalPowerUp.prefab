@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5570065541120646242}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: VisualContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -47,7 +47,7 @@ GameObject:
   - component: {fileID: 4832438291963456193}
   - component: {fileID: -3656118430491302083}
   - component: {fileID: -1891285017182407933}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: KYSNormalPowerUp
   m_TagString: Item
   m_Icon: {fileID: 0}
@@ -220,6 +220,7 @@ MonoBehaviour:
   bounceForce: 3
   maxFallSpeed: 15
   returnDelay: 3
+  mobileReturnDelay: 5
   collectParticle: {fileID: 0}
   collectSoundName: SFX_NormalItem
   itemConfiguration: {fileID: 0}

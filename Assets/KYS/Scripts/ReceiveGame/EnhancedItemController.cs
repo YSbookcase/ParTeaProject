@@ -350,6 +350,14 @@ namespace KYS
             // 플레이어와 충돌했는지 확인
             if (other.CompareTag("Player"))
             {
+                // 모바일 디버깅을 위한 상세 정보
+                if (Application.isMobilePlatform)
+                {
+                    float distance = Vector3.Distance(transform.position, other.transform.position);
+                    Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
+                }
+                
+                // 중복 수집 방지를 위해 즉시 수집 상태로 변경
                 isCollected = true;
                 
                 // 바운스 애니메이션 중지
@@ -363,17 +371,41 @@ namespace KYS
                 ReceiveGamePlayer player = other.GetComponent<ReceiveGamePlayer>();
                 if (player != null)
                 {
-                                    // 아이템 효과 적용
-                ApplyItemEffect(player);
-                
-                // 아이템 수집 효과음 재생
-                PlayCollectSound();
-                
-                // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
-                // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
+                    // 아이템 효과 적용
+                    ApplyItemEffect(player);
+                    
+                    // 아이템 수집 효과음 재생
+                    PlayCollectSound();
+                    
+                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
+                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
+                }
+                else
+                {
+                    // 모바일 디버깅을 위한 경고
+                    if (Application.isMobilePlatform)
+                    {
+                        Debug.LogWarning($"[EnhancedItemController] ReceiveGamePlayer 컴포넌트를 찾을 수 없음: {other.name}");
+                    }
                 }
                 
-                // 아이템 제거
+                // 아이템 제거 (지연 시간 추가로 시각적 효과 보장)
+                StartCoroutine(DestroyAfterEffect());
+            }
+            else if (Application.isMobilePlatform)
+            {
+                // 플레이어가 아닌 다른 오브젝트와의 충돌 디버그
+                Debug.Log($"[EnhancedItemController] 다른 오브젝트와 충돌: {gameObject.name} <-> {other.name} (태그: {other.tag})");
+            }
+        }
+        
+        private IEnumerator DestroyAfterEffect()
+        {
+            // 수집 효과가 완전히 재생될 때까지 대기
+            yield return new WaitForSeconds(0.2f);
+            
+            if (gameObject != null)
+            {
                 Destroy(gameObject);
             }
         }

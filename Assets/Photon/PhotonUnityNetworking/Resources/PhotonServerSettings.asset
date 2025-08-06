@@ -84,6 +84,9 @@ MonoBehaviour:
   - SpawnPowerUpRPC
   - StartCount
   - StopBGMForAllClients
+  - RPCActivateEffect
+  - RPCClearAllEffects
+  - RPCDeactivateEffect
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

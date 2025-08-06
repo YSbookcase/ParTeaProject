@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -90,8 +91,8 @@ namespace KYS
                 return;
             }
             
-            // 스폰 위치 계산
-            Vector3 spawnPosition = GetSpawnPosition(PhotonNetwork.LocalPlayer.ActorNumber);
+            // 스폰 위치 계산 (안전한 방식 사용)
+            Vector3 spawnPosition = GetSpawnPositionSafe(PhotonNetwork.LocalPlayer);
             
             // 플레이어 생성
             GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
@@ -122,7 +123,7 @@ namespace KYS
                 // 새로 들어온 플레이어가 자신의 캐릭터를 스폰하도록 RPC 호출
                 if (PhotonNetwork.IsMasterClient)
                 {
-                    photonView.RPC("RequestSpawnPlayer", newPlayer);
+                    photonView.RPC(nameof(RequestSpawnPlayer), newPlayer);
                 }
             }
         }
@@ -180,11 +181,10 @@ namespace KYS
                 return;
             }
             
-            // 플레이어별 스폰 포인트 선택
-            int spawnIndex = (player.ActorNumber - 1) % spawnPoints.Length;
-            Vector3 spawnPosition = spawnPoints[spawnIndex].position;
+            // 플레이어별 스폰 포인트 선택 (안전한 방식 사용)
+            Vector3 spawnPosition = GetSpawnPositionSafe(player);
             
-            //Debug.Log($"스폰 위치: {spawnPosition} (인덱스: {spawnIndex})");
+            //Debug.Log($"스폰 위치: {spawnPosition}");
             
             // 플레이어 스폰
             GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
@@ -236,6 +236,44 @@ namespace KYS
             return null;
         }
         
+        /// <summary>
+        /// 현재 활성 플레이어 기반으로 안전한 스폰 위치를 반환합니다.
+        /// ActorNumber 순차성 문제를 해결합니다.
+        /// </summary>
+        public Vector3 GetSpawnPositionSafe(Player player)
+        {
+            if (spawnPoints.Length == 0)
+            {
+                Debug.LogError("스폰 포인트가 설정되지 않았습니다!");
+                return Vector3.zero;
+            }
+            
+            // 현재 활성 플레이어들을 ActorNumber 순으로 정렬
+            var sortedPlayers = PhotonNetwork.PlayerList
+                .OrderBy(p => p.ActorNumber)
+                .ToList();
+            
+            // 해당 플레이어의 순서 인덱스 찾기
+            int playerIndex = sortedPlayers.FindIndex(p => p.ActorNumber == player.ActorNumber);
+            
+            if (playerIndex == -1)
+            {
+                Debug.LogError($"플레이어 {player.NickName}를 찾을 수 없습니다!");
+                return Vector3.zero;
+            }
+            
+            // 순서 기반으로 스폰 포인트 할당
+            int spawnIndex = playerIndex % spawnPoints.Length;
+            
+            Debug.Log($"플레이어 {player.NickName} (ActorNumber: {player.ActorNumber}) " +
+                     $"→ 정렬된 인덱스: {playerIndex} → 스폰포인트: {spawnIndex}");
+            
+            return spawnPoints[spawnIndex].position;
+        }
+        
+        /// <summary>
+        /// 기존 방식 (ActorNumber 기반) - 하위 호환성을 위해 유지
+        /// </summary>
         public Vector3 GetSpawnPosition(int playerIndex)
         {
             if (spawnPoints.Length > 0)

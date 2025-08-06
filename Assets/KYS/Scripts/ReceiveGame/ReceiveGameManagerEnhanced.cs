@@ -45,6 +45,12 @@ namespace KYS
         [SerializeField] private float obstacleDropSpeed = 2f; // 장애물 떨어지는 속도
         [SerializeField] private float bonusItemChance = 0.3f; // 보너스 아이템 생성 확률 (0.0 ~ 1.0)
         
+        [Header("Mobile Item Lifetime Settings")]
+        [SerializeField] private float powerUpLifetime = 60f; // 파워업 수명 (초)
+        [SerializeField] private float mobilePowerUpLifetime = 90f; // 모바일용 파워업 수명 (더 길게)
+        [SerializeField] private float obstacleLifetime = 8f; // 장애물 수명 (초)
+        [SerializeField] private float mobileObstacleLifetime = 12f; // 모바일용 장애물 수명 (더 길게)
+        
         [Header("PowerUp Type Spawn Settings")]
         [SerializeField] private float speedPowerUpChance = 0.4f; // Speed PowerUp 생성 확률 (0.0 ~ 1.0)
         [SerializeField] private float slowPowerUpChance = 0.3f; // Slow PowerUp 생성 확률 (0.0 ~ 1.0)
@@ -768,8 +774,17 @@ namespace KYS
                     Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
                     TrackCoroutine(powerUp, dropCoroutine);
                     
-                    // 60초 후 자동 제거
-                    Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                    // 플랫폼별 파워업 수명 적용
+                    float powerUpLifetimeValue = Application.isMobilePlatform ? mobilePowerUpLifetime : powerUpLifetime;
+                    
+                    // 모바일 디버깅 로그
+                    if (Application.isMobilePlatform)
+                    {
+                        Debug.Log($"[ReceiveGameManagerEnhanced] 모바일에서 파워업 생성: {selectedType}, 수명: {powerUpLifetimeValue}초");
+                    }
+                    
+                    // 자동 제거
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, powerUpLifetimeValue));
                     TrackCoroutine(powerUp, destroyCoroutine);
                 }
                 else
@@ -788,13 +803,22 @@ namespace KYS
                 
                 //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
                 
-                                    // 파워업이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
-                    TrackCoroutine(powerUp, dropCoroutine);
-                    
-                    // 60초 후 자동 제거
-                    Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
-                    TrackCoroutine(powerUp, destroyCoroutine);
+                // 파워업이 떨어지는 효과 시작
+                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                TrackCoroutine(powerUp, dropCoroutine);
+                
+                // 플랫폼별 파워업 수명 적용
+                float powerUpLifetimeValue = Application.isMobilePlatform ? mobilePowerUpLifetime : powerUpLifetime;
+                
+                // 모바일 디버깅 로그
+                if (Application.isMobilePlatform)
+                {
+                    Debug.Log($"[ReceiveGameManagerEnhanced] 모바일에서 파워업 생성: {selectedType}, 수명: {powerUpLifetimeValue}초");
+                }
+                
+                // 자동 제거
+                Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, powerUpLifetimeValue));
+                TrackCoroutine(powerUp, destroyCoroutine);
             }
         }
         
@@ -828,8 +852,17 @@ namespace KYS
                     Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
                     TrackCoroutine(obstacle, dropCoroutine);
                     
-                    // 8초 후 자동 제거
-                    Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                    // 플랫폼별 장애물 수명 적용
+                    float obstacleLifetimeValue = Application.isMobilePlatform ? mobileObstacleLifetime : obstacleLifetime;
+                    
+                    // 모바일 디버깅 로그
+                    if (Application.isMobilePlatform)
+                    {
+                        Debug.Log($"[ReceiveGameManagerEnhanced] 모바일에서 장애물 생성, 수명: {obstacleLifetimeValue}초");
+                    }
+                    
+                    // 자동 제거
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, obstacleLifetimeValue));
                     TrackCoroutine(obstacle, destroyCoroutine);
                 }
             }
@@ -855,13 +888,22 @@ namespace KYS
                 
                 //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {targetPosition}, ObstacleController 추가됨");
                 
-                                    // 장애물이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
-                    TrackCoroutine(obstacle, dropCoroutine);
-                    
-                    // 8초 후 자동 제거
-                    Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
-                    TrackCoroutine(obstacle, destroyCoroutine);
+                // 장애물이 떨어지는 효과 시작
+                Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                TrackCoroutine(obstacle, dropCoroutine);
+                
+                // 플랫폼별 장애물 수명 적용
+                float obstacleLifetimeValue = Application.isMobilePlatform ? mobileObstacleLifetime : obstacleLifetime;
+                
+                // 모바일 디버깅 로그
+                if (Application.isMobilePlatform)
+                {
+                    Debug.Log($"[ReceiveGameManagerEnhanced] 모바일에서 장애물 생성, 수명: {obstacleLifetimeValue}초");
+                }
+                
+                // 자동 제거
+                Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, obstacleLifetimeValue));
+                TrackCoroutine(obstacle, destroyCoroutine);
             }
         }
         
