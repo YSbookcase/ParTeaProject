@@ -1487,18 +1487,32 @@ namespace KYS
             var sortedPlayers = new List<KeyValuePair<int, int>>(playerScores);
             sortedPlayers.Sort((a, b) => b.Value.CompareTo(a.Value));
             
-            // 순위 설정
+            // 동점 처리 로직으로 순위 설정
+            int currentRank = 1;
+            int currentScore = -1;
+            
             for (int i = 0; i < sortedPlayers.Count; i++)
             {
                 int playerActorNumber = sortedPlayers[i].Key;
-                int rank = i + 1;
+                int playerScore = sortedPlayers[i].Value;
+                
+                // 새로운 점수인 경우 랭킹 증가
+                if (playerScore != currentScore)
+                {
+                    currentRank = i + 1;
+                    currentScore = playerScore;
+                }
+                // 같은 점수인 경우 현재 랭킹 유지 (동점 처리)
                 
                 Player player = PhotonNetwork.CurrentRoom.GetPlayer(playerActorNumber);
                 if (player != null)
                 {
                     ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
-                    playerProps["rank"] = rank;
+                    playerProps["rank"] = currentRank;
                     player.SetCustomProperties(playerProps);
+                    
+                    // 디버그 로그 (동점 처리 확인용)
+                    Debug.Log($"[랭킹 계산] 플레이어 {player.NickName}: 점수 {playerScore}, 랭킹 {currentRank}");
                 }
             }
         }
