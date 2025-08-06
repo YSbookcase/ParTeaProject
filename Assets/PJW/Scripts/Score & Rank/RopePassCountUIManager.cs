@@ -1,5 +1,4 @@
 using UnityEngine;
-using TMPro;
 using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
@@ -8,58 +7,58 @@ namespace PJW
 {
     public class RopePassCountUIManager : MonoBehaviourPunCallbacks
     {
-        [SerializeField] private Transform playerListRoot; 
-        [SerializeField] private RopePassCountPlayerRow playerRowPrefab; 
+        [SerializeField] private Transform playerPanelRoot;  
+        [SerializeField] private PlayerScorePanel playerScorePanelPrefab;
 
-        private Dictionary<int, RopePassCountPlayerRow> playerRows = new Dictionary<int, RopePassCountPlayerRow>();
+        private Dictionary<int, PlayerScorePanel> playerPanels = new Dictionary<int, PlayerScorePanel>();
 
         private void Start()
         {
-            InitializeRows();
+            InitializePanels();
         }
 
-        private void InitializeRows()
+        private void InitializePanels()
         {
-            foreach (Transform child in playerListRoot)
+            foreach (Transform child in playerPanelRoot)
                 Destroy(child.gameObject);
 
-            playerRows.Clear();
+            playerPanels.Clear();
 
             foreach (Player player in PhotonNetwork.PlayerList)
             {
-                AddOrUpdateRow(player);
+                AddOrUpdatePanel(player);
             }
         }
 
-        public void AddOrUpdateRow(Player player)
+        public void AddOrUpdatePanel(Player player)
         {
-            RopePassCountPlayerRow row;
-            if (!playerRows.TryGetValue(player.ActorNumber, out row))
+            PlayerScorePanel panel;
+            if (!playerPanels.TryGetValue(player.ActorNumber, out panel))
             {
-                row = Instantiate(playerRowPrefab, playerListRoot);
-                playerRows[player.ActorNumber] = row;
+                panel = Instantiate(playerScorePanelPrefab, playerPanelRoot);
+                playerPanels[player.ActorNumber] = panel;
             }
 
             int score = player.GetRopeGameScore();
-            row.SetInfo(player.NickName, score);
+            panel.SetPanel(player.NickName, score);
         }
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
         {
-            AddOrUpdateRow(targetPlayer);
+            AddOrUpdatePanel(targetPlayer);
         }
 
         public override void OnPlayerEnteredRoom(Player newPlayer)
         {
-            AddOrUpdateRow(newPlayer);
+            AddOrUpdatePanel(newPlayer);
         }
 
         public override void OnPlayerLeftRoom(Player otherPlayer)
         {
-            if (playerRows.TryGetValue(otherPlayer.ActorNumber, out var row))
+            if (playerPanels.TryGetValue(otherPlayer.ActorNumber, out var panel))
             {
-                Destroy(row.gameObject);
-                playerRows.Remove(otherPlayer.ActorNumber);
+                Destroy(panel.gameObject);
+                playerPanels.Remove(otherPlayer.ActorNumber);
             }
         }
     }

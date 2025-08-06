@@ -75,7 +75,7 @@ namespace PJW
 
                 if (ropePassCountUIManager != null)
                 {
-                    ropePassCountUIManager.AddOrUpdateRow(PhotonNetwork.LocalPlayer);
+                    ropePassCountUIManager.AddOrUpdatePanel(PhotonNetwork.LocalPlayer);
                 }
             }
         }
