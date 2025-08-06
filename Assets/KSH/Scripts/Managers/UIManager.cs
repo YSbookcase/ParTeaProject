@@ -93,17 +93,22 @@ namespace KSH
 
         private void TileCheck()
         {
+            redTeamPanel.gameObject.SetActive(false);
+            blueTeamPanel.gameObject.SetActive(false);
+            redText.gameObject.SetActive(false);
+            blueText.gameObject.SetActive(false);
+            vsImage.gameObject.SetActive(false);
             winnerPanel.SetActive(true);
             
             int redTile = TileManager.Instance.redTileCount;
             int blueTile = TileManager.Instance.blueTileCount;
 
             if (redTile > blueTile)
-                WinnerUIUpdate("Winner Team : RedTeam!", Color.red);
+                WinnerUIUpdate("레드팀 우승!", Color.red);
             else if(blueTile > redTile)
-                WinnerUIUpdate("Winner Team : BlueTeam!", Color.blue);
+                WinnerUIUpdate("블루팀 우승!", Color.blue);
             else
-                WinnerUIUpdate("Draw", Color.green);
+                WinnerUIUpdate("무승부!", Color.green);
             
         }
 

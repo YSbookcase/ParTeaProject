@@ -84,7 +84,14 @@ namespace KSH
                 float currentSpeed = inputDir.magnitude;
                 animator.SetFloat("Speed", currentSpeed);
             }
-            else
+        }
+
+        void FixedUpdate()
+        {
+            if(photonView.IsMine && isMove)
+                Move();
+            
+            if(!photonView.IsMine)
             {
                 Vector3 velocity = (photonPosition - previousPhotonPosition) / Time.deltaTime;
                 float lag = (float)(PhotonNetwork.Time - lastPacketTime);
@@ -94,12 +101,6 @@ namespace KSH
                 transform.position = Vector3.Lerp(transform.position, predictedPosition, Time.deltaTime * 20f);
                 transform.rotation = Quaternion.Lerp(transform.rotation, photonRotation, Time.deltaTime * 20f);
             }
-        }
-
-        void FixedUpdate()
-        {
-            if(photonView.IsMine && isMove)
-                Move();
         }
 
         public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
