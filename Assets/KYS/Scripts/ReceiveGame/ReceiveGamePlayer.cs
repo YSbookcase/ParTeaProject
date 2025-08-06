@@ -785,7 +785,7 @@ namespace KYS
             }
             
             // 활성화된 이펙트들 정리
-            ClearAllEffects();
+            ClearAllEffects(this.photonView);
         }
         
         // 파워업 효과 관련 메서드들
@@ -796,7 +796,7 @@ namespace KYS
             {
                 hasSpeedBoost = false;
                 moveSpeed = baseMoveSpeed;
-                DeactivateEffect(ItemType.Speed);
+                DeactivateEffect(this.photonView, ItemType.Speed);
                 //Debug.Log("속도 부스트 효과 종료");
             }
             
@@ -805,7 +805,7 @@ namespace KYS
             {
                 hasSlowEffect = false;
                 moveSpeed = baseMoveSpeed;
-                DeactivateEffect(ItemType.Slow);
+                DeactivateEffect(this.photonView, ItemType.Slow);
                 //Debug.Log("슬로우 효과 종료");
             }
             
@@ -813,7 +813,7 @@ namespace KYS
             if (hasMagnetEffect && Time.time >= magnetEffectEndTime)
             {
                 hasMagnetEffect = false;
-                DeactivateEffect(ItemType.Magnet);
+                DeactivateEffect(this.photonView, ItemType.Magnet);
                 //Debug.Log("자석 효과 종료");
             }
         }
@@ -827,7 +827,7 @@ namespace KYS
                 moveSpeed = baseMoveSpeed * speedBoostMultiplier;
                 
                 // 스피드 부스트 이펙트 활성화
-                ActivateEffect(ItemType.Speed, duration);
+                ActivateEffect(photonView, ItemType.Speed, duration);
                 
                 //Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
             }
@@ -842,7 +842,7 @@ namespace KYS
                 moveSpeed = baseMoveSpeed * slowEffectMultiplier;
                 
                 // 슬로우 이펙트 활성화
-                ActivateEffect(ItemType.Slow, duration);
+                ActivateEffect(photonView, ItemType.Slow, duration);
                 
                 //Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
             }
@@ -872,7 +872,7 @@ namespace KYS
                 }
                 
                 // 마그네틱 이펙트 활성화
-                ActivateEffect(ItemType.Magnet, duration);
+                ActivateEffect(photonView, ItemType.Magnet, duration);
                 
                 //Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
             }
@@ -1142,78 +1142,175 @@ namespace KYS
         /// <summary>
         /// 특정 아이템 타입의 이펙트를 활성화합니다.
         /// </summary>
+        /// <param name="targetPlayerPhotonView">이펙트를 적용할 대상 플레이어의 PhotonView</param>
         /// <param name="itemType">아이템 타입</param>
         /// <param name="duration">지속 시간</param>
-        public void ActivateEffect(ItemType itemType, float duration)
+        public void ActivateEffect(PhotonView targetPlayerPhotonView, ItemType itemType, float duration)
         {
-            // 로컬 플레이어인 경우에만 RPC 호출
-            if (photonView.IsMine)
+            // 대상 플레이어의 PhotonView가 로컬 소유인 경우에만 RPC 호출을 시작합니다.
+            // 이렇게 하면 RPC가 한 번만 전송되고, 모든 클라이언트에서 올바른 대상에게 적용됩니다.
+            if (targetPlayerPhotonView.IsMine)
             {
-                // 모든 클라이언트에게 효과 활성화 RPC 전송
-                photonView.RPC(nameof(RPCActivateEffect), RpcTarget.All, itemType, duration);
+                // 모든 클라이언트에게 효과 활성화 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCActivateEffect), RpcTarget.All, targetPlayerPhotonView.ViewID, itemType, duration);
             }
         }
         
         /// <summary>
-        /// RPC: 모든 클라이언트에서 이펙트를 활성화합니다.
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 이펙트를 활성화합니다.
         /// </summary>
+        /// <param name="targetPlayerViewID">이펙트를 적용할 대상 플레이어의 ViewID</param>
         /// <param name="itemType">아이템 타입</param>
         /// <param name="duration">지속 시간</param>
         [PunRPC]
-        private void RPCActivateEffect(ItemType itemType, float duration)
+        private void RPCActivateEffect(int targetPlayerViewID, ItemType itemType, float duration)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCActivateEffect: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCActivateEffect: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            // 이제 올바른 'targetPlayer' 인스턴스에 이펙트를 적용합니다.
+            targetPlayer.InternalActivateEffect(itemType, duration);
+            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 특정 아이템 타입의 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerPhotonView">이펙트를 비활성화할 대상 플레이어의 PhotonView</param>
+        /// <param name="itemType">아이템 타입</param>
+        public void DeactivateEffect(PhotonView targetPlayerPhotonView, ItemType itemType)
+        {
+            if (targetPlayerPhotonView.IsMine)
+            {
+                // 모든 클라이언트에게 효과 비활성화 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCDeactivateEffect), RpcTarget.All, targetPlayerPhotonView.ViewID, itemType);
+            }
+        }
+        
+        /// <summary>
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerViewID">이펙트를 비활성화할 대상 플레이어의 ViewID</param>
+        /// <param name="itemType">아이템 타입</param>
+        [PunRPC]
+        private void RPCDeactivateEffect(int targetPlayerViewID, ItemType itemType)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCDeactivateEffect: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCDeactivateEffect: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            targetPlayer.InternalDeactivateEffect(itemType);
+            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 모든 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerPhotonView">모든 이펙트를 정리할 대상 플레이어의 PhotonView</param>
+        public void ClearAllEffects(PhotonView targetPlayerPhotonView)
+        {
+            if (targetPlayerPhotonView.IsMine)
+            {
+                // 모든 클라이언트에게 모든 효과 정리 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCClearAllEffects), RpcTarget.All, targetPlayerPhotonView.ViewID);
+            }
+        }
+        
+        /// <summary>
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 모든 이펙트를 정리합니다.
+        /// </summary>
+        /// <param name="targetPlayerViewID">모든 이펙트를 정리할 대상 플레이어의 ViewID</param>
+        [PunRPC]
+        private void RPCClearAllEffects(int targetPlayerViewID)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCClearAllEffects: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCClearAllEffects: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            targetPlayer.InternalClearAllEffects();
+            Debug.Log($"[ReceiveGamePlayer] 모든 이펙트 정리 완료 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 실제 이펙트 활성화 로직을 수행합니다. (RPC에서 호출됨)
+        /// </summary>
+        private void InternalActivateEffect(ItemType itemType, float duration)
         {
             // 이미 활성화된 이펙트가 있다면 제거
-            DeactivateEffect(itemType);
-            
+            if (activeEffects.TryGetValue(itemType, out GameObject existingEffect))
+            {
+                if (existingEffect != null)
+                {
+                    Destroy(existingEffect);
+                }
+                activeEffects.Remove(itemType);
+            }
+            if (effectCoroutines.TryGetValue(itemType, out Coroutine existingCoroutine))
+            {
+                if (existingCoroutine != null)
+                {
+                    StopCoroutine(existingCoroutine);
+                }
+                effectCoroutines.Remove(itemType);
+            }
+
             if (itemConfiguration == null)
             {
                 Debug.LogWarning($"[ReceiveGamePlayer] ItemConfiguration이 없어 {itemType} 이펙트를 활성화할 수 없습니다.");
                 return;
             }
-            
+
             ItemConfig config = itemConfiguration.GetItemConfig(itemType);
             if (config == null || config.playerEffectPrefab == null)
             {
                 Debug.LogWarning($"[ReceiveGamePlayer] {itemType} 타입의 이펙트 프리팹이 설정되지 않았습니다.");
                 return;
             }
-            
-            // 이펙트 생성
+
+            // 이펙트 생성 (이 ReceiveGamePlayer 인스턴스의 effectParent에 생성)
             GameObject effect = Instantiate(config.playerEffectPrefab, effectParent);
             effect.transform.localPosition = config.effectOffset;
-            
-            // 이펙트 추적에 추가
+
             activeEffects[itemType] = effect;
-            
+
             // 지속 시간 후 자동 제거하는 코루틴 시작
             Coroutine effectCoroutine = StartCoroutine(DeactivateEffectAfterDuration(itemType, duration));
             effectCoroutines[itemType] = effectCoroutine;
-            
-            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초 (플레이어: {photonView.Owner.NickName})");
         }
-        
+
         /// <summary>
-        /// 특정 아이템 타입의 이펙트를 비활성화합니다.
+        /// 실제 이펙트 비활성화 로직을 수행합니다. (RPC에서 호출됨)
         /// </summary>
-        /// <param name="itemType">아이템 타입</param>
-        public void DeactivateEffect(ItemType itemType)
+        private void InternalDeactivateEffect(ItemType itemType)
         {
-            // 로컬 플레이어인 경우에만 RPC 호출
-            if (photonView.IsMine)
-            {
-                // 모든 클라이언트에게 효과 비활성화 RPC 전송
-                photonView.RPC(nameof(RPCDeactivateEffect), RpcTarget.All, itemType);
-            }
-        }
-        
-        /// <summary>
-        /// RPC: 모든 클라이언트에서 이펙트를 비활성화합니다.
-        /// </summary>
-        /// <param name="itemType">아이템 타입</param>
-        [PunRPC]
-        private void RPCDeactivateEffect(ItemType itemType)
-        {
-            // 활성화된 이펙트가 있는지 확인
             if (activeEffects.TryGetValue(itemType, out GameObject effect))
             {
                 if (effect != null)
@@ -1221,9 +1318,8 @@ namespace KYS
                     Destroy(effect);
                 }
                 activeEffects.Remove(itemType);
-                Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료 (플레이어: {photonView.Owner.NickName})");
             }
-            
+
             // 코루틴이 실행 중인지 확인하고 중지
             if (effectCoroutines.TryGetValue(itemType, out Coroutine coroutine))
             {
@@ -1234,25 +1330,11 @@ namespace KYS
                 effectCoroutines.Remove(itemType);
             }
         }
-        
+
         /// <summary>
-        /// 모든 이펙트를 비활성화합니다.
+        /// 실제 모든 이펙트 정리 로직을 수행합니다. (RPC에서 호출됨)
         /// </summary>
-        public void ClearAllEffects()
-        {
-            // 로컬 플레이어인 경우에만 RPC 호출
-            if (photonView.IsMine)
-            {
-                // 모든 클라이언트에게 모든 효과 정리 RPC 전송
-                photonView.RPC(nameof(RPCClearAllEffects), RpcTarget.All);
-            }
-        }
-        
-        /// <summary>
-        /// RPC: 모든 클라이언트에서 모든 이펙트를 정리합니다.
-        /// </summary>
-        [PunRPC]
-        private void RPCClearAllEffects()
+        private void InternalClearAllEffects()
         {
             // 모든 활성화된 이펙트 제거
             foreach (var kvp in activeEffects)
@@ -1263,7 +1345,7 @@ namespace KYS
                 }
             }
             activeEffects.Clear();
-            
+
             // 모든 실행 중인 코루틴 중지
             foreach (var kvp in effectCoroutines)
             {
@@ -1273,8 +1355,6 @@ namespace KYS
                 }
             }
             effectCoroutines.Clear();
-            
-            Debug.Log($"[ReceiveGamePlayer] 모든 이펙트 정리 완료 (플레이어: {photonView.Owner.NickName})");
         }
         
         /// <summary>
@@ -1285,7 +1365,7 @@ namespace KYS
         private IEnumerator DeactivateEffectAfterDuration(ItemType itemType, float duration)
         {
             yield return new WaitForSeconds(duration);
-            DeactivateEffect(itemType);
+            DeactivateEffect(this.photonView, itemType); // 현재 플레이어의 PhotonView를 사용
         }
         
         /// <summary>
