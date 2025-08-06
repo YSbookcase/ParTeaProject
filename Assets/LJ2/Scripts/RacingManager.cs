@@ -55,7 +55,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-
+        
     }
 
     [PunRPC]
@@ -63,7 +63,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
     {
         if (racingCountDown != null)
             StopCoroutine(racingCountDown);
-
+        Manager.Audio.BgmPlay("racingBGM");
         racingCountDown = StartCoroutine(CountDown(3));
     }
 
@@ -80,8 +80,9 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RacingFinish()
     {
-        if (isRacingFinished || !PhotonNetwork.IsMasterClient) return;
+        if (isRacingFinished) return;
         isRacingFinished = true;
+        if (!PhotonNetwork.IsMasterClient) return;
 
         foreach (Player retire in racingPlayers)
         {
@@ -89,22 +90,33 @@ public class RacingManager : MonoBehaviourPunCallbacks
             retire.SetRank(retireRank);
             Debug.Log($"{retire.NickName} has retired with rank {retireRank}");
         }
-        
-        if (PhotonNetwork.IsMasterClient)
-        {
-            SceneManager.LoadScene("Score");
-        }
+        StartCoroutine(FinishRoutine());
     }
+
+    private IEnumerator FinishRoutine()
+    {
+        //foreach (RacingController controller in racingControllers.Values)
+        //{
+        //    controller.photonView.RPC("StopRacingSound", RpcTarget.All);
+        //}
+
+        yield return new WaitForSeconds(1f); // RPC 전파 시간 확보
+
+        SceneManager.LoadScene("Score");
+    }
+
     [PunRPC]
     public void PlayerArrive(int actorNumber)
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        if (!firstArrive && PhotonNetwork.IsMasterClient)
+
+        if (!firstArrive && PhotonNetwork.IsMasterClient) 
         {
             firstArrive = true;
             managerView.RPC("RetireCount", RpcTarget.All);
         }
-
+        
+        
         arrivePlayers.Add(player);
         player.SetRank(currentRank);
 
@@ -113,7 +125,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         if (racingPlayers.Count == 0)
         {
-            StopAllCoroutines(); // 모든 코루틴 중지
+            StopCoroutine(racingCountDown); 
             managerView.RPC(nameof(RacingFinish), RpcTarget.All);
         }
     }
@@ -124,11 +136,16 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         while (seconds > 0)
         {
+            Manager.Audio.SfxPlay("racingCountDown", Camera.main.transform);
             countdownText.text = seconds.ToString();
             yield return new WaitForSecondsRealtime(1f);
             seconds--;
         }
-
+        if (!firstArrive)
+        {
+            Manager.Audio.SfxPlay("racingStart", Camera.main.transform);
+            Debug.Log($"IsMasterClient = {PhotonNetwork.IsMasterClient} : Racing Start!");
+        }
         // 시작 카운트다운이 끝나면 RacingController의 SetControllable을 호출하여 플레이어가 조종할 수 있도록 설정
         foreach (RacingController controller in racingControllers.Values)
         {
@@ -136,7 +153,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
         }
 
         countdownUI.SetActive(false);
-
+        
         // 도착한 플레이어가 있고 카운트다운이 끝나면 RacingFinish를 호출
         if (firstArrive && PhotonNetwork.IsMasterClient)
         {
@@ -149,6 +166,8 @@ public class RacingManager : MonoBehaviourPunCallbacks
                 controller.photonView.RPC("SetControllable", RpcTarget.All, false);
             }
         }
+        
+
         yield return null;
     }
 

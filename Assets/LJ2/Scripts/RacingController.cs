@@ -138,6 +138,11 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             rigid.MovePosition(Vector3.Lerp(rigid.position, networkPosition, Time.deltaTime * 10));
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
+
+        if (!isControllable) 
+        {
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0.1f, acceleration * Time.deltaTime);
+        }
     }
 
     [PunRPC]
@@ -152,7 +157,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         else
         {
             moveDirection = Vector3.zero; // 컨트롤 불가능 시 방향 초기화
-            currentSpeed = 0f; // 컨트롤 불가능 시 속도 초기화
         }
     }
 
@@ -302,21 +306,27 @@ public class RacingController : MonoBehaviourPun, IPunObservable
     public void SetRacingSound(string soundName, int i)
     {
         soundKey = soundName + $"_{i}";
+        Debug.Log($"[RacingController] Setting sound: {soundKey}");
         StartCoroutine(SoundDelay(soundName));
     }
 
     private IEnumerator SoundDelay(string name)
     { 
         yield return null;
+        Manager.Audio.SfxStopLoop(soundKey); // 이전 사운드 중지
         Manager.Audio.SfxPlayLoop(soundKey, name, this.transform);
         Manager.Audio.SetVolumeLoopSfx(soundKey, 0.1f, soundMinDistance, soundMaxDistance);
     }
 
-    public void OnDrawGizmos()
+    [PunRPC]
+    public void StopRacingSound()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(transform.position, soundMinDistance);
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, soundMaxDistance);
+        if(!photonView.IsMine) return;
+        if (!string.IsNullOrEmpty(soundKey))
+        {
+            Debug.Log($"[RacingController] Stopping sound: {soundKey}");
+            Manager.Audio.SfxStopLoop(soundKey);
+            soundKey = string.Empty;
+        }
     }
 }
