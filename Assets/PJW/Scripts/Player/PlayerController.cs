@@ -16,6 +16,8 @@ namespace PJW
         private bool isGrounded;
         private bool isDead = false;
         private bool hasJumped = false;
+        private RopePassCountUIManager ropePassCountUIManager;
+
 
         public bool HasJumped => hasJumped;
 
@@ -45,6 +47,15 @@ namespace PJW
         {
             networkPosition = transform.position;
             networkRotation = transform.rotation;
+
+            if (photonView.IsMine)
+            {
+                ropePassCountUIManager = FindObjectOfType<RopePassCountUIManager>();
+                if (photonView.IsMine)
+                {
+                    ropePassCountUIManager = FindObjectOfType<RopePassCountUIManager>();
+                }
+            }
         }
 
         private void Update()
@@ -61,6 +72,11 @@ namespace PJW
             {
                 PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
                 hasJumped = false;
+
+                if (ropePassCountUIManager != null)
+                {
+                    ropePassCountUIManager.AddOrUpdateRow(PhotonNetwork.LocalPlayer);
+                }
             }
         }
 

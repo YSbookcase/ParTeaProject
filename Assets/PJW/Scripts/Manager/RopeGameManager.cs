@@ -14,6 +14,7 @@ namespace PJW
     {
         [Header("UI")]
         [SerializeField] private TextMeshProUGUI countdownText;
+        [SerializeField] private DeathPanelManager deathPanelManager; // 데스 패널 연결
 
         [Header("Rank 계산기")]
         [SerializeField] private RankCalculator rankCalculator;
@@ -137,12 +138,22 @@ namespace PJW
         [PunRPC]
         private void RPCRopeShowDeathPanel()
         {
-            StartCoroutine(LoadScoreAfterDelay());
+            StartCoroutine(ShowDeathAndLoadScore());
         }
 
-        private IEnumerator LoadScoreAfterDelay()
+        private IEnumerator ShowDeathAndLoadScore()
         {
+            if (deathPanelManager == null)
+                deathPanelManager = FindObjectOfType<DeathPanelManager>();
+
+            if (deathPanelManager != null)
+                deathPanelManager.ShowDeathPanel();
+
             yield return new WaitForSecondsRealtime(3f);
+
+            if (deathPanelManager != null)
+                deathPanelManager.HideDeathPanel();
+
             PhotonNetwork.LoadLevel("Score");
         }
     }
