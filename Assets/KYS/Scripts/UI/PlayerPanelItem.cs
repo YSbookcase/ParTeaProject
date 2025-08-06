@@ -181,18 +181,15 @@ namespace KYS
             bool newReadyState = !isReady;
             
             // Ready 상태에 따른 사운드 재생
-            if (Manager.Audio != null)
+            if (newReadyState)
             {
-                if (newReadyState)
-                {
-                    // Ready 상태가 될 때
-                    Manager.Audio.SfxPlay("SFX_ButtonClick");
-                }
-                else
-                {
-                    // Ready 상태가 해제될 때
-                    Manager.Audio.SfxPlay("SFX_ButtonClickBack");
-                }
+                // Ready 상태가 될 때
+                PlayClickSound("SFX_ButtonClick");
+            }
+            else
+            {
+                // Ready 상태가 해제될 때
+                PlayBackSound("SFX_ButtonClickBack");
             }
             
             isReady = newReadyState;
@@ -362,11 +359,8 @@ namespace KYS
             // 같은 색상을 다시 클릭한 경우 - 색상 취소
             if (currentColorIndex == colorIndex)
             {
-                // 색상 취소 사운드 재생
-                if (Manager.Audio != null)
-                {
-                    Manager.Audio.SfxPlay("SFX_ButtonClickBack");
-                }
+                            // 색상 취소 사운드 재생
+            PlayBackSound("SFX_ButtonClickBack");
                 
                 // 로컬 플레이어의 패널만 흰색으로 변경
                 if (currentPlayer.IsLocal && playerPanelBackground != null)
@@ -392,10 +386,7 @@ namespace KYS
             }
 
             // 색상 선택 사운드 재생
-            if (Manager.Audio != null)
-            {
-                Manager.Audio.SfxPlay("SFX_ButtonClick");
-            }
+            PlayClickSound("SFX_ButtonClick");
 
             // PhotonManager를 통해 색상 변경
             PhotonManager.Instance.SetPlayerColor(colorIndex);
