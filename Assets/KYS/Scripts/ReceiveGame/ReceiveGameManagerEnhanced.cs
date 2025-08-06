@@ -482,13 +482,17 @@ namespace KYS
             // 코루틴 중지
             StopAndRemoveCoroutines(obj);
             
-            // 네트워크 오브젝트인 경우 Master Client만 제거
-            if (usePhotonDestroy && PhotonNetwork.IsMasterClient)
+            // PhotonView가 있는지 확인 (네트워크 오브젝트인지 확인)
+            PhotonView photonView = obj.GetComponent<PhotonView>();
+            
+            if (usePhotonDestroy && photonView != null && PhotonNetwork.IsMasterClient)
             {
+                // 네트워크 오브젝트인 경우 PhotonNetwork.Destroy 사용
                 PhotonNetwork.Destroy(obj);
             }
-            else if (!usePhotonDestroy)
+            else
             {
+                // 로컬 오브젝트이거나 Master Client가 아닌 경우 일반 Destroy 사용
                 Destroy(obj);
             }
         }
@@ -1209,24 +1213,19 @@ namespace KYS
             {
                 spawnedPowerUps.Remove(powerUp);
                 
-                // 새로운 풀 시스템으로 반환
-                if (itemPoolManager != null)
+                // 풀에서 가져온 파워업인지 확인
+                CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
+                if (powerUpItem != null && powerUpItem.returnPool != null)
                 {
-                    CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
-                    if (powerUpItem != null)
-                    {
-                        StopAndRemoveCoroutines(powerUp);
-                        itemPoolManager.ReturnPowerUp(powerUpItem);
-                        //Debug.Log("[ReceiveGameManagerEnhanced] 파워업을 풀로 반환");
-                    }
-                    else
-                    {
-                        SafeDestroyObject(powerUp, true);
-                    }
+                    // 풀 시스템으로 반환
+                    StopAndRemoveCoroutines(powerUp);
+                    itemPoolManager?.ReturnPowerUp(powerUpItem);
+                    //Debug.Log("[ReceiveGameManagerEnhanced] 파워업을 풀로 반환");
                 }
                 else
                 {
-                    SafeDestroyObject(powerUp, true);
+                    // 일반 오브젝트는 안전하게 제거
+                    SafeDestroyObject(powerUp, false);
                 }
             }
         }
@@ -1239,23 +1238,18 @@ namespace KYS
             {
                 spawnedObstacles.Remove(obstacle);
                 
-                // 새로운 풀 시스템으로 반환
-                if (itemPoolManager != null)
+                // 풀에서 가져온 장애물인지 확인
+                ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
+                if (obstacleController != null && obstacleController.returnPool != null)
                 {
-                    ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
-                    if (obstacleController != null)
-                    {
-                        StopAndRemoveCoroutines(obstacle);
-                        itemPoolManager.ReturnObstacle(obstacleController);
-                        ////Debug.Log("[ReceiveGameManagerEnhanced] 장애물을 풀로 반환");
-                    }
-                    else
-                    {
-                        SafeDestroyObject(obstacle, false);
-                    }
+                    // 풀 시스템으로 반환
+                    StopAndRemoveCoroutines(obstacle);
+                    itemPoolManager?.ReturnObstacle(obstacleController);
+                    ////Debug.Log("[ReceiveGameManagerEnhanced] 장애물을 풀로 반환");
                 }
                 else
                 {
+                    // 일반 오브젝트는 안전하게 제거
                     SafeDestroyObject(obstacle, false);
                 }
             }
@@ -1270,7 +1264,19 @@ namespace KYS
             {
                 if (item != null)
                 {
-                    SafeDestroyObject(item, true);
+                    // 풀에서 가져온 아이템인지 확인
+                    CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                    if (collectibleItem != null && collectibleItem.returnPool != null)
+                    {
+                        // 풀 시스템으로 반환
+                        StopAndRemoveCoroutines(item);
+                        itemPoolManager?.ReturnItem(collectibleItem);
+                    }
+                    else
+                    {
+                        // 일반 오브젝트는 안전하게 제거
+                        SafeDestroyObject(item, false);
+                    }
                 }
             }
             spawnedItems.Clear();
@@ -1280,23 +1286,18 @@ namespace KYS
             {
                 if (powerUp != null)
                 {
-                    // 새로운 풀 시스템으로 반환
-                    if (itemPoolManager != null)
+                    // 풀에서 가져온 파워업인지 확인
+                    CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
+                    if (powerUpItem != null && powerUpItem.returnPool != null)
                     {
-                        CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
-                        if (powerUpItem != null)
-                        {
-                            StopAndRemoveCoroutines(powerUp);
-                            itemPoolManager.ReturnPowerUp(powerUpItem);
-                        }
-                        else
-                        {
-                            SafeDestroyObject(powerUp, true);
-                        }
+                        // 풀 시스템으로 반환
+                        StopAndRemoveCoroutines(powerUp);
+                        itemPoolManager?.ReturnPowerUp(powerUpItem);
                     }
                     else
                     {
-                        SafeDestroyObject(powerUp, true);
+                        // 일반 오브젝트는 안전하게 제거
+                        SafeDestroyObject(powerUp, false);
                     }
                 }
             }
@@ -1307,22 +1308,17 @@ namespace KYS
             {
                 if (obstacle != null)
                 {
-                    // 새로운 풀 시스템으로 반환
-                    if (itemPoolManager != null)
+                    // 풀에서 가져온 장애물인지 확인
+                    ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
+                    if (obstacleController != null && obstacleController.returnPool != null)
                     {
-                        ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
-                        if (obstacleController != null)
-                        {
-                            StopAndRemoveCoroutines(obstacle);
-                            itemPoolManager.ReturnObstacle(obstacleController);
-                        }
-                        else
-                        {
-                            SafeDestroyObject(obstacle, false);
-                        }
+                        // 풀 시스템으로 반환
+                        StopAndRemoveCoroutines(obstacle);
+                        itemPoolManager?.ReturnObstacle(obstacleController);
                     }
                     else
                     {
+                        // 일반 오브젝트는 안전하게 제거
                         SafeDestroyObject(obstacle, false);
                     }
                 }

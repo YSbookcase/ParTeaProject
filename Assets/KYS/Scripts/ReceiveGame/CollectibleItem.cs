@@ -200,9 +200,13 @@ namespace KYS
                 //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 // 중복 파괴 방지를 위해 즉시 비활성화
                 gameObject.SetActive(false);
-                if (PhotonNetwork.IsMasterClient)
+                
+                // PhotonView가 있는지 확인 (네트워크 오브젝트인지 확인)
+                PhotonView photonView = GetComponent<PhotonView>();
+                
+                if (photonView != null && PhotonNetwork.IsMasterClient)
                 {
-                    // 이미 파괴되었는지 확인 후 파괴
+                    // 네트워크 오브젝트인 경우 PhotonNetwork.Destroy 사용
                     if (gameObject != null)
                     {
                         PhotonNetwork.Destroy(gameObject);
@@ -210,6 +214,7 @@ namespace KYS
                 }
                 else
                 {
+                    // 로컬 오브젝트이거나 Master Client가 아닌 경우 일반 Destroy 사용
                     if (gameObject != null)
                     {
                         Destroy(gameObject, 0.5f);
