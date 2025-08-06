@@ -156,6 +156,12 @@ namespace KYS
             // 즉시 수집 상태로 변경하여 중복 수집 방지
             isCollected = true;
             
+            // 모바일 디버그 로그
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] CollectibleItem.Collect() 호출됨 - {gameObject.name}, PhotonView: {photonView != null}, IsMine: {photonView?.IsMine}");
+            }
+            
             // 네트워크 동기화를 위해 RPC 호출
             if (photonView != null && photonView.IsMine)
             {
@@ -164,6 +170,12 @@ namespace KYS
             else if (photonView == null)
             {
                 // PhotonView가 없는 경우 로컬에서만 처리
+                CollectLocal();
+            }
+            else
+            {
+                // PhotonView가 있지만 IsMine이 아닌 경우에도 로컬 처리
+                // 모바일에서 네트워크 지연으로 인한 수집 실패 방지
                 CollectLocal();
             }
         }

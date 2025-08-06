@@ -15,9 +15,12 @@ namespace KYS
         [Header("Player Settings")]
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float collectionRadius = 2f; // 1에서 2로 변경
+        [SerializeField] private float mobileCollectionRadius = 4f; // 모바일용 더 큰 수집 반경
+        //[SerializeField] private float collectionCheckInterval = 0.05f; // 수집 체크 간격
         [SerializeField] private float baseMoveSpeed = 5f;
         [SerializeField] private float speedBoostMultiplier = 1.5f;
         [SerializeField] private float slowEffectMultiplier = 0.5f;
+        [SerializeField] private LayerMask itemLayerMask = -1; // 아이템 레이어 마스크
         
         [Header("Magnetic Effect Settings")]
         [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위
@@ -249,15 +252,31 @@ namespace KYS
         
         private void CheckItemCollection()
         {
-            // 주변 아이템 검사
-            Collider[] colliders = Physics.OverlapSphere(transform.position, collectionRadius);
+            // 모바일에서 더 큰 반경으로 아이템 검사
+            float currentRadius = Application.isMobilePlatform ? mobileCollectionRadius : collectionRadius;
+            
+            // 레이어 마스크로 성능 최적화
+            Collider[] colliders = Physics.OverlapSphere(transform.position, currentRadius, itemLayerMask);
             
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
-                    CollectItem(item);
+                    // 모바일에서 거리 체크를 더 관대하게
+                    float distance = Vector3.Distance(transform.position, item.transform.position);
+                    float maxDistance = Application.isMobilePlatform ? mobileCollectionRadius * 0.9f : collectionRadius * 0.8f;
+                    
+                    if (distance <= maxDistance)
+                    {
+                        // 모바일 디버그 로그
+                        if (Application.isMobilePlatform)
+                        {
+                            Debug.Log($"[Mobile] 아이템 수집 시도 - 거리: {distance:F2}, 최대거리: {maxDistance:F2}, 아이템: {item.name}");
+                        }
+                        
+                        CollectItem(item);
+                    }
                 }
             }
         }
@@ -315,18 +334,34 @@ namespace KYS
         {
             if (item == null || item.IsCollected) return;
             
-            // 아이템 수집
+            // 중복 수집 방지를 위해 즉시 상태 변경
+            if (item.IsCollected) return; // 이중 체크
+            
+            // 모바일 디버그 로그
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] 아이템 수집 시작 - {item.name}, IsCollected: {item.IsCollected}");
+            }
+            
+            // 아이템 수집 (네트워크 동기화 포함)
             item.Collect();
             
-            // 게임 매니저에 수집 알림
-            if (gameManager != null)
+            // 게임 매니저에 수집 알림 (로컬 플레이어만)
+            if (gameManager != null && photonView.IsMine)
             {
                 ItemType itemType = GetItemType(item);
+                
+                // 모바일에서 추가 로그
+                if (Application.isMobilePlatform)
+                {
+                    Debug.Log($"[Mobile] 게임매니저에 수집 알림 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 아이템타입: {itemType}");
+                }
+                
                 gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
             }
-            else
+            else if (gameManager == null)
             {
-                //Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
             }
         }
         

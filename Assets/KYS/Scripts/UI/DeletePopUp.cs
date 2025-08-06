@@ -23,7 +23,7 @@ namespace KYS
             // SFX가 포함된 버튼 이벤트 등록
             GetEventWithSFX("DeleteButton", "SFX_ButtonClick").Click += OnDeleteButtonClick;
             GetBackEvent("CancelButton", "SFX_ButtonClickBack").Click += OnCancelButtonClick;
-            GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenuButtonClick;
+            //GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenuButtonClick;
         }
 
         // 삭제 버튼 클릭 시

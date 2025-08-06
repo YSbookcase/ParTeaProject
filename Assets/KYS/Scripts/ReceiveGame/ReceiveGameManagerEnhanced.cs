@@ -989,8 +989,14 @@ namespace KYS
             {
                 if (photonViewRef == null)
                 {
-                    //Debug.LogError("[ReceiveGameManagerEnhanced] PhotonView가 null입니다!");
+                    Debug.LogError("[ReceiveGameManagerEnhanced] PhotonView가 null입니다!");
                     return;
+                }
+                
+                // 모바일 디버그 로그
+                if (Application.isMobilePlatform)
+                {
+                    Debug.Log($"[Mobile] CollectItem 호출됨 - 플레이어: {playerActorNumber}, 아이템: {itemType}, IsMasterClient: {PhotonNetwork.IsMasterClient}");
                 }
                 
                 // Master Client에서만 점수 증가 처리
@@ -1001,7 +1007,19 @@ namespace KYS
                 else
                 {
                     // Non-Master Client는 Master Client에게 점수 증가 요청
+                    if (Application.isMobilePlatform)
+                    {
+                        Debug.Log($"[Mobile] 마스터 클라이언트에게 점수 증가 요청 전송 - 플레이어: {playerActorNumber}, 아이템: {itemType}");
+                    }
+                    
                     photonViewRef.RPC(nameof(RequestScoreIncrease), RpcTarget.MasterClient, playerActorNumber, (int)itemType);
+                }
+            }
+            else
+            {
+                if (Application.isMobilePlatform)
+                {
+                    Debug.LogWarning($"[Mobile] 게임 상태가 올바르지 않음 - 시작됨: {isGameStarted}, 종료됨: {isGameEnded}");
                 }
             }
         }
@@ -1033,11 +1051,24 @@ namespace KYS
         [PunRPC]
         private void RequestScoreIncrease(int playerActorNumber, int itemType)
         {
+            // 모바일 디버그 로그
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] RequestScoreIncrease RPC 수신됨 - 플레이어: {playerActorNumber}, 아이템: {(ItemType)itemType}, IsMasterClient: {PhotonNetwork.IsMasterClient}");
+            }
+            
             // Master Client에서만 실행되는 RPC
             if (PhotonNetwork.IsMasterClient)
             {
-                //Debug.Log($"[RequestScoreIncrease] Master Client가 점수 증가 요청 처리: 플레이어 {playerActorNumber}, 아이템 타입: {(ItemType)itemType}");
+                Debug.Log($"[RequestScoreIncrease] Master Client가 점수 증가 요청 처리: 플레이어 {playerActorNumber}, 아이템 타입: {(ItemType)itemType}");
                 CollectItemRPC(playerActorNumber, (ItemType)itemType);
+            }
+            else
+            {
+                if (Application.isMobilePlatform)
+                {
+                    Debug.LogWarning($"[Mobile] 마스터 클라이언트가 아닌데 RequestScoreIncrease를 받음 - 플레이어: {playerActorNumber}");
+                }
             }
         }
         
@@ -1116,16 +1147,23 @@ namespace KYS
             
             // 아이템 타입에 따른 점수 계산
             int scoreToAdd = GetScoreForItemType(itemType);
+            int oldScore = playerScores[playerActorNumber];
             playerScores[playerActorNumber] += scoreToAdd;
+            
+            // 모바일 디버그 로그 (모든 아이템에 대해)
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] 점수 업데이트 완료 - 플레이어: {playerActorNumber}, 아이템: {itemType}, 추가점수: +{scoreToAdd}, 기존점수: {oldScore}, 새점수: {playerScores[playerActorNumber]}");
+            }
             
             // 보너스 아이템인 경우 추가 로깅
             if (itemType == ItemType.Bonus)
             {
-                //Debug.Log($"[CollectItemRPC] 보너스 아이템 수집! 플레이어 {playerActorNumber} - 획득 점수: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
+                Debug.Log($"[CollectItemRPC] 보너스 아이템 수집! 플레이어 {playerActorNumber} - 획득 점수: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
             }
             else
             {
-                //Debug.Log($"플레이어 {playerActorNumber} {itemType} 아이템 수집: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
+                Debug.Log($"플레이어 {playerActorNumber} {itemType} 아이템 수집: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
             }
             
             // 플레이어 속성으로 점수 업데이트 (네트워크 동기화)
@@ -1135,6 +1173,15 @@ namespace KYS
                 ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
                 playerProps["score"] = playerScores[playerActorNumber];
                 player.SetCustomProperties(playerProps);
+                
+                if (Application.isMobilePlatform)
+                {
+                    Debug.Log($"[Mobile] 플레이어 속성 업데이트 완료 - 플레이어: {playerActorNumber}, 네트워크 점수: {playerScores[playerActorNumber]}");
+                }
+            }
+            else
+            {
+                Debug.LogError($"플레이어 {playerActorNumber}를 찾을 수 없습니다!");
             }
             
             // UI 업데이트
