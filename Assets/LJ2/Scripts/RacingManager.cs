@@ -64,6 +64,10 @@ public class RacingManager : MonoBehaviourPunCallbacks
         if (racingCountDown != null)
             StopCoroutine(racingCountDown);
         Manager.Audio.BgmPlay("racingBGM");
+        foreach (RacingController controller in racingControllers.Values)
+        {
+            controller.photonView.RPC("SetControllable", RpcTarget.All, false);
+        }
         racingCountDown = StartCoroutine(CountDown(3));
     }
 
@@ -95,10 +99,10 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
     private IEnumerator FinishRoutine()
     {
-        //foreach (RacingController controller in racingControllers.Values)
-        //{
-        //    controller.photonView.RPC("StopRacingSound", RpcTarget.All);
-        //}
+        foreach (RacingController controller in racingControllers.Values)
+        {
+            controller.photonView.RPC("StopRacingSound", RpcTarget.All);
+        }
 
         yield return new WaitForSeconds(1f); // RPC 전파 시간 확보
 
@@ -110,24 +114,28 @@ public class RacingManager : MonoBehaviourPunCallbacks
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
 
-        if (!firstArrive && PhotonNetwork.IsMasterClient) 
+        if (!firstArrive)
         {
             firstArrive = true;
             managerView.RPC("RetireCount", RpcTarget.All);
         }
-        
-        
-        arrivePlayers.Add(player);
-        player.SetRank(currentRank);
 
-        currentRank++;
-        racingPlayers.RemoveAll(p => p.ActorNumber == actorNumber);
-
-        if (racingPlayers.Count == 0)
+        if (PhotonNetwork.IsMasterClient)
         {
-            StopCoroutine(racingCountDown); 
-            managerView.RPC(nameof(RacingFinish), RpcTarget.All);
+
+            arrivePlayers.Add(player);
+            player.SetRank(currentRank);
+
+            currentRank++;
+            racingPlayers.RemoveAll(p => p.ActorNumber == actorNumber);
+
+            if (racingPlayers.Count == 0)
+            {
+                StopCoroutine(racingCountDown);
+                managerView.RPC(nameof(RacingFinish), RpcTarget.All);
+            }
         }
+        
     }
 
     private IEnumerator CountDown(int seconds)

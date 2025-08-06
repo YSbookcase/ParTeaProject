@@ -165,7 +165,8 @@ MonoBehaviour:
   pathPosition: 0
   bottomLine: {fileID: 1488663710723235820}
   goalQuad: {fileID: 5899753518693887294}
-  isGoal: 0
+  havePassLine: 0
+  isGoalLine: 0
 --- !u!65 &430951019725060469
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -212,7 +213,7 @@ Transform:
   m_GameObject: {fileID: 2909847775836659392}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -18, y: 1, z: 10}
+  m_LocalPosition: {x: -27, y: 1, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -243,7 +244,7 @@ Transform:
   m_GameObject: {fileID: 4513192205114608387}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 18, y: 1, z: 10}
+  m_LocalPosition: {x: 27, y: 1, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -380,7 +381,7 @@ Transform:
   m_GameObject: {fileID: 6224557596026140299}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -6, y: 1, z: 10}
+  m_LocalPosition: {x: -9, y: 1, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -411,7 +412,7 @@ Transform:
   m_GameObject: {fileID: 9073620375546065531}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 6, y: 1, z: 10}
+  m_LocalPosition: {x: 9, y: 1, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

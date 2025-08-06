@@ -85,6 +85,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         if (photonView.IsMine)
         {
             RacingManager.Instance.racingControllers[PhotonNetwork.LocalPlayer.ActorNumber] = this;
+            isControllable = false;
         }
     }
     private void OnDisable()
