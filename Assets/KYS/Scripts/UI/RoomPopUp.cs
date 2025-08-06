@@ -247,8 +247,8 @@ namespace KYS
 
         private void LoadPrefabs()
         {
-            playerPanelItemPrefab = Resources.Load<GameObject>("UITest/PlayerPanelItemPrefab");
-            chatTextPrefab = Resources.Load<GameObject>("UITest/ChatTextPrefab");
+            playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
+            chatTextPrefab = Resources.Load<GameObject>("UI/ChatTextPrefab");
         }
 
         private void ConnectEvents()
@@ -355,7 +355,7 @@ namespace KYS
                 int maxPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
 
                 roomNameText.text = $"{roomName} ({currentPlayers}/{maxPlayers})";
-                Debug.Log($"[RoomPopUp] 방 이름 업데이트: {roomName} ({currentPlayers}/{maxPlayers})");
+                //Debug.Log($"[RoomPopUp] 방 이름 업데이트: {roomName} ({currentPlayers}/{maxPlayers})");
             }
             else if (roomNameText != null)
             {
@@ -445,33 +445,58 @@ namespace KYS
         [PunRPC]
         private void ResetAllPlayersReadyState()
         {
-            if (PhotonNetwork.LocalPlayer != null)
+            try
             {
-                Hashtable playerProperties = new Hashtable();
-                playerProperties["Ready"] = false;
-                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
-            }
-
-            foreach (var kvp in playerPanels)
-            {
-                if (kvp.Value != null)
+                if (PhotonNetwork.LocalPlayer != null)
                 {
-                    kvp.Value.ResetReadyState();
+                    Hashtable playerProperties = new Hashtable();
+                    playerProperties["Ready"] = false;
+                    PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
                 }
+
+                foreach (var kvp in playerPanels)
+                {
+                    if (kvp.Value != null)
+                    {
+                        kvp.Value.ResetReadyState();
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[RoomPopUp] ResetAllPlayersReadyState RPC 실행 중 오류 발생: {e.Message}");
             }
         }
 
         [PunRPC]
         private void StopBGMForAllClients()
         {
-            // 게임 시작 시 BGM 중지 (게임별 BGM이 재생될 예정)
-            isGameStarting = true; // 모든 클라이언트에서 게임 시작 플래그 설정
-            Debug.Log($"[RoomPopUp] 게임 시작 - BGM 중지 (RPC 호출됨) - isGameStarting: {isGameStarting}");
-            
-            if (Manager.Audio != null)
+            try
             {
-                Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
-                Debug.Log("[RoomPopUp] 게임 시작 - BGM 중지 완료");
+                // 게임 시작 시 BGM 중지 (게임별 BGM이 재생될 예정)
+                isGameStarting = true; // 모든 클라이언트에서 게임 시작 플래그 설정
+                Debug.Log($"[RoomPopUp] 게임 시작 - BGM 중지 (RPC 호출됨) - isGameStarting: {isGameStarting}");
+                
+                // 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.CleanAllUI();
+                    if (UIManager.Instance.PopUp != null)
+                    {
+                        UIManager.Instance.PopUp.ShowLoadingBlocker();
+                    }
+                }
+                Debug.Log("[RoomPopUp] 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시 완료");
+                
+                if (Manager.Audio != null)
+                {
+                    Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
+                    Debug.Log("[RoomPopUp] 게임 시작 - BGM 중지 완료");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[RoomPopUp] StopBGMForAllClients RPC 실행 중 오류 발생: {e.Message}");
             }
         }
 
@@ -711,12 +736,31 @@ namespace KYS
             roomProperty["SelectedGame"] = selectedGameIndex;
             PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperty);
 
-            // 모든 클라이언트에게 BGM 중지 RPC 호출
+            // 모든 클라이언트에게 BGM 중지 RPC 호출 (씬 전환 전에 실행)
             if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
                 photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
+                
+                // RPC 호출 후 잠시 대기하여 RPC가 완료되도록 함
+                StartCoroutine(StartGameAfterRPC(sceneName));
             }
+            else
+            {
+                // PhotonView가 없는 경우 직접 게임 시작
+                StartGameDirectly(sceneName);
+            }
+        }
 
+        private IEnumerator StartGameAfterRPC(string sceneName)
+        {
+            // RPC 호출이 완료될 때까지 잠시 대기
+            yield return new WaitForSeconds(0.1f);
+            
+            StartGameDirectly(sceneName);
+        }
+
+        private void StartGameDirectly(string sceneName)
+        {
             if (Manager.game != null)
             {
                 int maxGameCount = 1;
@@ -738,8 +782,6 @@ namespace KYS
             {
                 PhotonNetwork.LoadLevel(sceneName);
             }
-
-            UIManager.Instance.CleanAllUI();
         }
 
         private bool CheckPlayerCountRequirement()
@@ -764,16 +806,23 @@ namespace KYS
 
         private void InitializeGameStart()
         {
-            if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+            try
             {
-                photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
+                if (PhotonNetwork.IsMasterClient && photonView != null && photonView.ViewID == CHAT_VIEW_ID)
+                {
+                    photonView.RPC(nameof(ResetAllPlayersReadyState), RpcTarget.All);
+                }
+
+                ClearChat();
+
+                if (chatField != null)
+                {
+                    chatField.text = "";
+                }
             }
-
-            ClearChat();
-
-            if (chatField != null)
+            catch (System.Exception e)
             {
-                chatField.text = "";
+                Debug.LogWarning($"[RoomPopUp] InitializeGameStart 실행 중 오류 발생: {e.Message}");
             }
         }
 
@@ -1007,7 +1056,7 @@ namespace KYS
                         gameSprite = Resources.Load<Sprite>("GameImages/Relay");
                         if (gameSprite != null)
                         {
-                            Debug.Log($"[RoomPopUp] {imageName} 이미지가 없어 기본 Relay 이미지를 사용합니다.");
+                            //Debug.Log($"[RoomPopUp] {imageName} 이미지가 없어 기본 Relay 이미지를 사용합니다.");
                         }
                     }
 

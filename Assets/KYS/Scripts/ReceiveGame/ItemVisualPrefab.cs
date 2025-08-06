@@ -48,7 +48,7 @@ namespace KYS
             itemRenderer = GetComponent<Renderer>();
             if (itemRenderer == null)
             {
-                Debug.LogWarning($"[ItemVisualPrefab] {itemType} 프리팹에 Renderer가 없습니다.");
+                //Debug.LogWarning($"[ItemVisualPrefab] {itemType} 프리팹에 Renderer가 없습니다.");
                 return;
             }
             

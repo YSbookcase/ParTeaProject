@@ -19,6 +19,7 @@ namespace KYS
         [SerializeField] private float bounceForce = 3f; // 바운스 힘
         [SerializeField] private float maxFallSpeed = 15f; // 최대 낙하 속도
         [SerializeField] private float returnDelay = 3f; // 바닥 닿은 후 리턴 지연 시간
+        [SerializeField] private float mobileReturnDelay = 5f; // 모바일용 리턴 지연 시간 (더 길게)
         
         [Header("Effects")]
         [SerializeField] private GameObject collectParticle;
@@ -40,44 +41,36 @@ namespace KYS
         [Header("Item Type")]
         [SerializeField] public ItemType itemType = ItemType.Normal; // 아이템 타입 설정
         
+        // 모바일 플랫폼 감지
+        private bool isMobilePlatform => Application.isMobilePlatform;
+        
         private void Start()
         {
-            // PhotonView 컴포넌트 확인 및 추가
+            // PhotonView 초기화
             photonView = GetComponent<PhotonView>();
             if (photonView == null)
             {
                 photonView = gameObject.AddComponent<PhotonView>();
-                Debug.Log("CollectibleItem에 PhotonView 컴포넌트를 추가했습니다.");
             }
             
-            // PhotonView 초기화 (ViewID가 0인 경우)
-            if (photonView.ViewID == 0)
+            if (photonView == null)
             {
-                bool success = PhotonNetwork.AllocateViewID(photonView);
-                if (success)
-                {
-                    Debug.Log($"[CollectibleItem] Start에서 PhotonView 초기화: {gameObject.name}, ViewID = {photonView.ViewID}");
-                }
-                else
-                {
-                    Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
-                }
+                //Debug.LogError($"[CollectibleItem] PhotonView 초기화 실패: {gameObject.name}");
+                return;
             }
             
-            startPosition = transform.position;
+            // 컴포넌트 초기화
             itemRenderer = GetComponent<Renderer>();
             rb = GetComponent<Rigidbody>();
             
-            if (rb == null)
-            {
-                rb = gameObject.AddComponent<Rigidbody>();
-            }
+            // 시작 위치 저장
+            startPosition = transform.position;
             
-            // Rigidbody 설정
-            SetupRigidbody();
+            // 모바일에서 콜라이더 크기 확대
+            SetupColliderForMobile();
             
             // 아이템 애니메이션 시작
-            //StartCoroutine(ItemAnimation());
+            StartCoroutine(ItemAnimation());
         }
         
         private void SetupRigidbody()
@@ -89,6 +82,42 @@ namespace KYS
                 rb.angularDrag = 0.5f; // 회전 저항
                 rb.mass = 1f;
                 rb.maxAngularVelocity = 10f; // 최대 각속도 제한
+            }
+        }
+        
+        /// <summary>
+        /// 모바일에서 아이템 수집을 위해 콜라이더 크기를 확대합니다.
+        /// </summary>
+        private void SetupColliderForMobile()
+        {
+            if (!isMobilePlatform) return;
+            
+            // SphereCollider 확대
+            SphereCollider sphereCollider = GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                sphereCollider.radius *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+            }
+            
+            // BoxCollider 확대
+            BoxCollider boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                boxCollider.size *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+            }
+            
+            // CapsuleCollider 확대
+            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                capsuleCollider.radius *= 1.5f;
+                capsuleCollider.height *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
@@ -121,7 +150,7 @@ namespace KYS
         private void OnHitGround()
         {
             hasHitGround = true;
-            //Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
+            ////Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
             
             // 바운스 효과
             if (rb != null)
@@ -135,7 +164,16 @@ namespace KYS
         
         private IEnumerator ReturnToPoolAfterDelay()
         {
-            yield return new WaitForSeconds(returnDelay);
+            // 플랫폼별 리턴 지연 시간 적용
+            float currentReturnDelay = isMobilePlatform ? mobileReturnDelay : returnDelay;
+            
+            // 모바일 디버깅 로그
+            if (isMobilePlatform)
+            {
+                Debug.Log($"[CollectibleItem] 모바일에서 아이템 바닥 도착: {gameObject.name}, 리턴 지연: {currentReturnDelay}초");
+            }
+            
+            yield return new WaitForSeconds(currentReturnDelay);
             
             // 오브젝트 풀로 반환
             if (returnPool != null)
@@ -144,7 +182,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 Destroy(gameObject);
             }
         }
@@ -165,10 +203,17 @@ namespace KYS
         
         public void Collect()
         {
-            if (isCollected) return;
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (isCollected && !isMobilePlatform) return;
             
             // 즉시 수집 상태로 변경하여 중복 수집 방지
             isCollected = true;
+            
+            // 모바일 디버그 로그
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] CollectibleItem.Collect() 호출됨 - {gameObject.name}, PhotonView: {photonView != null}, IsMine: {photonView?.IsMine}");
+            }
             
             // 네트워크 동기화를 위해 RPC 호출
             if (photonView != null && photonView.IsMine)
@@ -178,6 +223,12 @@ namespace KYS
             else if (photonView == null)
             {
                 // PhotonView가 없는 경우 로컬에서만 처리
+                CollectLocal();
+            }
+            else
+            {
+                // PhotonView가 있지만 IsMine이 아닌 경우에도 로컬 처리
+                // 모바일에서 네트워크 지연으로 인한 수집 실패 방지
                 CollectLocal();
             }
         }
@@ -211,12 +262,16 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 // 중복 파괴 방지를 위해 즉시 비활성화
                 gameObject.SetActive(false);
-                if (PhotonNetwork.IsMasterClient)
+                
+                // PhotonView가 있는지 확인 (네트워크 오브젝트인지 확인)
+                PhotonView photonView = GetComponent<PhotonView>();
+                
+                if (photonView != null && PhotonNetwork.IsMasterClient)
                 {
-                    // 이미 파괴되었는지 확인 후 파괴
+                    // 네트워크 오브젝트인 경우 PhotonNetwork.Destroy 사용
                     if (gameObject != null)
                     {
                         PhotonNetwork.Destroy(gameObject);
@@ -224,6 +279,7 @@ namespace KYS
                 }
                 else
                 {
+                    // 로컬 오브젝트이거나 Master Client가 아닌 경우 일반 Destroy 사용
                     if (gameObject != null)
                     {
                         Destroy(gameObject, 0.5f);
@@ -246,7 +302,6 @@ namespace KYS
             if (!string.IsNullOrEmpty(soundToPlay) && Manager.Audio != null)
             {
                 Manager.Audio.SfxPlay(soundToPlay, transform);
-                Debug.Log($"[CollectibleItem] 아이템 수집 사운드 재생: {soundToPlay}, 아이템 타입: {itemType}");
             }
             
             // 머티리얼 투명도 애니메이션
@@ -258,7 +313,6 @@ namespace KYS
         /// </summary>
         private string GetCollectSoundName()
         {
-            Debug.Log($"[CollectibleItem] GetCollectSoundName 호출 - itemType: {itemType}, collectSoundName: {collectSoundName}");
             return collectSoundName;
         }
         
@@ -317,7 +371,7 @@ namespace KYS
             
             gameObject.SetActive(true);
             
-            Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
+            ////Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
         }
         
         /// <summary>
@@ -337,33 +391,35 @@ namespace KYS
         /// </summary>
         public void SetItemConfiguration(ItemConfiguration config)
         {
-            Debug.Log($"[CollectibleItem] SetItemConfiguration 호출 - config: {(config != null ? "있음" : "없음")}, 현재 itemType: {itemType}");
-            
             itemConfiguration = config;
             
-            if (config != null)
+            // 설정이 변경되면 시각적 요소 업데이트
+            if (itemRenderer != null && itemConfiguration != null)
             {
-                // 설정된 ItemConfiguration의 내용 확인
-                Debug.Log($"[CollectibleItem] ItemConfiguration 이름: {config.name}");
-                foreach (ItemConfig itemConfig in config.itemConfigs)
-                {
-                    Debug.Log($"[CollectibleItem] ItemConfig - {itemConfig.itemType}: collectSoundName = {itemConfig.collectSoundName}");
-                }
-                
-                // 현재 아이템 타입에 맞는 collectSoundName 업데이트
-                ItemConfig currentConfig = config.GetItemConfig(itemType);
-                if (currentConfig != null && !string.IsNullOrEmpty(currentConfig.collectSoundName))
-                {
-                    collectSoundName = currentConfig.collectSoundName;
-                    Debug.Log($"[CollectibleItem] collectSoundName 업데이트 완료: {itemType} -> {collectSoundName}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
-                }
+                // 색상 설정은 EnhancedItemController에서 처리됨
+                // 여기서는 기본 색상만 유지
+            }
+        }
+        
+        /// <summary>
+        /// 모든 코루틴을 중지하고 정리
+        /// </summary>
+        public new void StopAllCoroutines()
+        {
+            if (returnCoroutine != null)
+            {
+                StopCoroutine(returnCoroutine);
+                returnCoroutine = null;
             }
             
-            Debug.Log($"[CollectibleItem] ItemConfiguration 설정 완료: {config != null}, 아이템 타입: {itemType}, collectSoundName: {collectSoundName}");
+            // ItemAnimation 코루틴도 중지 (MonoBehaviour의 StopAllCoroutines 호출)
+            base.StopAllCoroutines();
+        }
+        
+        private void OnDestroy()
+        {
+            // 오브젝트가 파괴될 때 모든 코루틴 중지
+            StopAllCoroutines();
         }
         
         private IEnumerator ReturnToPoolDelayed(float delay)
@@ -374,11 +430,10 @@ namespace KYS
             if (returnPool != null && returnPool.gameObject != null && returnPool.gameObject.activeInHierarchy)
             {
                 returnPool.ReturnToPool(this);
-                Debug.Log($"[CollectibleItem] 지연 반환 완료: {gameObject.name}");
             }
             else
             {
-                Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
+                //Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
             }
             
             returnCoroutine = null;

@@ -53,7 +53,7 @@ namespace KYS
                 itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
                 if (itemConfiguration == null)
                 {
-                    Debug.LogWarning("[EnhancedItemController] ItemConfiguration을 찾을 수 없습니다. 기본 설정을 사용합니다.");
+                    //Debug.LogWarning("[EnhancedItemController] ItemConfiguration을 찾을 수 없습니다. 기본 설정을 사용합니다.");
                 }
             }
             
@@ -82,6 +82,9 @@ namespace KYS
             SetupRigidbody();
             startPosition = transform.position;
             
+            // 모바일에서 콜라이더 크기 확대
+            SetupColliderForMobile();
+            
             // 아이템 타입이 설정되지 않은 경우 기본값 사용
             if (itemType == ItemType.Normal)
             {
@@ -103,6 +106,42 @@ namespace KYS
                 
                 // Y축 회전만 허용
                 rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            }
+        }
+        
+        /// <summary>
+        /// 모바일에서 아이템 수집을 위해 콜라이더 크기를 확대합니다.
+        /// </summary>
+        private void SetupColliderForMobile()
+        {
+            if (!Application.isMobilePlatform) return;
+            
+            // SphereCollider 확대
+            SphereCollider sphereCollider = GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                sphereCollider.radius *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+            }
+            
+            // BoxCollider 확대
+            BoxCollider boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                boxCollider.size *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+            }
+            
+            // CapsuleCollider 확대
+            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                capsuleCollider.radius *= 1.5f;
+                capsuleCollider.height *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
@@ -175,13 +214,13 @@ namespace KYS
         public void SetItemType(ItemType type)
         {
             itemType = type;
-            Debug.Log($"[EnhancedItemController] 아이템 타입 설정: {type} - {gameObject.name}");
+            //Debug.Log($"[EnhancedItemController] 아이템 타입 설정: {type} - {gameObject.name}");
             UpdateVisual();
         }
         
         private void UpdateVisual()
         {
-            Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
+            ////Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
             
             // 기존 시각적 프리팹 제거
             ClearVisualPrefab();
@@ -191,11 +230,11 @@ namespace KYS
             if (itemConfiguration != null)
             {
                 config = itemConfiguration.GetItemConfig(itemType);
-                Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
+                ////Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
             }
             else
             {
-                Debug.LogWarning($"[EnhancedItemController] ItemConfiguration이 null입니다. 레거시 방식 사용");
+                //Debug.LogWarning($"[EnhancedItemController] ItemConfiguration이 null입니다. 레거시 방식 사용");
             }
             
             if (config != null)
@@ -213,7 +252,7 @@ namespace KYS
                 magnetRadius = config.magnetRadius;
                 magnetForce = config.magnetForce;
                 
-                Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
+                ////Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
                 
                 // 시각적 프리팹 적용
                 if (config.visualPrefab != null)
@@ -224,13 +263,13 @@ namespace KYS
                 {
                     // 프리팹이 없으면 색상만 변경
                     ApplyColor(config.itemColor);
-                    Debug.Log($"[EnhancedItemController] {itemType} 색상 적용: {config.itemColor}");
+                    //Debug.Log($"[EnhancedItemController] {itemType} 색상 적용: {config.itemColor}");
                 }
             }
             else
             {
                 // 설정이 없으면 레거시 방식 사용
-                Debug.Log($"[EnhancedItemController] {itemType} 레거시 시각적 설정 적용");
+                //Debug.Log($"[EnhancedItemController] {itemType} 레거시 시각적 설정 적용");
                 ApplyLegacyVisual();
             }
         }
@@ -251,7 +290,7 @@ namespace KYS
             Vector3 itemScale = GetItemTypeScale();
             currentVisualPrefab.transform.localScale = itemScale;
             
-            Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
+            ////Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
         }
         
         private Vector3 GetItemTypeScale()
@@ -262,13 +301,13 @@ namespace KYS
                 ItemConfig config = itemConfiguration.GetItemConfig(itemType);
                 if (config != null)
                 {
-                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
+                    ////Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
                     return config.scale;
                 }
             }
             
             // ScriptableObject에서 가져올 수 없는 경우 기본값 사용
-            Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 크기 설정을 찾을 수 없어 기본값 사용");
+            //Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 크기 설정을 찾을 수 없어 기본값 사용");
             switch (itemType)
             {
                 case ItemType.Normal:
@@ -339,17 +378,26 @@ namespace KYS
                     break;
             }
             
-            Debug.Log($"[EnhancedItemController] 레거시 시각적 설정 - {itemType}: 색상={targetColor}, 점수={pointValue}");
+            //Debug.Log($"[EnhancedItemController] 레거시 시각적 설정 - {itemType}: 색상={targetColor}, 점수={pointValue}");
             ApplyColor(targetColor);
         }
         
         private void OnTriggerEnter(Collider other)
         {
-            if (isCollected) return;
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (isCollected && !Application.isMobilePlatform) return;
             
             // 플레이어와 충돌했는지 확인
             if (other.CompareTag("Player"))
             {
+                // 모바일 디버깅을 위한 상세 정보
+                if (Application.isMobilePlatform)
+                {
+                    float distance = Vector3.Distance(transform.position, other.transform.position);
+                    Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
+                }
+                
+                // 중복 수집 방지를 위해 즉시 수집 상태로 변경 (모바일에서는 더 관대하게)
                 isCollected = true;
                 
                 // 바운스 애니메이션 중지
@@ -363,17 +411,41 @@ namespace KYS
                 ReceiveGamePlayer player = other.GetComponent<ReceiveGamePlayer>();
                 if (player != null)
                 {
-                                    // 아이템 효과 적용
-                ApplyItemEffect(player);
-                
-                // 아이템 수집 효과음 재생
-                PlayCollectSound();
-                
-                // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
-                // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
+                    // 아이템 효과 적용
+                    ApplyItemEffect(player);
+                    
+                    // 아이템 수집 효과음 재생
+                    PlayCollectSound();
+                    
+                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
+                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
+                }
+                else
+                {
+                    // 모바일 디버깅을 위한 경고
+                    if (Application.isMobilePlatform)
+                    {
+                        Debug.LogWarning($"[EnhancedItemController] ReceiveGamePlayer 컴포넌트를 찾을 수 없음: {other.name}");
+                    }
                 }
                 
-                // 아이템 제거
+                // 아이템 제거 (지연 시간 추가로 시각적 효과 보장)
+                StartCoroutine(DestroyAfterEffect());
+            }
+            else if (Application.isMobilePlatform)
+            {
+                // 플레이어가 아닌 다른 오브젝트와의 충돌 디버그
+                Debug.Log($"[EnhancedItemController] 다른 오브젝트와 충돌: {gameObject.name} <-> {other.name} (태그: {other.tag})");
+            }
+        }
+        
+        private IEnumerator DestroyAfterEffect()
+        {
+            // 수집 효과가 완전히 재생될 때까지 대기
+            yield return new WaitForSeconds(0.2f);
+            
+            if (gameObject != null)
+            {
                 Destroy(gameObject);
             }
         }
@@ -397,7 +469,7 @@ namespace KYS
                     
                 case ItemType.Magnet:
                     // 이미 설정된 마그네틱 힘 값 사용 (UpdateVisual에서 ItemConfiguration에서 가져온 값)
-                    Debug.Log($"[EnhancedItemController] 마그네틱 효과 적용 - 힘: {magnetForce}, 범위: {magnetRadius}, 지속시간: {effectDuration}");
+                    //Debug.Log($"[EnhancedItemController] 마그네틱 효과 적용 - 힘: {magnetForce}, 범위: {magnetRadius}, 지속시간: {effectDuration}");
                     player.ApplyMagnetEffect(effectDuration, magnetRadius, magnetForce);
                     break;
             }
@@ -425,8 +497,28 @@ namespace KYS
         
         public float GetMagnetForce()
         {
-            Debug.Log($"[EnhancedItemController] GetMagnetForce 호출 - 현재 힘 값: {magnetForce}, 아이템 타입: {itemType}");
             return magnetForce;
+        }
+        
+        /// <summary>
+        /// 모든 코루틴을 중지하고 정리
+        /// </summary>
+        public new void StopAllCoroutines()
+        {
+            if (bobCoroutine != null)
+            {
+                StopCoroutine(bobCoroutine);
+                bobCoroutine = null;
+            }
+            
+            // 다른 모든 코루틴도 중지
+            base.StopAllCoroutines();
+        }
+        
+        private void OnDestroy()
+        {
+            // 오브젝트가 파괴될 때 모든 코루틴 중지
+            StopAllCoroutines();
         }
         
         // 아이템 수집 효과음 재생
@@ -442,7 +534,7 @@ namespace KYS
                 }
                 else
                 {
-                    Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다.");
+                    Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다. AudioManager: {Manager.Audio}");
                 }
             }
             else

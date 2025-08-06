@@ -54,6 +54,11 @@ MonoBehaviour:
   baseMoveSpeed: 5
   speedBoostMultiplier: 1.5
   slowEffectMultiplier: 0.5
+  itemLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  collectionCheckInterval: 0.1
+  mobileCollectionRadius: 3
   magnetRadius: 5
   magnetForce: 10
   playerRenderer: {fileID: 3467787480541739041}
