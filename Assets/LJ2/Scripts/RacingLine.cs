@@ -35,7 +35,7 @@ public class RacingLine : MonoBehaviour
             {
                 if (isGoalLine)
                 {
-                    RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.All, photonView.Owner.ActorNumber);
+                    RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.MasterClient, photonView.Owner.ActorNumber);
                 }
             }
         }

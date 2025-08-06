@@ -109,11 +109,13 @@ public class RacingManager : MonoBehaviourPunCallbacks
     public void PlayerArrive(int actorNumber)
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        firstArrive = true;
 
-        if (!PhotonNetwork.IsMasterClient) return;
+        if (!firstArrive && PhotonNetwork.IsMasterClient) 
+        {
+            firstArrive = true;
+            managerView.RPC("RetireCount", RpcTarget.All);
+        }
         
-        managerView.RPC("RetireCount", RpcTarget.All);
         
         arrivePlayers.Add(player);
         player.SetRank(currentRank);
