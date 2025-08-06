@@ -216,11 +216,11 @@ MonoBehaviour:
   bobSpeed: 2
   bobHeight: 0.5
   pointValue: 1
-  groundLevel: 0.5
+  groundLevel: 0.2
   bounceForce: 3
   maxFallSpeed: 15
-  returnDelay: 3
-  mobileReturnDelay: 5
+  groundReturnDelay: 3
+  mobileGroundReturnDelay: 5
   collectParticle: {fileID: 0}
   collectSoundName: SFX_BonusItem
   itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}

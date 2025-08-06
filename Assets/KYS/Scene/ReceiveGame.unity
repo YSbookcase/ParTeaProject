@@ -2758,12 +2758,12 @@ MonoBehaviour:
   - {fileID: 1409232532}
   - {fileID: 438815105}
   - {fileID: 212602705}
-  itemSpawnInterval: 2
-  powerUpSpawnInterval: 4
-  obstacleSpawnInterval: 2
-  itemSpawnHeight: 2
-  itemDropSpeed: 10
-  obstacleDropSpeed: 2
+  itemSpawnInterval: 1.5
+  powerUpSpawnInterval: 3.5
+  obstacleSpawnInterval: 1.5
+  itemSpawnHeight: 20
+  itemDropToGroundSpeed: 2
+  obstacleDropToGroundSpeed: 2
   bonusItemChance: 0.3
   powerUpLifetime: 60
   mobilePowerUpLifetime: 90
@@ -2776,8 +2776,8 @@ MonoBehaviour:
   spawnCenter: {x: 0, y: 0, z: -1}
   spawnRangeX: 9
   spawnRangeZ: 9
-  spawnHeight: 1
-  obstacleSpawnHeight: 1
+  itemTargetGroundHeight: 0.2
+  obstacleTargetGroundHeight: 0.2
   itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
   defaultScore: 1
   receiveGameBgmName: BGM_ReceiveGame

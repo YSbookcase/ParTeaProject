@@ -41,6 +41,7 @@ namespace KYS
         private Rigidbody rb;
         private bool isCollected = false;
         private bool hasHitGround = false;
+        private bool isDropAnimationComplete = false; // DropItemToGround 코루틴 완료 여부
         private Vector3 startPosition;
         private Coroutine bobCoroutine;
         private GameObject currentVisualPrefab;
@@ -155,8 +156,11 @@ namespace KYS
                 rb.angularVelocity = new Vector3(0, rotationSpeed * Mathf.Deg2Rad, 0);
             }
             
-            // 바닥 충돌 체크
-            CheckGroundCollision();
+            // DropItemToGround 코루틴이 완료된 후에만 바닥 충돌 체크
+            if (isDropAnimationComplete && !hasHitGround)
+            {
+                CheckGroundCollision();
+            }
         }
         
         private void CheckGroundCollision()
@@ -498,6 +502,16 @@ namespace KYS
         public float GetMagnetForce()
         {
             return magnetForce;
+        }
+        
+        /// <summary>
+        /// DropItemToGround 코루틴이 완료되었음을 알리는 메서드
+        /// </summary>
+        public void OnDropAnimationComplete()
+        {
+            isDropAnimationComplete = true;
+            hasHitGround = true; // 바닥에 착지한 것으로 간주
+            StartBobAnimation(); // 바운스 애니메이션 시작
         }
         
         /// <summary>

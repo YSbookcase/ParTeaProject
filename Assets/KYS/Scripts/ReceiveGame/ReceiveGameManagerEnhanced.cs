@@ -41,8 +41,8 @@ namespace KYS
         [SerializeField] private float powerUpSpawnInterval = 10f;
         [SerializeField] private float obstacleSpawnInterval = 5f;
         [SerializeField] private float itemSpawnHeight = 2f; // 아이템 스폰 높이 (하늘에서 떨어지는 효과)
-        [SerializeField] private float itemDropSpeed = 2f; // 아이템 떨어지는 속도
-        [SerializeField] private float obstacleDropSpeed = 2f; // 장애물 떨어지는 속도
+        [SerializeField] private float itemDropToGroundSpeed = 2f; // 아이템이 하늘에서 바닥까지 떨어지는 시간
+        [SerializeField] private float obstacleDropToGroundSpeed = 2f; // 장애물이 하늘에서 바닥까지 떨어지는 시간
         [SerializeField] private float bonusItemChance = 0.3f; // 보너스 아이템 생성 확률 (0.0 ~ 1.0)
         
         [Header("Mobile Item Lifetime Settings")]
@@ -61,8 +61,8 @@ namespace KYS
         [SerializeField] private Vector3 spawnCenter = Vector3.zero; // 스폰 중심 좌표
         [SerializeField] private float spawnRangeX = 3f; // X축 스폰 범위 (-spawnRangeX ~ +spawnRangeX)
         [SerializeField] private float spawnRangeZ = 3f; // Z축 스폰 범위 (-spawnRangeZ ~ +spawnRangeZ)
-        [SerializeField] private float spawnHeight = 1f; // 아이템 스폰 높이 (Y축)
-        [SerializeField] private float obstacleSpawnHeight = 1f; // 장애물 도착 높이 (Y축) - 아이템과 같은 높이에서 떨어짐
+        [SerializeField] private float itemTargetGroundHeight = 1f; // 아이템이 도착할 바닥 높이 (Y축)
+        [SerializeField] private float obstacleTargetGroundHeight = 1f; // 장애물이 도착할 바닥 높이 (Y축)
         
         [Header("Item Configuration")]
         [SerializeField] private ItemConfiguration itemConfiguration;
@@ -532,7 +532,7 @@ namespace KYS
                     // 중심 좌표를 기준으로 범위 내에서 아이템 스폰
                     Vector3 spawnPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        spawnHeight, 
+                        itemTargetGroundHeight, 
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnItem(spawnPosition);
@@ -553,7 +553,7 @@ namespace KYS
                     // 중심 좌표를 기준으로 범위 내에서 파워업 스폰
                     Vector3 spawnPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        spawnHeight, 
+                        itemTargetGroundHeight, 
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnPowerUp(spawnPosition);
@@ -573,7 +573,7 @@ namespace KYS
                     // 장애물도 아이템처럼 높은 위치에서 시작하여 떨어지는 효과
                     Vector3 targetPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        obstacleSpawnHeight, // 도착 지점 (지면)
+                        obstacleTargetGroundHeight, // 도착 지점 (지면)
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnObstacle(targetPosition);
@@ -700,6 +700,9 @@ namespace KYS
             // 아이템도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
             
+            // 바닥 도착 위치 설정 (Y축만 itemTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, itemTargetGroundHeight, targetPosition.z);
+            
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
             {
@@ -725,10 +728,10 @@ namespace KYS
                     // 풀에서 가져온 아이템에도 컴포넌트 설정 적용
                     SetupItemComponents(item, selectedType);
                     
-                    //Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    //Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                     
                     // 아이템이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, groundTargetPosition));
                     TrackCoroutine(item, dropCoroutine);
                 }
                 else
@@ -745,11 +748,11 @@ namespace KYS
                 // 아이템 타입 설정
                 SetupItemComponents(item, selectedType);
                 
-                //Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                //Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                 
-                                    // 아이템이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
-                    TrackCoroutine(item, dropCoroutine);
+                // 아이템이 떨어지는 효과 시작
+                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, groundTargetPosition));
+                TrackCoroutine(item, dropCoroutine);
             }
         }
         
@@ -769,6 +772,9 @@ namespace KYS
             // 파워업도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
             
+            // 바닥 도착 위치 설정 (Y축만 itemTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, itemTargetGroundHeight, targetPosition.z);
+            
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
             {
@@ -782,10 +788,10 @@ namespace KYS
                     // 풀에서 가져온 파워업에도 컴포넌트 설정 적용
                     SetupItemComponents(powerUp, selectedType);
                     
-                    //Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    //Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                     
                     // 파워업이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, groundTargetPosition));
                     TrackCoroutine(powerUp, dropCoroutine);
                     
                     // 플랫폼별 파워업 수명 적용
@@ -815,10 +821,10 @@ namespace KYS
                 // 파워업 타입 설정
                 SetupItemComponents(powerUp, selectedType);
                 
-                //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                 
                 // 파워업이 떨어지는 효과 시작
-                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, groundTargetPosition));
                 TrackCoroutine(powerUp, dropCoroutine);
                 
                 // 플랫폼별 파워업 수명 적용
@@ -851,6 +857,9 @@ namespace KYS
             // 장애물도 아이템처럼 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
             
+            // 바닥 도착 위치 설정 (Y축만 obstacleTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, obstacleTargetGroundHeight, targetPosition.z);
+            
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
             {
@@ -860,10 +869,10 @@ namespace KYS
                     obstacle = pooledObstacle.gameObject;
                     spawnedObstacles.Add(obstacle);
                     
-                    //Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {spawnPosition} -> {targetPosition}");
+                    //Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {spawnPosition} -> {groundTargetPosition}");
                     
                     // 장애물이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, groundTargetPosition));
                     TrackCoroutine(obstacle, dropCoroutine);
                     
                     // 플랫폼별 장애물 수명 적용
@@ -900,10 +909,10 @@ namespace KYS
                     obstacleCollider.isTrigger = false;
                 }
                 
-                //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {targetPosition}, ObstacleController 추가됨");
+                //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {groundTargetPosition}, ObstacleController 추가됨");
                 
                 // 장애물이 떨어지는 효과 시작
-                Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, groundTargetPosition));
                 TrackCoroutine(obstacle, dropCoroutine);
                 
                 // 플랫폼별 장애물 수명 적용
@@ -923,11 +932,11 @@ namespace KYS
         
         private void SetupItemComponents(GameObject item, ItemType itemType)
         {
-            // CollectibleItem 컴포넌트 확인 및 추가
+            // CollectibleItem 컴포넌트 제거 (EnhancedItemController와 충돌 방지)
             CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
-            if (collectibleItem == null)
+            if (collectibleItem != null)
             {
-                collectibleItem = item.AddComponent<CollectibleItem>();
+                DestroyImmediate(collectibleItem);
             }
             
             // 아이템 타입 설정 - EnhancedItemController만 사용
@@ -1438,10 +1447,10 @@ namespace KYS
             Vector3 startPosition = item.transform.position;
             float elapsedTime = 0f;
             
-            while (elapsedTime < itemDropSpeed && item != null)
+            while (elapsedTime < itemDropToGroundSpeed && item != null)
             {
                 elapsedTime += Time.deltaTime;
-                float progress = elapsedTime / itemDropSpeed;
+                float progress = elapsedTime / itemDropToGroundSpeed;
                 
                 // 부드러운 떨어지는 효과 (ease-out)
                 float easedProgress = 1f - Mathf.Pow(1f - progress, 3f);
@@ -1456,6 +1465,13 @@ namespace KYS
             if (item != null)
             {
                 item.transform.position = targetPosition;
+                
+                // EnhancedItemController에 드롭 애니메이션 완료 알림
+                EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
+                if (enhancedController != null)
+                {
+                    enhancedController.OnDropAnimationComplete();
+                }
             }
         }
         
@@ -1469,10 +1485,10 @@ namespace KYS
             Vector3 startPosition = obstacle.transform.position;
             float elapsedTime = 0f;
             
-            while (elapsedTime < obstacleDropSpeed && obstacle != null)
+            while (elapsedTime < obstacleDropToGroundSpeed && obstacle != null)
             {
                 elapsedTime += Time.deltaTime;
-                float progress = elapsedTime / obstacleDropSpeed;
+                float progress = elapsedTime / obstacleDropToGroundSpeed;
                 
                 // 부드러운 떨어지는 효과 (ease-out)
                 float easedProgress = 1f - Mathf.Pow(1f - progress, 3f);
