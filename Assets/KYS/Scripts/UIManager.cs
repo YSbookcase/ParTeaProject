@@ -370,6 +370,45 @@ namespace KYS
             ShowFirstScreen();
         }
 
+        // 게임 씬 로딩을 위한 새로운 메서드
+        public void StartGameSceneLoad(string sceneName, int selectedGameIndex)
+        {
+            Debug.Log($"[UIManager] StartGameSceneLoad 호출됨 - Scene: {sceneName}, GameIndex: {selectedGameIndex}");
+            StartCoroutine(DelayedGameSceneLoad(sceneName, selectedGameIndex));
+        }
+
+        private IEnumerator DelayedGameSceneLoad(string sceneName, int selectedGameIndex)
+        {
+            Debug.Log("[UIManager] DelayedGameSceneLoad 시작");
+            
+            // CleanAllUI() 작업이 완료될 때까지 잠시 대기
+            yield return new WaitForSeconds(0.1f);
+            
+            Debug.Log("[UIManager] 씬 로딩 시작");
+            
+            if (Manager.game != null)
+            {
+                int maxGameCount = 1;
+
+                if (selectedGameIndex == 6) // 4G 릴레이
+                {
+                    sceneName = null;
+                    maxGameCount = 4;
+                }
+                else if (selectedGameIndex == 7) // 6G 릴레이
+                {
+                    sceneName = null;
+                    maxGameCount = 6;
+                }
+
+                Manager.game.GameStart(sceneName, maxGameCount);
+            }
+            else
+            {
+                PhotonNetwork.LoadLevel(sceneName);
+            }
+        }
+
         // 현재 활성화된 팝업이 ESC로 닫을 수 없는지 확인
         private bool IsCurrentPopUpNonClosable()
         {

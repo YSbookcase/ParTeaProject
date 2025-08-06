@@ -739,48 +739,24 @@ namespace KYS
             // 모든 클라이언트에게 BGM 중지 RPC 호출 (씬 전환 전에 실행)
             if (photonView != null && photonView.ViewID == CHAT_VIEW_ID)
             {
-                photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
-                
-                // RPC 호출 후 잠시 대기하여 RPC가 완료되도록 함
-                StartCoroutine(StartGameAfterRPC(sceneName));
+                try
+                {
+                    photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
+                    
+                    // UIManager를 통해 게임 씬 로딩 시작
+                    UIManager.Instance.StartGameSceneLoad(sceneName, selectedGameIndex);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[RoomPopUp] GameStart RPC 호출 중 오류: {e.Message}");
+                    // 오류 발생 시 직접 게임 시작
+                    UIManager.Instance.StartGameSceneLoad(sceneName, selectedGameIndex);
+                }
             }
             else
             {
                 // PhotonView가 없는 경우 직접 게임 시작
-                StartGameDirectly(sceneName);
-            }
-        }
-
-        private IEnumerator StartGameAfterRPC(string sceneName)
-        {
-            // RPC 호출이 완료될 때까지 잠시 대기
-            yield return new WaitForSeconds(0.1f);
-            
-            StartGameDirectly(sceneName);
-        }
-
-        private void StartGameDirectly(string sceneName)
-        {
-            if (Manager.game != null)
-            {
-                int maxGameCount = 1;
-
-                if (selectedGameIndex == 6) // 4G 릴레이
-                {
-                    sceneName = null;
-                    maxGameCount = 4;
-                }
-                else if (selectedGameIndex == 7) // 6G 릴레이
-                {
-                    sceneName = null;
-                    maxGameCount = 6;
-                }
-
-                Manager.game.GameStart(sceneName, maxGameCount);
-            }
-            else
-            {
-                PhotonNetwork.LoadLevel(sceneName);
+                UIManager.Instance.StartGameSceneLoad(sceneName, selectedGameIndex);
             }
         }
 
