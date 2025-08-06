@@ -31,13 +31,16 @@ namespace KSH
         
         [SerializeField] private RectTransform titleRect;
         [SerializeField] private RectTransform winnerRect;
+        [SerializeField] private RectTransform teamRect;
         
+        public event Action OnCountDownStart;
         public event Action OnCountDownEnd;
         public static UIManager Instance;
         private Vector2 startPos;
         private Vector2 targetPos;
         private bool isTitle = false;
         private bool isWin = false;
+        private bool isCountDown = false;
         
         private void Awake()
         {
@@ -63,7 +66,7 @@ namespace KSH
                 GameManager.Instance.OnGameEnd += TileCheck;
             }
 
-            OnCountDownEnd += TeamNicknameUpdate;
+            OnCountDownStart += TeamNicknameUpdate;
             
             winnerPanel.SetActive(false);
             redTeamPanel.gameObject.SetActive(false);
@@ -94,7 +97,7 @@ namespace KSH
                 GameManager.Instance.OnGameStart -= TimerUIUpdate;
                 GameManager.Instance.OnGameEnd -= TileCheck;
             }
-            OnCountDownEnd -= TeamNicknameUpdate;
+            OnCountDownStart -= TeamNicknameUpdate;
         }
 
         private void TileUIUpdate(int red, int blue) //팀 점수 UI 업데이트
@@ -153,23 +156,34 @@ namespace KSH
         {
             yield return new WaitForSeconds(5f);
             titleRect.gameObject.SetActive(false);
+            redTeamPanel.gameObject.SetActive(true);
+            blueTeamPanel.gameObject.SetActive(true);
+            vsImage.gameObject.SetActive(true);
+            TeamUIEffect();
+            OnCountDownStart?.Invoke();
+            yield return new WaitForSeconds(1f);
             countDownPanal.SetActive(true);
             
             for (int i = 3; i >= 0; i--)
             {
                 countDownText.text = i.ToString();
+                if (!isCountDown)
+                {
+                    Manager.Audio.SfxPlay("KSH_CountDown");
+                    isCountDown = true;
+                }
+                isCountDown = false;
                 yield return new WaitForSeconds(1f);
             }
             countDownText.text = "GO!";
             yield return new WaitForSeconds(1f);
             
             countDownPanal.SetActive(false);
-            redTeamPanel.gameObject.SetActive(true);
-            blueTeamPanel.gameObject.SetActive(true);
             redText.gameObject.SetActive(true);
             blueText.gameObject.SetActive(true);
             vsImage.gameObject.SetActive(true);
             OnCountDownEnd?.Invoke();
+            
         }
 
         private void TeamNicknameUpdate()
@@ -195,6 +209,12 @@ namespace KSH
 
             seq.Append(rect.DOAnchorPosY(targetPos.y, 1.2f))
                 .SetEase(Ease.OutBounce);
+        }
+
+        private void TeamUIEffect()
+        {
+            teamRect.anchoredPosition = new Vector2(-1920, 0);
+            teamRect.DOAnchorPosX(0, 1.2f).SetEase(Ease.OutCubic);
         }
     }
 }
