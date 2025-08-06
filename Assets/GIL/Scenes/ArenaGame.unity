@@ -2818,6 +2818,7 @@ GameObject:
   - component: {fileID: 689141038}
   - component: {fileID: 689141036}
   - component: {fileID: 689141035}
+  - component: {fileID: 689141040}
   m_Layer: 0
   m_Name: KillZone
   m_TagString: Untagged
@@ -2839,6 +2840,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shootSpeed: 150
   shootTime: 1
+  effectPrefab: {fileID: 358637981425055526, guid: d0bf22f7c68f1c84199f2e5505488129,
+    type: 3}
+  soundEffectName: ArenaKillZoneSound
 --- !u!65 &689141036
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2877,12 +2881,34 @@ Transform:
   m_GameObject: {fileID: 689141034}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4.84, z: 0}
+  m_LocalPosition: {x: 0, y: -3.63, z: 0}
   m_LocalScale: {x: 35, y: 0.1, z: 35}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &689141040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 689141034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 3
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
 --- !u!1 &698575447
 GameObject:
   m_ObjectHideFlags: 0
@@ -4974,17 +5000,17 @@ PrefabInstance:
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 9.1083
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 30
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 30
+      value: 13.754701
       objectReference: {fileID: 0}
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
@@ -4999,7 +5025,7 @@ PrefabInstance:
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -4.64
+      value: 30.1
       objectReference: {fileID: 0}
     - target: {fileID: 3768924264839377000, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
@@ -5033,6 +5059,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8743355301617260299, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.4509
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743355301617260299, guid: 4324507d163af4f849523295e146c7bf,
+        type: 3}
       propertyPath: m_LocalPosition.x
       value: -15.012126
       objectReference: {fileID: 0}
@@ -5044,7 +5075,7 @@ PrefabInstance:
     - target: {fileID: 8743355301617260299, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.8941154
+      value: -29.8
       objectReference: {fileID: 0}
     - target: {fileID: 8743355301617260299, guid: 4324507d163af4f849523295e146c7bf,
         type: 3}
@@ -7603,17 +7634,17 @@ PrefabInstance:
     - target: {fileID: 6104485583933804443, guid: 1b7ac749de9164278ab354e436c4445b,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 124.999985
+      value: 158.9165
       objectReference: {fileID: 0}
     - target: {fileID: 6104485583933804443, guid: 1b7ac749de9164278ab354e436c4445b,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 31.25
+      value: 39.729134
       objectReference: {fileID: 0}
     - target: {fileID: 6104485583933804443, guid: 1b7ac749de9164278ab354e436c4445b,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 124.999985
+      value: 158.9165
       objectReference: {fileID: 0}
     - target: {fileID: 6104485583933804443, guid: 1b7ac749de9164278ab354e436c4445b,
         type: 3}
