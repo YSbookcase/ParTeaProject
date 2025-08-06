@@ -142,7 +142,7 @@ namespace KSH
             UIEffect(winnerRect);
             if(!isWin)
             {
-                Manager.Audio.SfxPlay("KSH_Win");
+                Manager.Audio.BgmPlay("KSH_Win");
                 isWin = true;
             }
         }
@@ -164,7 +164,7 @@ namespace KSH
             yield return new WaitForSeconds(1f);
             countDownPanal.SetActive(true);
             
-            for (int i = 3; i >= 0; i--)
+            for (int i = 3; i >= 1; i--)
             {
                 countDownText.text = i.ToString();
                 if (!isCountDown)
@@ -176,6 +176,7 @@ namespace KSH
                 yield return new WaitForSeconds(1f);
             }
             countDownText.text = "GO!";
+            Manager.Audio.SfxPlay("KSH_CountDown");
             yield return new WaitForSeconds(1f);
             
             countDownPanal.SetActive(false);
@@ -214,7 +215,7 @@ namespace KSH
         private void TeamUIEffect()
         {
             teamRect.anchoredPosition = new Vector2(-1920, 0);
-            teamRect.DOAnchorPosX(0, 1.2f).SetEase(Ease.OutCubic);
+            teamRect.DOAnchorPosX(0, 1.5f).SetEase(Ease.OutCubic);
         }
     }
 }

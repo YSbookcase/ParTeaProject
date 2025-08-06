@@ -100,7 +100,7 @@ namespace KSH
             isGameStart = false;
             OnGameEnd?.Invoke();
             PlayerRank();
-            StartCoroutine(ScoreDelay(5f));
+            StartCoroutine(ScoreDelay(4f));
         }
 
         private IEnumerator ScoreDelay(float delay)
