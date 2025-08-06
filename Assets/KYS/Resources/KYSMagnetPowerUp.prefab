@@ -183,7 +183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
-  itemType: 0
+  itemType: 4
   pointValue: 1
   effectDuration: 5
   magnetRadius: 5
@@ -224,9 +224,9 @@ MonoBehaviour:
   returnDelay: 3
   mobileReturnDelay: 5
   collectParticle: {fileID: 0}
-  collectSoundName: SFX_NormalItem
-  itemConfiguration: {fileID: 0}
-  itemType: 0
+  collectSoundName: SFX_MagnetItem
+  itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
+  itemType: 4
 --- !u!114 &-1891285017182407933
 MonoBehaviour:
   m_ObjectHideFlags: 0
