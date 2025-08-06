@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clipName: ArenaBGM
   clip: {fileID: 8300000, guid: f9a852ae02c214ff4a7f2430611a148f, type: 3}
-  volume: 0.4
+  volume: 1
