@@ -1,16 +1,25 @@
+using System;
 using System.Collections;
 using Photon.Pun;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace GIL.Scripts
 {
-    public class ArenaKillZone : MonoBehaviour
+    public class ArenaKillZone : MonoBehaviourPun
     {
         [SerializeField] private float shootSpeed = 100f;
         [SerializeField] private float shootTime = 1f;
         [SerializeField] private GameObject effectPrefab;
         [SerializeField] private string  soundEffectName;
+
+        private PhotonView _view;
         // Start is called before the first frame update
+        private void Start()
+        {
+            _view = GetComponent<PhotonView>();
+        }
+
         private void OnCollisionEnter(Collision other)
         {
             StartCoroutine(DestroyPlayer(other));
@@ -38,7 +47,7 @@ namespace GIL.Scripts
                         Manager.Audio.SfxPlay(soundEffectName);
                     }
                     
-                    otherPhotonView.RPC(nameof(ArenaKillzoneEffect), RpcTarget.All, hitPos);
+                    _view.RPC(nameof(ArenaKillZoneEffect), RpcTarget.All, hitPos);
                 }
             }
 
@@ -56,7 +65,7 @@ namespace GIL.Scripts
         }
         
         [PunRPC]
-        public void ArenaKillzoneEffect(Vector3 pos)
+        public void ArenaKillZoneEffect(Vector3 pos)
         {
             Instantiate(effectPrefab, pos, Quaternion.identity);
             Manager.Audio.SfxPlay(soundEffectName);
