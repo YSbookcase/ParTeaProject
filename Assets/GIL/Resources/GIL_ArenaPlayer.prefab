@@ -98,7 +98,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   outlineMode: 0
   outlineColor: {r: 1, g: 0, b: 0, a: 1}
-  outlineWidth: 8
+  outlineWidth: 7
   precomputeOutline: 0
   bakeKeys: []
   bakeValues: []
@@ -256,7 +256,7 @@ MonoBehaviour:
   maxSpeed: 50
   rotTorque: 15
   drag: 0.95
-  pushForce: 1.5
+  pushForce: 1.2
   effectPrefab: {fileID: 2965222256817593503, guid: 304b90dd259c18143a73d201d3898d02,
     type: 3}
   soundEffectName: ArenaHitSound

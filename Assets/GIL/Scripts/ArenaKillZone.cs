@@ -6,17 +6,11 @@ namespace GIL.Scripts
 {
     public class ArenaKillZone : MonoBehaviour
     {
-        private BoxCollider _collider;
-
         [SerializeField] private float shootSpeed = 100f;
         [SerializeField] private float shootTime = 1f;
         [SerializeField] private GameObject effectPrefab;
         [SerializeField] private string  soundEffectName;
         // Start is called before the first frame update
-        private void Start()
-        {
-            _collider = GetComponent<BoxCollider>();
-        }
         private void OnCollisionEnter(Collision other)
         {
             StartCoroutine(DestroyPlayer(other));
