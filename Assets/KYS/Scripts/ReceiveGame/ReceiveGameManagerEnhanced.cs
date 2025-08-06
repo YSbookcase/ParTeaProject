@@ -74,7 +74,7 @@ namespace KYS
         [SerializeField] private string receiveGameBgmName = "BGM_ReceiveGame"; // ReceiveGame BGM 이름
         
         [Header("//Debug Settings")]
-        [SerializeField] private bool autoStartCountdown = true; // 테스트용: 자동 카운트다운 시작
+        [SerializeField] private bool autoStartCountdown = true; // 테스트용: 자동 카운트다운 시작 (플레이어 준비 상태 확인 후 시작)
         #endregion
 
         #region Private Fields
@@ -121,7 +121,6 @@ namespace KYS
             InitializePhotonView();
             LoadResources();
             InitializeGameState();
-            StartGameIfMasterClient();
             
             // 씬 로드 시 기존 BGM 정지 (게임 시작 전까지는 BGM 없음)
             if (Manager.Audio != null)
@@ -134,10 +133,15 @@ namespace KYS
                 //Debug.LogError("[ReceiveGameManagerEnhanced] AudioManager가 null입니다!");
             }
             
-            // 테스트용: 자동 카운트다운 시작
+            // 자동 카운트다운이 활성화된 경우에만 실행
             if (autoStartCountdown && PhotonNetwork.IsMasterClient)
             {
                 StartCoroutine(AutoStartCountdownDelayed());
+            }
+            else
+            {
+                // 자동 카운트다운이 비활성화된 경우, 모든 플레이어가 준비되었는지 확인
+                StartCoroutine(CheckPlayersReadyAfterDelay());
             }
         }
         
@@ -151,6 +155,16 @@ namespace KYS
             {
                 StartCountdown();
             }
+        }
+        
+        // 플레이어 준비 상태 확인 후 카운트다운 시작
+        private IEnumerator CheckPlayersReadyAfterDelay()
+        {
+            // 씬 로드 후 잠시 대기
+            yield return new WaitForSeconds(1f);
+            
+            // 모든 플레이어가 준비되었는지 확인
+            CheckAllPlayersReady();
         }
         
         // PowerUp 확률 검증 메서드
@@ -1622,56 +1636,54 @@ namespace KYS
                 UpdateUI();
             }
             
-            // 플레이어 준비 상태 체크
-            if (changedProps.ContainsKey("Ready"))
-            {
-                bool isReady = (bool)changedProps["Ready"];
-                
-                // 모든 플레이어가 준비되었는지 확인
-                CheckAllPlayersReady();
-            }
-            
-            // 기존 로드 완료 체크
+            // JTW GameManager의 isLoaded 시스템을 사용하여 모든 플레이어가 씬을 로드했는지 확인
             if (changedProps.ContainsKey("isLoaded"))
             {
-                // 모든 플레이어가 로드되었는지 확인
-                bool allPlayersLoaded = true;
-                foreach (Player player in PhotonNetwork.PlayerList)
-                {
-                    if (!player.CustomProperties.ContainsKey("isLoaded") || !(bool)player.CustomProperties["isLoaded"])
-                    {
-                        allPlayersLoaded = false;
-                        break;
-                    }
-                }
+                Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {targetPlayer.NickName}의 isLoaded 상태 변경: {changedProps["isLoaded"]}");
                 
-                if (allPlayersLoaded && PhotonNetwork.IsMasterClient && !isGameStarted)
-                {
-                    InitializeGame();
-                }
+                // 모든 플레이어가 로드되었는지 확인하고 카운트다운 시작
+                CheckAllPlayersReady();
             }
         }
         
         private void CheckAllPlayersReady()
         {
-            if (PhotonNetwork.PlayerList.Length < 2) 
+            // 최소 1명 이상이면 게임 시작 가능
+            if (PhotonNetwork.PlayerList.Length < 1) 
             {
-                return; // 최소 2명 필요
+                Debug.Log("[ReceiveGameManagerEnhanced] 플레이어가 없습니다. 카운트다운을 시작하지 않습니다.");
+                return;
             }
             
-            bool allReady = true;
-            foreach (Player player in PhotonNetwork.PlayerList)
+            // JTW GameManager의 isAllPlayerLoaded() 메서드를 사용하여 모든 플레이어가 씬을 로드했는지 확인
+            bool allPlayersLoaded = false;
+            if (Manager.game != null)
             {
-                bool isPlayerReady = PhotonManager.Instance.GetPlayerReady(player);
-                
-                if (!isPlayerReady)
+                allPlayersLoaded = Manager.game.isAllPlayerLoaded();
+                Debug.Log($"[ReceiveGameManagerEnhanced] JTW GameManager - 모든 플레이어 로드 상태: {allPlayersLoaded}");
+            }
+            else
+            {
+                Debug.LogWarning("[ReceiveGameManagerEnhanced] JTW GameManager가 null입니다. 기본 준비 상태 확인을 사용합니다.");
+                // JTW GameManager가 없는 경우 기본 준비 상태 확인
+                allPlayersLoaded = true;
+                foreach (Player player in PhotonNetwork.PlayerList)
                 {
-                    allReady = false;
+                    bool isPlayerReady = PhotonManager.Instance.GetPlayerReady(player);
+                    Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {player.NickName} 준비 상태: {isPlayerReady}");
+                    
+                    if (!isPlayerReady)
+                    {
+                        allPlayersLoaded = false;
+                    }
                 }
             }
             
-            if (allReady && !isGameStarted && PhotonNetwork.IsMasterClient)
+            Debug.Log($"[ReceiveGameManagerEnhanced] 모든 플레이어 준비 상태: {allPlayersLoaded}, 게임 시작됨: {isGameStarted}, 마스터 클라이언트: {PhotonNetwork.IsMasterClient}");
+            
+            if (allPlayersLoaded && !isGameStarted && PhotonNetwork.IsMasterClient)
             {
+                Debug.Log("[ReceiveGameManagerEnhanced] 모든 플레이어가 준비되었습니다. 카운트다운을 시작합니다.");
                 StartCountdown();
             }
         }
@@ -1761,7 +1773,7 @@ namespace KYS
             // 카운트다운 완료 후 게임 시작
             if (PhotonNetwork.IsMasterClient)
             {
-                StartGame();
+                InitializeGame();
             }
             
             isCountdownActive = false;
