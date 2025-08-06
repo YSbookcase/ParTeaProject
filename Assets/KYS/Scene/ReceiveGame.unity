@@ -2753,10 +2753,10 @@ MonoBehaviour:
   - {fileID: 1409232532}
   - {fileID: 438815105}
   - {fileID: 212602705}
-  itemSpawnInterval: 1
-  powerUpSpawnInterval: 3
+  itemSpawnInterval: 2
+  powerUpSpawnInterval: 4
   obstacleSpawnInterval: 2
-  itemSpawnHeight: 30
+  itemSpawnHeight: 2
   itemDropSpeed: 10
   obstacleDropSpeed: 2
   bonusItemChance: 0.3

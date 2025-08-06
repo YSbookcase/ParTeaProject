@@ -40,7 +40,7 @@ namespace KYS
         [SerializeField] private float itemSpawnInterval = 2f;
         [SerializeField] private float powerUpSpawnInterval = 10f;
         [SerializeField] private float obstacleSpawnInterval = 5f;
-        [SerializeField] private float itemSpawnHeight = 5f; // 아이템 스폰 높이 (하늘에서 떨어지는 효과)
+        [SerializeField] private float itemSpawnHeight = 2f; // 아이템 스폰 높이 (하늘에서 떨어지는 효과)
         [SerializeField] private float itemDropSpeed = 2f; // 아이템 떨어지는 속도
         [SerializeField] private float obstacleDropSpeed = 2f; // 장애물 떨어지는 속도
         [SerializeField] private float bonusItemChance = 0.3f; // 보너스 아이템 생성 확률 (0.0 ~ 1.0)
@@ -81,6 +81,9 @@ namespace KYS
         private List<GameObject> spawnedObstacles = new List<GameObject>();
         private List<GameObject> spawnedPowerUps = new List<GameObject>();
         private List<int> alivePlayers = new List<int>();
+        
+        // 코루틴 추적을 위한 딕셔너리 추가
+        private Dictionary<GameObject, List<Coroutine>> objectCoroutines = new Dictionary<GameObject, List<Coroutine>>();
         
         // 새로운 풀 시스템 참조
         private ItemPoolManager itemPoolManager;
@@ -420,6 +423,77 @@ namespace KYS
         }
         #endregion
 
+        #region Coroutine Management
+        /// <summary>
+        /// 오브젝트에 대한 코루틴을 추적에 추가
+        /// </summary>
+        private void TrackCoroutine(GameObject obj, Coroutine coroutine)
+        {
+            if (obj == null || coroutine == null) return;
+            
+            if (!objectCoroutines.ContainsKey(obj))
+            {
+                objectCoroutines[obj] = new List<Coroutine>();
+            }
+            objectCoroutines[obj].Add(coroutine);
+        }
+        
+        /// <summary>
+        /// 오브젝트의 모든 코루틴을 중지하고 추적에서 제거
+        /// </summary>
+        private void StopAndRemoveCoroutines(GameObject obj)
+        {
+            if (obj == null) return;
+            
+            // 이 매니저에서 시작한 코루틴들 중지
+            if (objectCoroutines.ContainsKey(obj))
+            {
+                foreach (Coroutine coroutine in objectCoroutines[obj])
+                {
+                    if (coroutine != null)
+                    {
+                        StopCoroutine(coroutine);
+                    }
+                }
+                objectCoroutines.Remove(obj);
+            }
+            
+            // 컴포넌트의 코루틴도 중지
+            CollectibleItem collectibleItem = obj.GetComponent<CollectibleItem>();
+            if (collectibleItem != null)
+            {
+                collectibleItem.StopAllCoroutines();
+            }
+            
+            EnhancedItemController enhancedController = obj.GetComponent<EnhancedItemController>();
+            if (enhancedController != null)
+            {
+                enhancedController.StopAllCoroutines();
+            }
+        }
+        
+        /// <summary>
+        /// 오브젝트를 안전하게 제거 (코루틴 중지 후 제거)
+        /// </summary>
+        private void SafeDestroyObject(GameObject obj, bool usePhotonDestroy = true)
+        {
+            if (obj == null) return;
+            
+            // 코루틴 중지
+            StopAndRemoveCoroutines(obj);
+            
+            // 네트워크 오브젝트인 경우 Master Client만 제거
+            if (usePhotonDestroy && PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.Destroy(obj);
+            }
+            else if (!usePhotonDestroy)
+            {
+                Destroy(obj);
+            }
+        }
+        #endregion
+
         #region Item Spawning
         private IEnumerator SpawnItemsRoutine()
         {
@@ -624,10 +698,14 @@ namespace KYS
                     item = pooledItem.gameObject;
                     spawnedItems.Add(item);
                     
+                    // 풀에서 가져온 아이템에도 컴포넌트 설정 적용
+                    SetupItemComponents(item, selectedType);
+                    
                     //Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
                     
                     // 아이템이 떨어지는 효과 시작
-                    StartCoroutine(DropItemToGround(item, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
+                    TrackCoroutine(item, dropCoroutine);
                 }
                 else
                 {
@@ -645,8 +723,9 @@ namespace KYS
                 
                 //Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
                 
-                // 아이템이 떨어지는 효과 시작
-                StartCoroutine(DropItemToGround(item, targetPosition));
+                                    // 아이템이 떨어지는 효과 시작
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
+                    TrackCoroutine(item, dropCoroutine);
             }
         }
         
@@ -676,13 +755,18 @@ namespace KYS
                     powerUp = pooledPowerUp.gameObject;
                     spawnedPowerUps.Add(powerUp);
                     
+                    // 풀에서 가져온 파워업에도 컴포넌트 설정 적용
+                    SetupItemComponents(powerUp, selectedType);
+                    
                     //Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
                     
                     // 파워업이 떨어지는 효과 시작
-                    StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    TrackCoroutine(powerUp, dropCoroutine);
                     
                     // 60초 후 자동 제거
-                    StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                    TrackCoroutine(powerUp, destroyCoroutine);
                 }
                 else
                 {
@@ -700,11 +784,13 @@ namespace KYS
                 
                 //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
                 
-                // 파워업이 떨어지는 효과 시작
-                StartCoroutine(DropItemToGround(powerUp, targetPosition));
-                
-                // 60초 후 자동 제거
-                StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                                    // 파워업이 떨어지는 효과 시작
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    TrackCoroutine(powerUp, dropCoroutine);
+                    
+                    // 60초 후 자동 제거
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyPowerUpAfterTime(powerUp, 60f));
+                    TrackCoroutine(powerUp, destroyCoroutine);
             }
         }
         
@@ -735,10 +821,12 @@ namespace KYS
                     //Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {spawnPosition} -> {targetPosition}");
                     
                     // 장애물이 떨어지는 효과 시작
-                    StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                    TrackCoroutine(obstacle, dropCoroutine);
                     
                     // 8초 후 자동 제거
-                    StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                    TrackCoroutine(obstacle, destroyCoroutine);
                 }
             }
             else if (obstaclePrefab != null)
@@ -763,11 +851,13 @@ namespace KYS
                 
                 //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {targetPosition}, ObstacleController 추가됨");
                 
-                // 장애물이 떨어지는 효과 시작
-                StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
-                
-                // 8초 후 자동 제거
-                StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                                    // 장애물이 떨어지는 효과 시작
+                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                    TrackCoroutine(obstacle, dropCoroutine);
+                    
+                    // 8초 후 자동 제거
+                    Coroutine destroyCoroutine = StartCoroutine(DestroyObstacleAfterTime(obstacle, 8f));
+                    TrackCoroutine(obstacle, destroyCoroutine);
             }
         }
         
@@ -791,7 +881,7 @@ namespace KYS
             // (시각적 설정, 게임플레이 속성, 마그네틱 힘 값 등 모든 설정이 포함됨)
             enhancedController.SetItemType(itemType);
             
-            //Debug.Log($"[SetupItemComponents] {itemType} 아이템 설정 완료 - EnhancedItemController 사용");
+            Debug.Log($"[SetupItemComponents] {itemType} 아이템 설정 완료 - EnhancedItemController 사용: {item.name}");
         }
         
         private void SetupItemVisual(GameObject item, ItemType itemType)
@@ -1125,23 +1215,18 @@ namespace KYS
                     CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
                     if (powerUpItem != null)
                     {
+                        StopAndRemoveCoroutines(powerUp);
                         itemPoolManager.ReturnPowerUp(powerUpItem);
                         //Debug.Log("[ReceiveGameManagerEnhanced] 파워업을 풀로 반환");
                     }
                     else
                     {
-                        if (PhotonNetwork.IsMasterClient)
-                        {
-                            PhotonNetwork.Destroy(powerUp);
-                        }
+                        SafeDestroyObject(powerUp, true);
                     }
                 }
                 else
                 {
-                    if (PhotonNetwork.IsMasterClient)
-                    {
-                        PhotonNetwork.Destroy(powerUp);
-                    }
+                    SafeDestroyObject(powerUp, true);
                 }
             }
         }
@@ -1160,17 +1245,18 @@ namespace KYS
                     ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
                     if (obstacleController != null)
                     {
+                        StopAndRemoveCoroutines(obstacle);
                         itemPoolManager.ReturnObstacle(obstacleController);
                         ////Debug.Log("[ReceiveGameManagerEnhanced] 장애물을 풀로 반환");
                     }
                     else
                     {
-                        Destroy(obstacle);
+                        SafeDestroyObject(obstacle, false);
                     }
                 }
                 else
                 {
-                    Destroy(obstacle);
+                    SafeDestroyObject(obstacle, false);
                 }
             }
         }
@@ -1182,9 +1268,9 @@ namespace KYS
             // 모든 아이템 제거
             foreach (GameObject item in spawnedItems)
             {
-                if (item != null && PhotonNetwork.IsMasterClient)
+                if (item != null)
                 {
-                    PhotonNetwork.Destroy(item);
+                    SafeDestroyObject(item, true);
                 }
             }
             spawnedItems.Clear();
@@ -1200,16 +1286,17 @@ namespace KYS
                         CollectibleItem powerUpItem = powerUp.GetComponent<CollectibleItem>();
                         if (powerUpItem != null)
                         {
+                            StopAndRemoveCoroutines(powerUp);
                             itemPoolManager.ReturnPowerUp(powerUpItem);
                         }
-                        else if (PhotonNetwork.IsMasterClient)
+                        else
                         {
-                            PhotonNetwork.Destroy(powerUp);
+                            SafeDestroyObject(powerUp, true);
                         }
                     }
-                    else if (PhotonNetwork.IsMasterClient)
+                    else
                     {
-                        PhotonNetwork.Destroy(powerUp);
+                        SafeDestroyObject(powerUp, true);
                     }
                 }
             }
@@ -1226,16 +1313,17 @@ namespace KYS
                         ObstacleController obstacleController = obstacle.GetComponent<ObstacleController>();
                         if (obstacleController != null)
                         {
+                            StopAndRemoveCoroutines(obstacle);
                             itemPoolManager.ReturnObstacle(obstacleController);
                         }
-                        else if (PhotonNetwork.IsMasterClient)
+                        else
                         {
-                            PhotonNetwork.Destroy(obstacle);
+                            SafeDestroyObject(obstacle, false);
                         }
                     }
-                    else if (PhotonNetwork.IsMasterClient)
+                    else
                     {
-                        PhotonNetwork.Destroy(obstacle);
+                        SafeDestroyObject(obstacle, false);
                     }
                 }
             }
@@ -1586,6 +1674,23 @@ namespace KYS
         {
             // 스폰 코루틴들을 명시적으로 중지
             StopAllSpawningCoroutines();
+            
+            // 카운트다운 코루틴 중지
+            if (countdownCoroutine != null)
+            {
+                StopCoroutine(countdownCoroutine);
+                countdownCoroutine = null;
+            }
+            
+            // 모든 오브젝트의 코루틴 중지
+            foreach (var kvp in objectCoroutines)
+            {
+                if (kvp.Key != null)
+                {
+                    StopAndRemoveCoroutines(kvp.Key);
+                }
+            }
+            objectCoroutines.Clear();
             
             // 게임 매니저가 파괴될 때 풀 정리
             if (itemPoolManager != null)

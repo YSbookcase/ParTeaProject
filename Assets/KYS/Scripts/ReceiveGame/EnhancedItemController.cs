@@ -425,8 +425,28 @@ namespace KYS
         
         public float GetMagnetForce()
         {
-            //Debug.Log($"[EnhancedItemController] GetMagnetForce 호출 - 현재 힘 값: {magnetForce}, 아이템 타입: {itemType}");
             return magnetForce;
+        }
+        
+        /// <summary>
+        /// 모든 코루틴을 중지하고 정리
+        /// </summary>
+        public new void StopAllCoroutines()
+        {
+            if (bobCoroutine != null)
+            {
+                StopCoroutine(bobCoroutine);
+                bobCoroutine = null;
+            }
+            
+            // 다른 모든 코루틴도 중지
+            base.StopAllCoroutines();
+        }
+        
+        private void OnDestroy()
+        {
+            // 오브젝트가 파괴될 때 모든 코루틴 중지
+            StopAllCoroutines();
         }
         
         // 아이템 수집 효과음 재생
@@ -438,11 +458,11 @@ namespace KYS
                 if (config != null && !string.IsNullOrEmpty(config.collectSoundName) && Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay(config.collectSoundName, transform);
-                    ////Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
+                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
                 }
                 else
                 {
-                    //Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다.");
+                    Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다. AudioManager: {Manager.Audio}");
                 }
             }
             else
@@ -451,11 +471,11 @@ namespace KYS
                 if (Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay("SFX_NormalItem", transform);
-                    //Debug.Log($"[EnhancedItemController] {itemType} 기본 사운드 재생: SFX_NormalItem");
+                    Debug.Log($"[EnhancedItemController] {itemType} 기본 사운드 재생: SFX_NormalItem");
                 }
                 else
                 {
-                    //Debug.LogWarning($"[EnhancedItemController] AudioManager가 null입니다.");
+                    Debug.LogWarning($"[EnhancedItemController] AudioManager가 null입니다.");
                 }
             }
         }

@@ -323,19 +323,33 @@ namespace KYS
         {
             itemConfiguration = config;
             
-            if (config != null)
+            // 설정이 변경되면 시각적 요소 업데이트
+            if (itemRenderer != null && itemConfiguration != null)
             {
-                // 현재 아이템 타입에 맞는 collectSoundName 업데이트
-                ItemConfig currentConfig = config.GetItemConfig(itemType);
-                if (currentConfig != null && !string.IsNullOrEmpty(currentConfig.collectSoundName))
-                {
-                    collectSoundName = currentConfig.collectSoundName;
-                }
-                else
-                {
-                    //Debug.LogWarning($"[CollectibleItem] {itemType}에 대한 collectSoundName을 찾을 수 없습니다.");
-                }
+                // 색상 설정은 EnhancedItemController에서 처리됨
+                // 여기서는 기본 색상만 유지
             }
+        }
+        
+        /// <summary>
+        /// 모든 코루틴을 중지하고 정리
+        /// </summary>
+        public new void StopAllCoroutines()
+        {
+            if (returnCoroutine != null)
+            {
+                StopCoroutine(returnCoroutine);
+                returnCoroutine = null;
+            }
+            
+            // ItemAnimation 코루틴도 중지 (MonoBehaviour의 StopAllCoroutines 호출)
+            base.StopAllCoroutines();
+        }
+        
+        private void OnDestroy()
+        {
+            // 오브젝트가 파괴될 때 모든 코루틴 중지
+            StopAllCoroutines();
         }
         
         private IEnumerator ReturnToPoolDelayed(float delay)
