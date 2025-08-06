@@ -468,6 +468,11 @@ namespace KYS
             isGameStarting = true; // 모든 클라이언트에서 게임 시작 플래그 설정
             Debug.Log($"[RoomPopUp] 게임 시작 - BGM 중지 (RPC 호출됨) - isGameStarting: {isGameStarting}");
             
+            // 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시
+            UIManager.Instance.CleanAllUI();
+            UIManager.Instance.PopUp.ShowLoadingBlocker();
+            Debug.Log("[RoomPopUp] 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시 완료");
+            
             if (Manager.Audio != null)
             {
                 Manager.Audio.BgmPlay(null, 0.5f); // BGM 중지
@@ -717,11 +722,7 @@ namespace KYS
                 photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
             }
 
-            // UI 정리
-            UIManager.Instance.CleanAllUI();
-            
-            // 로딩 블로커 표시
-            UIManager.Instance.PopUp.ShowLoadingBlocker();
+            // UI 정리와 로딩 블로커 표시는 RPC에서 처리하므로 여기서는 제거
 
             if (Manager.game != null)
             {
