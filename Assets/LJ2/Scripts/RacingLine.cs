@@ -35,6 +35,7 @@ public class RacingLine : MonoBehaviour
             {
                 if (photonView != null && isGoalLine)
                 {
+                    controller.StopRacingSound();
                     RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.MasterClient, photonView.Owner.ActorNumber);
                 }
             }
@@ -51,7 +52,6 @@ public class RacingLine : MonoBehaviour
             if(controller.linePassed > havePassLine && photonView != null && isGoalLine) 
             {
                 controller.SetControllable(false);
-                controller.StopRacingSound();
             }
         }
     }

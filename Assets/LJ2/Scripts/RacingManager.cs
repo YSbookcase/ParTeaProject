@@ -117,7 +117,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         if (racingPlayers.Count == 0)
         {
-            StopAllCoroutines(); // 모든 코루틴 중지
+            StopCoroutine(racingCountDown); 
             managerView.RPC(nameof(RacingFinish), RpcTarget.All);
         }
     }
