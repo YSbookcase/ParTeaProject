@@ -19,20 +19,25 @@ namespace JTW_JumpGame
         [SerializeField] private List<Transform> obstacleRightSpawnPoints;
 
         private GameObject localPlayer;
+        private GameObject obstacle;
 
         private List<int> alivePlayers = new List<int>();
         private List<JumpScorePanel> jumpScorePanels = new List<JumpScorePanel>();
 
         private Vector3 playerSpawnPoint = new Vector3(-1f, 6f, 0);
-        private bool isGameStarted;
+        private float obstacleSpeed;
 
-        private bool isLeft;
+        private double startTime;
+        private bool isGameStarted;
 
         [PunRPC]
         private void JumpGameStart(PhotonMessageInfo info)
         { 
             if (isGameStarted) return;
             isGameStarted = true;
+
+            obstacleSpeed = 3f;
+
             Manager.Audio.BgmPlay("BGM_JumpGame");
 
             foreach(Player player in PhotonNetwork.PlayerList)
@@ -74,80 +79,90 @@ namespace JTW_JumpGame
 
             Debug.Log("점프 게임 시작!");
 
-            float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
+            double lag = (PhotonNetwork.Time - info.SentServerTime);
 
-            StartCoroutine(JumpGameCoroutine(lag));
+            if(lag < 0)
+            {
+                lag *= -1;
+            }
+
+            startTime = PhotonNetwork.Time;
+
+            if (!PhotonNetwork.IsMasterClient) return;
+
+            StartCoroutine(JumpGameCoroutine(false));
         }
 
-        private IEnumerator JumpGameCoroutine(float lag)
+        private IEnumerator JumpGameCoroutine(bool isStarted)
         {
-            // 지연 보상
-            float startDelay = 2f - lag;
+            float startDelay = 0f;
+
+            if (!isStarted)
+            {
+                startDelay = 2f;
+            }
 
             yield return new WaitForSeconds(startDelay);
 
-            float obstacleSpeed = 3f;
-
-            float timer = 0;
-
-            while (timer <= 60)
+            while (PhotonNetwork.Time - startTime <= 60)
             {
-                GameObject obstacle = null;
-
-                List<Transform> obstacleSpawnPoints = isLeft ? obstacleLeftSpawnPoints : obstacleRightSpawnPoints;
-                Vector3 direction = isLeft ? Vector3.right : Vector3.left;
-
-                foreach (Transform trans in obstacleSpawnPoints)
+                // Master가 변했을 경우 장애물이 사라질 때까지 기다린다.
+                while (true)
                 {
-                    obstacle = Instantiate(obstaclePrefab, trans.position, Quaternion.Euler(new Vector3(90, 0, 0)));
-                    obstacle.GetComponent<ObstacleHandler>().Init(direction, obstacleSpeed);
+                    if (obstacle == null) break;
+                    yield return null;
                 }
 
-                obstacleSpeed += 0.5f;
-
-                if (PhotonNetwork.IsMasterClient)
-                {
-                    bool result = Random.value < 0.5f;
-                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
-                }
+                bool result = Random.value < 0.5f;
+                photonView.RPC(nameof(SpawnObstacle_JumpGame), RpcTarget.All, result);
 
                 while (true)
                 {
                     if (obstacle == null) break;
-
-                    timer += Time.deltaTime;
                     yield return null;
                 }
 
-                if(localPlayer != null)
-                {
-                    PhotonNetwork.LocalPlayer.AddJumpGameScore(1);
-                }
-                else
-                {
-                    photonView.RPC("DeleteJumpGamePlayer", RpcTarget.All);
-                }
+                photonView.RPC(nameof(CheckJumpGamePlayerAlive), RpcTarget.All);
 
-                timer += 0.5f;
                 yield return new WaitForSeconds(0.5f);
 
-                if(PhotonNetwork.IsMasterClient && alivePlayers.Count <= 0)
+                if (alivePlayers.Count <= 0)
                 {
                     break;
                 }
             }
 
-            if (PhotonNetwork.IsMasterClient)
-            {
-                GameEnd();
-            }
-
+            GameEnd();
         }
 
         [PunRPC]
-        private void SetIsLeft(bool value)
+        private void SpawnObstacle_JumpGame(bool isLeft, PhotonMessageInfo info)
         {
-            isLeft = value;
+            float delay = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
+
+            List<Transform> obstacleSpawnPoints = isLeft ? obstacleLeftSpawnPoints : obstacleRightSpawnPoints;
+            Vector3 direction = isLeft ? Vector3.right : Vector3.left;
+
+            foreach (Transform trans in obstacleSpawnPoints)
+            {
+                obstacle = Instantiate(obstaclePrefab, trans.position + direction * delay * obstacleSpeed, Quaternion.Euler(new Vector3(90, 0, 0)));
+                obstacle.GetComponent<ObstacleHandler>().Init(direction, obstacleSpeed);
+            }
+
+            obstacleSpeed += 0.5f;
+        }
+
+        [PunRPC]
+        private void CheckJumpGamePlayerAlive()
+        {
+            if (localPlayer != null)
+            {
+                PhotonNetwork.LocalPlayer.AddJumpGameScore(1);
+            }
+            else
+            {
+                photonView.RPC("DeleteJumpGamePlayer", RpcTarget.All);
+            }
         }
 
         [PunRPC]
@@ -200,17 +215,14 @@ namespace JTW_JumpGame
 
             if (changedProps.ContainsKey("isLoaded"))
             {
-                if (Manager.game.isAllPlayerLoaded())
+                if (Manager.game.isAllPlayerLoaded() && !isGameStarted)
                 {
-                    bool result = Random.value < 0.5f;
-                    photonView.RPC(nameof(SetIsLeft), RpcTarget.All, result);
-
                     foreach (Player player in PhotonNetwork.PlayerList)
                     {
                         player.SetJumpGameScore(0);
                     }
 
-                    photonView.RPC("JumpGameStart", RpcTarget.AllViaServer);
+                    photonView.RPC("JumpGameStart", RpcTarget.All);
                 }
             }
         }
@@ -218,6 +230,13 @@ namespace JTW_JumpGame
         public override void OnPlayerLeftRoom(Player otherPlayer)
         {
             alivePlayers.Remove(otherPlayer.ActorNumber);
+        }
+
+        public override void OnMasterClientSwitched(Player newMasterClient)
+        {
+            if (!newMasterClient.IsLocal) return;
+
+            StartCoroutine(JumpGameCoroutine(true));
         }
     }
 }

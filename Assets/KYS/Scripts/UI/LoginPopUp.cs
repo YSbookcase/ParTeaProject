@@ -43,13 +43,13 @@ namespace KYS
 
         private void OnEnable()
         {
-            Debug.Log("[LoginPopUp] OnEnable 호출됨");
+            //Debug.Log("[LoginPopUp] OnEnable 호출됨");
             
             // Canvas 정보 확인
             Canvas canvas = GetComponentInParent<Canvas>();
             if (canvas != null)
             {
-                Debug.Log($"[LoginPopUp] Canvas 발견: {canvas.name}, 활성화: {canvas.gameObject.activeInHierarchy}, 렌더링 모드: {canvas.renderMode}");
+               //Debug.Log($"[LoginPopUp] Canvas 발견: {canvas.name}, 활성화: {canvas.gameObject.activeInHierarchy}, 렌더링 모드: {canvas.renderMode}");
             }
             else
             {
@@ -60,7 +60,7 @@ namespace KYS
             RectTransform rectTransform = GetComponent<RectTransform>();
             if (rectTransform != null)
             {
-                Debug.Log($"[LoginPopUp] RectTransform 크기: {rectTransform.sizeDelta}, 위치: {rectTransform.anchoredPosition}, 앵커: {rectTransform.anchorMin} ~ {rectTransform.anchorMax}");
+                //Debug.Log($"[LoginPopUp] RectTransform 크기: {rectTransform.sizeDelta}, 위치: {rectTransform.anchoredPosition}, 앵커: {rectTransform.anchorMin} ~ {rectTransform.anchorMax}");
             }
             
             // 패널이 활성화될 때마다 입력 필드 초기화
@@ -231,7 +231,7 @@ namespace KYS
             if (!string.IsNullOrEmpty(loginBgmName))
             {
                 Manager.Audio.BgmPlay(loginBgmName, 0f); // fadeDuration을 0으로 설정하여 즉시 재생
-                Debug.Log($"[LoginPopUp] 로그인 BGM 시작: {loginBgmName}");
+                //Debug.Log($"[LoginPopUp] 로그인 BGM 시작: {loginBgmName}");
             }
         }
 

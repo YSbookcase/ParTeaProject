@@ -32,7 +32,7 @@ namespace KYS
         private void Awake()
         {
             // 상속받은 싱글톤 패턴을 사용하므로 별도 구현 불필요
-            Debug.Log("[PhotonManager] Awake 완료 - 순수한 연결 관리자로 동작합니다.");
+            //Debug.Log("[PhotonManager] Awake 완료 - 순수한 연결 관리자로 동작합니다.");
         }
 
         private void Start()
@@ -450,12 +450,12 @@ namespace KYS
             // gameTime을 제외한 다른 속성들이 변경된 경우에만 로그 출력
             if (filteredProperties.Count > 0)
             {
-                Debug.Log($"[PhotonManager] 방 속성 변경 감지: {string.Join(", ", filteredProperties.Keys)}");
+                //Debug.Log($"[PhotonManager] 방 속성 변경 감지: {string.Join(", ", filteredProperties.Keys)}");
                 
                 // 각 변경된 속성의 값도 로깅 (gameTime 제외)
                 foreach (var kvp in filteredProperties)
                 {
-                    Debug.Log($"[PhotonManager] 속성 변경: {kvp.Key} = {kvp.Value}");
+                    //Debug.Log($"[PhotonManager] 속성 변경: {kvp.Key} = {kvp.Value}");
                 }
             }
             
@@ -466,7 +466,7 @@ namespace KYS
                 // 선택된 게임이 변경된 경우 UI 업데이트 (즉시 호출)
                 if (propertiesThatChanged.ContainsKey("SelectedGame"))
                 {
-                    Debug.Log("[PhotonManager] RoomPopUp에 게임 선택 UI 업데이트 요청");
+                    //Debug.Log("[PhotonManager] RoomPopUp에 게임 선택 UI 업데이트 요청");
                     roomPopUp.UpdateGameSelectionUI();
                 }
             }

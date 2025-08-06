@@ -4,9 +4,10 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System;
+using DG.Tweening;
 using Photon.Pun;
 using Photon.Realtime;
-using Unity.VisualScripting;
+using DG.Tweening;
 
 namespace KSH
 {
@@ -28,8 +29,18 @@ namespace KSH
         [SerializeField] private GameObject teamNickName;
         [SerializeField] private Image vsImage;
         
+        [SerializeField] private RectTransform titleRect;
+        [SerializeField] private RectTransform winnerRect;
+        [SerializeField] private RectTransform teamRect;
+        
+        public event Action OnCountDownStart;
         public event Action OnCountDownEnd;
         public static UIManager Instance;
+        private Vector2 startPos;
+        private Vector2 targetPos;
+        private bool isTitle = false;
+        private bool isWin = false;
+        private bool isCountDown = false;
         
         private void Awake()
         {
@@ -55,7 +66,7 @@ namespace KSH
                 GameManager.Instance.OnGameEnd += TileCheck;
             }
 
-            OnCountDownEnd += TeamNicknameUpdate;
+            OnCountDownStart += TeamNicknameUpdate;
             
             winnerPanel.SetActive(false);
             redTeamPanel.gameObject.SetActive(false);
@@ -63,6 +74,17 @@ namespace KSH
             redText.gameObject.SetActive(false);
             blueText.gameObject.SetActive(false);
             vsImage.gameObject.SetActive(false);
+            
+            targetPos = titleRect.anchoredPosition;
+            startPos = targetPos + Vector2.up * 1000f;
+            titleRect.anchoredPosition = startPos;
+            
+            if (!isTitle)
+            {
+                Manager.Audio.SfxPlay("KSH_Title");
+                isTitle = true;
+                UIEffect(titleRect);
+            }
         }
 
         void OnDisable()
@@ -75,7 +97,7 @@ namespace KSH
                 GameManager.Instance.OnGameStart -= TimerUIUpdate;
                 GameManager.Instance.OnGameEnd -= TileCheck;
             }
-            OnCountDownEnd -= TeamNicknameUpdate;
+            OnCountDownStart -= TeamNicknameUpdate;
         }
 
         private void TileUIUpdate(int red, int blue) //팀 점수 UI 업데이트
@@ -93,17 +115,22 @@ namespace KSH
 
         private void TileCheck()
         {
+            redTeamPanel.gameObject.SetActive(false);
+            blueTeamPanel.gameObject.SetActive(false);
+            redText.gameObject.SetActive(false);
+            blueText.gameObject.SetActive(false);
+            vsImage.gameObject.SetActive(false);
             winnerPanel.SetActive(true);
             
             int redTile = TileManager.Instance.redTileCount;
             int blueTile = TileManager.Instance.blueTileCount;
 
             if (redTile > blueTile)
-                WinnerUIUpdate("Winner Team : RedTeam!", Color.red);
+                WinnerUIUpdate("레드팀 우승!", Color.red);
             else if(blueTile > redTile)
-                WinnerUIUpdate("Winner Team : BlueTeam!", Color.blue);
+                WinnerUIUpdate("블루팀 우승!", Color.blue);
             else
-                WinnerUIUpdate("Draw", Color.green);
+                WinnerUIUpdate("무승부!", Color.green);
             
         }
 
@@ -111,6 +138,13 @@ namespace KSH
         {
             winnerText.text = msg;
             winnerPanelImage.color = winnercolor;
+            
+            UIEffect(winnerRect);
+            if(!isWin)
+            {
+                Manager.Audio.BgmPlay("KSH_Win");
+                isWin = true;
+            }
         }
 
         public void StartCountDown()
@@ -120,24 +154,37 @@ namespace KSH
 
         private IEnumerator CountDown()
         {
-            yield return new WaitForSeconds(3f);
+            yield return new WaitForSeconds(5f);
+            titleRect.gameObject.SetActive(false);
+            redTeamPanel.gameObject.SetActive(true);
+            blueTeamPanel.gameObject.SetActive(true);
+            vsImage.gameObject.SetActive(true);
+            TeamUIEffect();
+            OnCountDownStart?.Invoke();
+            yield return new WaitForSeconds(1f);
             countDownPanal.SetActive(true);
             
-            for (int i = 3; i >= 0; i--)
+            for (int i = 3; i >= 1; i--)
             {
                 countDownText.text = i.ToString();
+                if (!isCountDown)
+                {
+                    Manager.Audio.SfxPlay("KSH_CountDown");
+                    isCountDown = true;
+                }
+                isCountDown = false;
                 yield return new WaitForSeconds(1f);
             }
             countDownText.text = "GO!";
+            Manager.Audio.SfxPlay("KSH_CountDown");
             yield return new WaitForSeconds(1f);
             
             countDownPanal.SetActive(false);
-            redTeamPanel.gameObject.SetActive(true);
-            blueTeamPanel.gameObject.SetActive(true);
             redText.gameObject.SetActive(true);
             blueText.gameObject.SetActive(true);
             vsImage.gameObject.SetActive(true);
             OnCountDownEnd?.Invoke();
+            
         }
 
         private void TeamNicknameUpdate()
@@ -155,6 +202,20 @@ namespace KSH
                 else if (team == 1)
                     gameObject.transform.SetParent(blueTeamPanel, false);;
             }
+        }
+
+        private void UIEffect(RectTransform rect)
+        {
+            Sequence seq = DOTween.Sequence();
+
+            seq.Append(rect.DOAnchorPosY(targetPos.y, 1.2f))
+                .SetEase(Ease.OutBounce);
+        }
+
+        private void TeamUIEffect()
+        {
+            teamRect.anchoredPosition = new Vector2(-1920, 0);
+            teamRect.DOAnchorPosX(0, 1.5f).SetEase(Ease.OutCubic);
         }
     }
 }

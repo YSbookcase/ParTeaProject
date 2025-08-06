@@ -9,7 +9,7 @@ namespace KSH
     {
         [SerializeField] private float spinSpeed;
         [SerializeField] private float spinForce;
-
+        
         private void Update()
         {
             transform.Rotate(Vector3.up * spinSpeed * Time.deltaTime);

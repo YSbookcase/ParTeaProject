@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace KYS
 {
@@ -18,7 +19,7 @@ namespace KYS
         }
         public void PushUIStack(BaseUI ui)
         {
-            Debug.Log($"[PopUpUI] PushUIStack 호출: {ui?.name}, 현재 스택 개수: {stack.Count}");
+            //Debug.Log($"[PopUpUI] PushUIStack 호출: {ui?.name}, 현재 스택 개수: {stack.Count}");
             
             IsPopUpActive = true;
             if (stack.Count > 0)
@@ -29,7 +30,7 @@ namespace KYS
             }
 
             stack.Push(ui);
-            Debug.Log($"[PopUpUI] 팝업 스택에 추가됨: {ui?.name}, 현재 스택 개수: {stack.Count}");
+            //Debug.Log($"[PopUpUI] 팝업 스택에 추가됨: {ui?.name}, 현재 스택 개수: {stack.Count}");
             
             // LoginPopUp일 경우 Blocker를 비활성화 (로그인 화면은 전체 화면이므로)
             if (ui is LoginPopUp)
@@ -37,7 +38,7 @@ namespace KYS
                 if (blocker != null)
                 {
                     blocker.SetActive(false);
-                    Debug.Log("[PopUpUI] LoginPopUp이므로 Blocker 비활성화");
+                    //Debug.Log("[PopUpUI] LoginPopUp이므로 Blocker 비활성화");
                 }
             }
             else
@@ -119,12 +120,38 @@ namespace KYS
             }
             
             IsPopUpActive = false;
-            if (blocker != null)
+            if (blocker != null && SceneManager.GetActiveScene().name != "NetworkScene")
             {
                 blocker.SetActive(false);
             }
             
             Debug.Log("[PopUpUI] 강제 정리 완료");
+        }
+
+        /// <summary>
+        /// 로딩 블로커를 표시합니다 (게임 시작 시 사용)
+        /// </summary>
+        public void ShowLoadingBlocker()
+        {
+            Debug.Log("[PopUpUI] 로딩 블로커 표시");
+            if (blocker != null)
+            {
+                blocker.SetActive(true);
+                IsPopUpActive = true;
+            }
+        }
+
+        /// <summary>
+        /// 로딩 블로커를 숨깁니다 (게임 씬 로드 완료 시 사용)
+        /// </summary>
+        public void HideLoadingBlocker()
+        {
+            Debug.Log("[PopUpUI] 로딩 블로커 숨김");
+            if (blocker != null && stack.Count == 0)
+            {
+                blocker.SetActive(false);
+                IsPopUpActive = false;
+            }
         }
     }
 

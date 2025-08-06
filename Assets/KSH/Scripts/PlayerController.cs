@@ -30,11 +30,13 @@ namespace KSH
         private Quaternion photonRotation; //보간
         private Vector3 previousPhotonPosition;
         private double lastPacketTime;
+        private Rigidbody photonRigid;
         
         private void Awake()
         {
             playerAction = new PlayerAction();
             rigid = GetComponent<Rigidbody>();
+            photonRigid = GetComponent<Rigidbody>();
             isMove = true;
             curSpeed = moveSpeed;
             
@@ -64,7 +66,7 @@ namespace KSH
             {
                 nickName.text = PhotonNetwork.NickName;
                 
-                FindObjectOfType<FollowCamera>().SetCameraTarget(this.transform);
+                FindObjectOfType<FollowCamera>().SetCameraTarget(transform);
             }
             else
             {
@@ -86,10 +88,10 @@ namespace KSH
             }
             else
             {
-                Vector3 velocity = (photonPosition - previousPhotonPosition) / Time.deltaTime;
+                //Vector3 velocity = (photonPosition - previousPhotonPosition) / Time.deltaTime;
                 float lag = (float)(PhotonNetwork.Time - lastPacketTime);
 
-                Vector3 predictedPosition = photonPosition + velocity * lag;
+                Vector3 predictedPosition = photonPosition + photonRigid.velocity * lag;
 
                 transform.position = Vector3.Lerp(transform.position, predictedPosition, Time.deltaTime * 20f);
                 transform.rotation = Quaternion.Lerp(transform.rotation, photonRotation, Time.deltaTime * 20f);
@@ -108,13 +110,15 @@ namespace KSH
             {
                 stream.SendNext(transform.position);
                 stream.SendNext(transform.rotation);
+                stream.SendNext(rigid.velocity);
             }
             else if (stream.IsReading)
             {
-                previousPhotonPosition = photonPosition;
+                //previousPhotonPosition = photonPosition;
                 photonPosition = (Vector3)stream.ReceiveNext();
                 photonRotation = (Quaternion)stream.ReceiveNext();
                 lastPacketTime = info.SentServerTime;
+                photonRigid.velocity = (Vector3)stream.ReceiveNext();
             }
         }
         

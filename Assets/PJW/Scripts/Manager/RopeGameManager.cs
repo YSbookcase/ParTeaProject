@@ -14,6 +14,7 @@ namespace PJW
     {
         [Header("UI")]
         [SerializeField] private TextMeshProUGUI countdownText;
+        [SerializeField] private DeathPanelManager deathPanelManager; // 데스 패널 연결
 
         [Header("Rank 계산기")]
         [SerializeField] private RankCalculator rankCalculator;
@@ -29,11 +30,20 @@ namespace PJW
         private void Start()
         {
             if (PhotonNetwork.IsMasterClient)
-                totalPlayers = PhotonNetwork.CurrentRoom.MaxPlayers;
+                InitAllPlayerScoreAndRank();
 
             // 자신의 로딩 완료 상태 설정
-            var props = new PhotonHashtable { { IsLoadedKey, true } };
+            var props = new ExitGames.Client.Photon.Hashtable { { "isRopeLoaded", true } };
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+        }
+
+        private void InitAllPlayerScoreAndRank()
+        {
+            foreach (var player in PhotonNetwork.PlayerList)
+            {
+                player.SetRopeGameScore(0);
+                player.SetRank(0);
+            }
         }
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
@@ -112,22 +122,38 @@ namespace PJW
 
             if (deathCount >= totalPlayers)
             {
-                RankCalculator.CalculateRanks();
-
-                photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer);
+                StartCoroutine(EndGameRoutine());
             }
         }
 
+        private IEnumerator EndGameRoutine()
+        {
+            RankCalculator.CalculateRanks();
+
+            yield return new WaitForSeconds(1.0f);
+
+            photonView.RPC(nameof(RPCRopeShowDeathPanel), RpcTarget.AllViaServer);
+        }
 
         [PunRPC]
         private void RPCRopeShowDeathPanel()
         {
-            StartCoroutine(LoadScoreAfterDelay());
+            StartCoroutine(ShowDeathAndLoadScore());
         }
 
-        private IEnumerator LoadScoreAfterDelay()
+        private IEnumerator ShowDeathAndLoadScore()
         {
+            if (deathPanelManager == null)
+                deathPanelManager = FindObjectOfType<DeathPanelManager>();
+
+            if (deathPanelManager != null)
+                deathPanelManager.ShowDeathPanel();
+
             yield return new WaitForSecondsRealtime(3f);
+
+            if (deathPanelManager != null)
+                deathPanelManager.HideDeathPanel();
+
             PhotonNetwork.LoadLevel("Score");
         }
     }

@@ -182,12 +182,16 @@ public class AudioManager : Singleton<AudioManager>
         if (!loopingSfxDict.TryGetValue(key, out SfxController sfx))
             return; // 이미 Release된 상태
 
-        AudioSource source = sfx.GetComponent<AudioSource>();
+        if(sfx != null)
+        {
+            AudioSource source = sfx.GetComponent<AudioSource>();
 
-        source.Stop();
-        source.loop = false;
-        source.volume = Mathf.Clamp01(masterVolume * sfxVolume);
-        sfxPool.Release(sfx);
+            source.Stop();
+            source.loop = false;
+            source.volume = Mathf.Clamp01(masterVolume * sfxVolume);
+            sfxPool.Release(sfx);
+        }
+
         loopingSfxDict.Remove(key);
         Resources.UnloadAsset(loopingSfxDataDict[key]);
         loopingSfxDataDict.Remove(key);

@@ -8,6 +8,7 @@ namespace KSH
     public class JumpPad : Obstacle
     { 
         [SerializeField] private float jumpForce;
+        private bool isBgm = false;
         protected override void OnCollisionEnter(Collision collision)
         {
             if (collision.gameObject.CompareTag("Player"))
@@ -16,6 +17,12 @@ namespace KSH
                 if (player != null)
                 {
                     Debug.Log("JumpPad");
+                    if (!isBgm)
+                    {
+                        Manager.Audio.SfxPlay("KSH_Jump");
+                        isBgm = true;
+                    }
+                    isBgm = false;
                     player.Bounce(jumpForce);
                 }
             }

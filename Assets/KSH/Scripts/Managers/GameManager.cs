@@ -22,6 +22,7 @@ namespace KSH
         
         private Player player;
         public int readyCount;
+        private bool isBgm = false;
 
         private void Awake()
         {
@@ -72,6 +73,11 @@ namespace KSH
                 if (timer > 0)
                 {
                     timer -= Time.deltaTime; //정해진 시간을 초마다 줄이기
+                    if (!isBgm)
+                    {
+                        Manager.Audio.BgmPlay("KSH_BackGround");
+                        isBgm = true;
+                    }
                     OnGameStart?.Invoke();
                 }
                 else
@@ -94,7 +100,7 @@ namespace KSH
             isGameStart = false;
             OnGameEnd?.Invoke();
             PlayerRank();
-            StartCoroutine(ScoreDelay(5f));
+            StartCoroutine(ScoreDelay(4f));
         }
 
         private IEnumerator ScoreDelay(float delay)

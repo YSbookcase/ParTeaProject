@@ -13,11 +13,16 @@ namespace KYS
     public class ReceiveGamePlayer : MonoBehaviourPunCallbacks, IPunObservable
     {
         [Header("Player Settings")]
-        [SerializeField] private float moveSpeed = 5f;
-        [SerializeField] private float collectionRadius = 2f; // 1에서 2로 변경
+        [SerializeField] private float moveSpeed = 5f; // 플레이어 이동 속도
+        [SerializeField] private float collectionRadius = 3f; // 기본 수집 반경
         [SerializeField] private float baseMoveSpeed = 5f;
         [SerializeField] private float speedBoostMultiplier = 1.5f;
         [SerializeField] private float slowEffectMultiplier = 0.5f;
+        [SerializeField] private LayerMask itemLayerMask = -1; // 아이템 레이어 마스크
+        
+        [Header("Mobile Optimization")]
+        [SerializeField] private float collectionCheckInterval = 0.01f; // 충돌 체크 간격을 더 짧게 (100fps)
+        [SerializeField] private float mobileCollectionRadius = 7f; // 모바일 전용 충돌 범위를 더 크게 (5f → 7f)
         
         [Header("Magnetic Effect Settings")]
         [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위
@@ -51,6 +56,7 @@ namespace KYS
         private ReceiveGameUI gameUI;
         private GameObject nameTag;
         private ReceiveGameNicknamePanel nicknamePanel;
+        private float lastCollectionCheckTime = 0f; // 충돌 체크 시간 추적
         
         // Input System 변수들
         private Vector2 moveInput;
@@ -81,63 +87,51 @@ namespace KYS
         private Dictionary<ItemType, GameObject> activeEffects = new Dictionary<ItemType, GameObject>();
         private Dictionary<ItemType, Coroutine> effectCoroutines = new Dictionary<ItemType, Coroutine>();
         
+        // 컴포넌트 참조
+        private Rigidbody rb;
+        private Collider playerCollider;
+        
         private void Start()
         {
-            // 모든 플레이어가 색상과 이름 태그를 설정
-            targetPosition = transform.position;
-            gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
-            gameUI = FindObjectOfType<ReceiveGameUI>();
+            // 플랫폼 감지
+            DetectPlatform();
             
-            // Rigidbody 설정 (중력 비활성화, 2D 평면 이동)
-            Rigidbody rb = GetComponent<Rigidbody>();
+            // 컴포넌트 초기화
+            if (rb == null)
+            {
+                rb = GetComponent<Rigidbody>();
+            }
+            
             if (rb != null)
             {
-                rb.useGravity = false; // 중력 비활성화
-                rb.isKinematic = false; // 물리 충돌을 위해 Kinematic 비활성화
-                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezeRotationY;
-                rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // 빠른 이동 시 충돌 감지 개선
-                Debug.Log("[ReceiveGamePlayer] Rigidbody 설정 완료 - 물리 충돌 활성화");
+                // Rigidbody 설정
+                rb.useGravity = true;
+                rb.constraints = RigidbodyConstraints.FreezeRotation;
+                rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             }
             else
             {
-                Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
+                //Debug.LogError("[ReceiveGamePlayer] Rigidbody가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
             
-            // Collider 설정 확인
-            Collider playerCollider = GetComponent<Collider>();
-            if (playerCollider != null)
+            // Collider 확인
+            playerCollider = GetComponent<Collider>();
+            if (playerCollider == null)
             {
-                Debug.Log($"[ReceiveGamePlayer] Collider 확인됨: {playerCollider.GetType().Name}");
+                //Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
             }
-            else
+            
+            // ReceiveGameUI 찾기 및 할당
+            InitializeGameUI();
+            
+            // 로컬 플레이어 초기화
+            if (photonView.IsMine)
             {
-                Debug.LogError("[ReceiveGamePlayer] Collider가 없습니다! 충돌 처리가 제대로 작동하지 않을 수 있습니다.");
+                InitializeLocalPlayer();
             }
-            
-            // 플레이어 색상 설정 (모든 플레이어가 설정)
-            SetPlayerColor();
-            
-            // 이름 태그 생성 (모든 플레이어가 생성)
-            CreateNameTag();
             
             // 이펙트 부모 초기화
             InitializeEffectParent();
-            
-            if (photonView.IsMine)
-            {
-                // 로컬 플레이어만 추가 설정
-                Debug.Log($"로컬 플레이어 초기화: {PhotonNetwork.LocalPlayer.NickName}");
-                
-                // 플랫폼 감지
-                DetectPlatform();
-                
-                            // MobileUIManager 백업 시스템 제거됨 - ReceiveGameUI 조이스틱만 사용
-                
-                // Input System 초기화
-                InitializeInputSystem();
-            }
-            
-            // AudioSource 제거 - AudioManager 시스템 사용
         }
         
         private void Update()
@@ -146,7 +140,13 @@ namespace KYS
             {
                 // 로컬 플레이어만 입력 처리
                 HandleInput();
-                CheckItemCollection();
+                
+                // 아이템 수집 체크 (최적화된 간격으로 실행)
+                if (Time.time - lastCollectionCheckTime >= collectionCheckInterval)
+                {
+                    CheckItemCollection();
+                    lastCollectionCheckTime = Time.time;
+                }
                 
                 // 자석 효과가 활성화된 경우 주변 아이템을 끌어당기기
                 if (hasMagnetEffect)
@@ -237,7 +237,7 @@ namespace KYS
                 }
                 else
                 {
-                    Debug.LogWarning("playerAnimator가 null입니다. Inspector에서 Animator를 할당해주세요.");
+                    //Debug.LogWarning("playerAnimator가 null입니다. Inspector에서 Animator를 할당해주세요.");
                 }
             }
             else
@@ -261,15 +261,112 @@ namespace KYS
         
         private void CheckItemCollection()
         {
-            // 주변 아이템 검사
-            Collider[] colliders = Physics.OverlapSphere(transform.position, collectionRadius);
+            // 모바일과 데스크톱에 따른 충돌 범위 조정
+            float currentCollectionRadius = isMobilePlatform ? mobileCollectionRadius : collectionRadius;
+            
+            // 주변 아이템 검사 (레이어 마스크 추가로 성능 최적화)
+            int itemLayerMask = 1 << LayerMask.NameToLayer("Item"); // Item 레이어만 검사
+            if (itemLayerMask == 0) itemLayerMask = -1; // Item 레이어가 없으면 모든 레이어 검사
+            
+            Collider[] colliders = Physics.OverlapSphere(transform.position, currentCollectionRadius, itemLayerMask);
+            
+            // 디버그 정보 (모바일에서만 출력)
+            if (isMobilePlatform)
+            {
+                if (colliders.Length > 0)
+                {
+                    Debug.Log($"[ReceiveGamePlayer] 충돌 감지: {colliders.Length}개 오브젝트 발견, 범위: {currentCollectionRadius}, 위치: {transform.position}");
+                }
+                else
+                {
+                    // 주기적으로 범위 정보 출력 (디버깅용)
+                    if (Time.frameCount % 300 == 0) // 5초마다 (60fps 기준)
+                    {
+                        Debug.Log($"[ReceiveGamePlayer] 충돌 범위: {currentCollectionRadius}, 위치: {transform.position}, 모바일: {isMobilePlatform}");
+                    }
+                }
+            }
             
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
+                    // 아이템 타입 확인
+                    ItemType itemType = GetItemType(item);
+                    
+                    // Slow 아이템은 자동 수집하지 않음 (플레이어가 피해야 하는 아이템)
+                    if (itemType == ItemType.Slow)
+                    {
+                        if (isMobilePlatform)
+                        {
+                            Debug.Log($"[ReceiveGamePlayer] Slow 아이템 감지 - 수집하지 않음: {item.name}");
+                        }
+                        continue; // Slow 아이템은 건너뛰기
+                    }
+                    
+                    // 모바일 디버깅을 위한 상세 정보
+                    if (isMobilePlatform)
+                    {
+                        float distance = Vector3.Distance(transform.position, item.transform.position);
+                        Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 수집 가능: {!item.IsCollected}, 위치: {item.transform.position}");
+                    }
+                    
                     CollectItem(item);
+                }
+                else if (item != null && item.IsCollected && isMobilePlatform)
+                {
+                    // 이미 수집된 아이템인 경우 디버그 정보
+                    Debug.Log($"[ReceiveGamePlayer] 이미 수집된 아이템: {item.name}");
+                }
+                else if (item == null && isMobilePlatform)
+                {
+                    // CollectibleItem이 없는 오브젝트인 경우
+                    Debug.Log($"[ReceiveGamePlayer] CollectibleItem이 없는 오브젝트: {collider.name}, 태그: {collider.tag}");
+                }
+            }
+            
+            // 추가적인 충돌 감지: Raycast를 사용한 정밀 검사
+            if (isMobilePlatform && colliders.Length == 0)
+            {
+                CheckItemCollectionWithRaycast(currentCollectionRadius);
+            }
+        }
+        
+        // Raycast를 사용한 추가 충돌 감지
+        private void CheckItemCollectionWithRaycast(float radius)
+        {
+            // 8방향으로 Raycast 수행
+            Vector3[] directions = {
+                Vector3.forward, Vector3.back, Vector3.left, Vector3.right,
+                new Vector3(1, 0, 1).normalized, new Vector3(-1, 0, 1).normalized,
+                new Vector3(1, 0, -1).normalized, new Vector3(-1, 0, -1).normalized
+            };
+            
+            foreach (Vector3 direction in directions)
+            {
+                RaycastHit hit;
+                if (Physics.Raycast(transform.position, direction, out hit, radius))
+                {
+                    CollectibleItem item = hit.collider.GetComponent<CollectibleItem>();
+                    if (item != null && !item.IsCollected)
+                    {
+                        // 아이템 타입 확인
+                        ItemType itemType = GetItemType(item);
+                        
+                        // Slow 아이템은 자동 수집하지 않음
+                        if (itemType == ItemType.Slow)
+                        {
+                            if (isMobilePlatform)
+                            {
+                                Debug.Log($"[ReceiveGamePlayer] Raycast로 Slow 아이템 감지 - 수집하지 않음: {item.name}");
+                            }
+                            continue; // Slow 아이템은 건너뛰기
+                        }
+                        
+                        Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 발견: {item.name}, 타입: {itemType}, 거리: {hit.distance:F2}, 방향: {direction}");
+                        CollectItem(item);
+                    }
                 }
             }
         }
@@ -290,73 +387,97 @@ namespace KYS
             }
         }
         
+        private void InitializeLocalPlayer()
+        {
+            // 플레이어 색상 설정
+            SetPlayerColor();
+            
+            // 이름 태그 생성
+            CreateNameTag();
+            
+            // Input System 초기화
+            InitializeInputSystem();
+        }
+        
         private void AttractItem(CollectibleItem item)
         {
             if (item == null || item.IsCollected) return;
             
-            // 아이템과 플레이어 사이의 방향 계산
             Vector3 directionToPlayer = (transform.position - item.transform.position).normalized;
             float distanceToPlayer = Vector3.Distance(transform.position, item.transform.position);
             
-            // 거리가 가까울수록 더 강한 힘 적용 (역제곱 법칙)
-            float attractionForce = magnetForce / (distanceToPlayer * distanceToPlayer);
+            // 거리가 너무 멀면 자석 효과 적용하지 않음
+            if (distanceToPlayer > magnetRadius) return;
             
-            // 아이템의 Rigidbody에 힘 적용
+            // 자석 효과 힘 계산 (거리에 반비례)
+            float attractionForce = magnetForce * (1f - (distanceToPlayer / magnetRadius));
+            
+            // 아이템을 플레이어 쪽으로 끌어당김
             Rigidbody itemRb = item.GetComponent<Rigidbody>();
-            if (itemRb != null && !itemRb.isKinematic)
+            if (itemRb != null)
             {
-                // Y축 속도는 제한하여 너무 빠르게 떨어지지 않도록 함
-                Vector3 currentVelocity = itemRb.velocity;
-                Vector3 attractionVelocity = directionToPlayer * attractionForce;
-                attractionVelocity.y = Mathf.Max(currentVelocity.y, -2f); // 최대 낙하 속도 제한
-                
-                itemRb.velocity = attractionVelocity;
-                
-                // 디버그 로그 (너무 자주 출력되지 않도록 제한)
-                if (Time.frameCount % 60 == 0) // 1초에 한 번씩만 출력
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 자석 효과로 아이템 끌어당김: {item.name}, 거리: {distanceToPlayer:F2}, 힘: {attractionForce:F2}, 기본 마그네틱 힘: {magnetForce}");
-                }
+                itemRb.AddForce(directionToPlayer * attractionForce, ForceMode.Force);
             }
         }
         
         private void CollectItem(CollectibleItem item)
         {
-            if (!item.IsCollected)
+            if (item == null) 
             {
-                Debug.Log($"플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}가 아이템 수집 시도");
-                
-                // 아이템 타입 가져오기
+                if (isMobilePlatform)
+                {
+                    Debug.LogWarning("[ReceiveGamePlayer] CollectItem: item이 null입니다.");
+                }
+                return;
+            }
+            
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (item.IsCollected && !isMobilePlatform) 
+            {
+                if (isMobilePlatform)
+                {
+                    Debug.Log($"[ReceiveGamePlayer] CollectItem: 이미 수집된 아이템 {item.name} (데스크톱에서만 차단)");
+                }
+                return;
+            }
+            
+            // 모바일에서는 중복 체크 완화
+            if (item.IsCollected && !isMobilePlatform) return; // 데스크톱에서만 이중 체크
+            
+            // 모바일 디버그 로그
+            if (Application.isMobilePlatform)
+            {
+                Debug.Log($"[Mobile] 아이템 수집 시작 - {item.name}, IsCollected: {item.IsCollected}");
+            }
+            
+            // 아이템 수집 (네트워크 동기화 포함)
+            item.Collect();
+            
+            // 게임 매니저에 수집 알림 (로컬 플레이어만)
+            if (gameManager != null && photonView.IsMine)
+            {
                 ItemType itemType = GetItemType(item);
                 
-                // 아이템을 즉시 수집된 상태로 표시하여 중복 수집 방지
-                item.Collect();
-                
-                // ReceiveGameManagerEnhanced 직접 찾기
-                ReceiveGameManagerEnhanced enhancedManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
-                if (enhancedManager != null)
+                // 모바일에서 추가 로그
+                if (Application.isMobilePlatform)
                 {
-                    // 로컬 플레이어만 점수 증가 요청 (중복 방지) - 아이템 타입 전달
-                    enhancedManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
-                    Debug.Log($"ReceiveGameManagerEnhanced에 아이템 수집 알림 전송 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 타입: {itemType}");
-                }
-                else
-                {
-                    Debug.LogError("ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                    Debug.Log($"[Mobile] 게임매니저에 수집 알림 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 아이템타입: {itemType}");
                 }
                 
-                // 수집 효과 재생
-                PlayCollectEffect();
+                gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
                 
-                // spawnedItems 리스트에서 제거 (중복 제거 방지)
-                if (enhancedManager != null && item.gameObject != null)
+                // 모바일 디버깅을 위한 로그
+                if (isMobilePlatform)
                 {
-                    enhancedManager.RemoveItemFromList(item.gameObject);
+                    Debug.Log($"[ReceiveGamePlayer] 모바일에서 아이템 수집 성공: {itemType}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}");
                 }
             }
-            else
+            else if (gameManager == null)
             {
-                Debug.LogWarning($"아이템이 이미 수집되었습니다: {item.name}");
+                if (isMobilePlatform)
+                {
+                    Debug.LogError("[ReceiveGamePlayer] CollectItem: ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
+                }
             }
         }
         
@@ -399,7 +520,7 @@ namespace KYS
                 playerRenderer.material.color = playerColor;
                 isColorSet = true;
                 
-                Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
+                //Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
             }
         }
         
@@ -452,7 +573,7 @@ namespace KYS
             Canvas overlayCanvas = FindObjectOfType<Canvas>();
             if (overlayCanvas == null || overlayCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
             {
-                Debug.Log("Screen Space - Overlay Canvas를 자동으로 생성합니다.");
+                //Debug.Log("Screen Space - Overlay Canvas를 자동으로 생성합니다.");
                 overlayCanvas = CreateOverlayCanvas();
             }
             
@@ -474,7 +595,7 @@ namespace KYS
                 if (photonView.Owner != null)
                 {
                     nicknamePanel.SetInfo(photonView.Owner.NickName, transform);
-                    Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
+                    //Debug.Log($"이름 태그 생성: {photonView.Owner.NickName}");
                 }
                 else
                 {
@@ -546,7 +667,7 @@ namespace KYS
             // Graphic Raycaster 추가
             canvasObj.AddComponent<GraphicRaycaster>();
             
-            Debug.Log("Screen Space - Overlay Canvas 생성 완료");
+            //Debug.Log("Screen Space - Overlay Canvas 생성 완료");
             return canvas;
         }
         
@@ -589,7 +710,7 @@ namespace KYS
                         Color playerColor = GetColorByIndex(playerColorIndex);
                         playerRenderer.material.color = playerColor;
                         isColorSet = true;
-                        Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
+                        //Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
                     }
                 }
                 
@@ -619,6 +740,11 @@ namespace KYS
                 Gizmos.color = new Color(0, 0, 1, 0.3f); // 반투명 파란색
                 Gizmos.DrawWireSphere(transform.position, magnetRadius);
             }
+            
+            // 아이템 수집 범위 시각화 (모바일 디버깅용)
+            float currentCollectionRadius = isMobilePlatform ? mobileCollectionRadius : collectionRadius;
+            Gizmos.color = new Color(1, 1, 0, 0.3f); // 반투명 노란색
+            Gizmos.DrawWireSphere(transform.position, currentCollectionRadius);
         }
         
         // 고스트 무빙 방지를 위한 보간 메서드
@@ -659,7 +785,7 @@ namespace KYS
             }
             
             // 활성화된 이펙트들 정리
-            ClearAllEffects();
+            ClearAllEffects(this.photonView);
         }
         
         // 파워업 효과 관련 메서드들
@@ -670,8 +796,8 @@ namespace KYS
             {
                 hasSpeedBoost = false;
                 moveSpeed = baseMoveSpeed;
-                DeactivateEffect(ItemType.Speed);
-                Debug.Log("속도 부스트 효과 종료");
+                DeactivateEffect(this.photonView, ItemType.Speed);
+                //Debug.Log("속도 부스트 효과 종료");
             }
             
             // 슬로우 효과 체크
@@ -679,16 +805,16 @@ namespace KYS
             {
                 hasSlowEffect = false;
                 moveSpeed = baseMoveSpeed;
-                DeactivateEffect(ItemType.Slow);
-                Debug.Log("슬로우 효과 종료");
+                DeactivateEffect(this.photonView, ItemType.Slow);
+                //Debug.Log("슬로우 효과 종료");
             }
             
             // 자석 효과 체크
             if (hasMagnetEffect && Time.time >= magnetEffectEndTime)
             {
                 hasMagnetEffect = false;
-                DeactivateEffect(ItemType.Magnet);
-                Debug.Log("자석 효과 종료");
+                DeactivateEffect(this.photonView, ItemType.Magnet);
+                //Debug.Log("자석 효과 종료");
             }
         }
         
@@ -701,9 +827,9 @@ namespace KYS
                 moveSpeed = baseMoveSpeed * speedBoostMultiplier;
                 
                 // 스피드 부스트 이펙트 활성화
-                ActivateEffect(ItemType.Speed, duration);
+                ActivateEffect(photonView, ItemType.Speed, duration);
                 
-                Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
+                //Debug.Log($"속도 부스트 적용! 지속시간: {duration}초");
             }
         }
         
@@ -716,9 +842,9 @@ namespace KYS
                 moveSpeed = baseMoveSpeed * slowEffectMultiplier;
                 
                 // 슬로우 이펙트 활성화
-                ActivateEffect(ItemType.Slow, duration);
+                ActivateEffect(photonView, ItemType.Slow, duration);
                 
-                Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
+                //Debug.Log($"슬로우 효과 적용! 지속시간: {duration}초");
             }
         }
         
@@ -733,22 +859,22 @@ namespace KYS
                 if (customMagnetRadius > 0f)
                 {
                     magnetRadius = customMagnetRadius;
-                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 범위 적용: {customMagnetRadius}");
+                    //Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 범위 적용: {customMagnetRadius}");
                 }
                 if (customMagnetForce > 0f)
                 {
                     magnetForce = customMagnetForce;
-                    Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 힘 적용: {customMagnetForce}");
+                    //Debug.Log($"[ApplyMagnetEffect] 커스텀 마그네틱 힘 적용: {customMagnetForce}");
                 }
                 else
                 {
-                    Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
+                    //Debug.Log($"[ApplyMagnetEffect] 기본 마그네틱 힘 사용: {magnetForce}");
                 }
                 
                 // 마그네틱 이펙트 활성화
-                ActivateEffect(ItemType.Magnet, duration);
+                ActivateEffect(photonView, ItemType.Magnet, duration);
                 
-                Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
+                //Debug.Log($"[ApplyMagnetEffect] 자석 효과 적용! 지속시간: {duration}초, 범위: {magnetRadius}, 힘: {magnetForce}");
             }
         }
         
@@ -768,6 +894,63 @@ namespace KYS
             // 지속적인 충돌 처리 로직이 필요한 경우 여기에 추가
         }
         
+        // Trigger 기반 충돌 감지 추가
+        private void OnTriggerEnter(Collider other)
+        {
+            if (!photonView.IsMine) return; // 로컬 플레이어만 처리
+            
+            // 아이템과의 충돌 감지
+            CollectibleItem item = other.GetComponent<CollectibleItem>();
+            if (item != null && !item.IsCollected)
+            {
+                // 아이템 타입 확인 (디버깅용)
+                ItemType itemType = GetItemType(item);
+                
+                // 모바일 디버깅을 위한 상세 정보
+                if (isMobilePlatform)
+                {
+                    float distance = Vector3.Distance(transform.position, item.transform.position);
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerEnter로 아이템 감지: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 위치: {item.transform.position}");
+                }
+                
+                CollectItem(item);
+            }
+            else if (isMobilePlatform)
+            {
+                // 디버깅을 위한 추가 정보
+                if (item == null)
+                {
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerEnter - CollectibleItem이 없는 오브젝트: {other.name}, 태그: {other.tag}");
+                }
+                else if (item.IsCollected)
+                {
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerEnter - 이미 수집된 아이템: {item.name}");
+                }
+            }
+        }
+        
+        // Trigger 기반 충돌 감지 (지속적)
+        private void OnTriggerStay(Collider other)
+        {
+            if (!photonView.IsMine) return; // 로컬 플레이어만 처리
+            
+            // 아이템과의 충돌 감지 (지속적)
+            CollectibleItem item = other.GetComponent<CollectibleItem>();
+            if (item != null && !item.IsCollected)
+            {
+                // 아이템 타입 확인 (디버깅용)
+                ItemType itemType = GetItemType(item);
+                
+                // 모바일에서 주기적으로 체크 (0.5초마다)
+                if (isMobilePlatform && Time.time % 0.5f < Time.deltaTime)
+                {
+                    float distance = Vector3.Distance(transform.position, item.transform.position);
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerStay로 아이템 감지: {item.name}, 타입: {itemType}, 거리: {distance:F2}");
+                    CollectItem(item);
+                }
+            }
+        }
+        
         // 플랫폼 감지
         private void DetectPlatform()
         {
@@ -778,7 +961,7 @@ namespace KYS
                 isMobilePlatform = true; // 테스트용으로 모바일로 설정
             #endif
             
-            Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
+            //Debug.Log($"플랫폼 감지: {(isMobilePlatform ? "모바일" : "데스크톱")} - 마우스 입력 지원");
         }
         
         // 모바일 입력 처리 (ReceiveGameUI 조이스틱만 사용)
@@ -799,7 +982,7 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning("ReceiveGameUI가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
+                //Debug.LogWarning("ReceiveGameUI가 null입니다. 조이스틱 입력을 처리할 수 없습니다.");
             }
         }
         
@@ -839,7 +1022,7 @@ namespace KYS
                 if (Input.GetKeyDown(KeyCode.Space))
                 {
                     jumpPressed = true;
-                    Debug.Log("점프!");
+                    //Debug.Log("점프!");
                 }
                 else
                 {
@@ -850,7 +1033,7 @@ namespace KYS
                 if (Input.GetKeyDown(KeyCode.E))
                 {
                     actionPressed = true;
-                    Debug.Log("액션!");
+                    //Debug.Log("액션!");
                 }
                 else
                 {
@@ -866,7 +1049,7 @@ namespace KYS
             if (inputActions == null)
             {
                 // 임시로 기본 Input.GetKey 사용
-                Debug.LogWarning("Input Actions가 할당되지 않았습니다. 기본 입력을 사용합니다.");
+                //Debug.LogWarning("Input Actions가 할당되지 않았습니다. 기본 입력을 사용합니다.");
                 return;
             }
             
@@ -894,11 +1077,11 @@ namespace KYS
                 
                 // Input System 활성화
                 inputActions.Enable();
-                Debug.Log("Input System 초기화 완료");
+                //Debug.Log("Input System 초기화 완료");
             }
             else
             {
-                Debug.LogError("Player Action Map을 찾을 수 없습니다.");
+                //Debug.LogError("Player Action Map을 찾을 수 없습니다.");
             }
         }
         
@@ -913,7 +1096,7 @@ namespace KYS
             if (jumpPressed)
             {
                 // 점프 로직 (필요시 구현)
-                Debug.Log("점프!");
+                //Debug.Log("점프!");
             }
         }
         
@@ -923,7 +1106,7 @@ namespace KYS
             if (actionPressed)
             {
                 // 액션 로직 (필요시 구현)
-                Debug.Log("액션!");
+                //Debug.Log("액션!");
             }
         }
         
@@ -942,7 +1125,7 @@ namespace KYS
                 effectParent.SetParent(transform);
                 effectParent.localPosition = Vector3.zero;
                 effectParent.localRotation = Quaternion.identity;
-                Debug.Log("[ReceiveGamePlayer] 이펙트 부모 자동 생성 완료");
+                //Debug.Log("[ReceiveGamePlayer] 이펙트 부모 자동 생성 완료");
             }
             
             // ItemConfiguration 로드
@@ -951,7 +1134,7 @@ namespace KYS
                 itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
                 if (itemConfiguration == null)
                 {
-                    Debug.LogWarning("[ReceiveGamePlayer] ItemConfiguration을 Resources에서 로드할 수 없습니다.");
+                    //Debug.LogWarning("[ReceiveGamePlayer] ItemConfiguration을 Resources에서 로드할 수 없습니다.");
                 }
             }
         }
@@ -959,49 +1142,175 @@ namespace KYS
         /// <summary>
         /// 특정 아이템 타입의 이펙트를 활성화합니다.
         /// </summary>
+        /// <param name="targetPlayerPhotonView">이펙트를 적용할 대상 플레이어의 PhotonView</param>
         /// <param name="itemType">아이템 타입</param>
         /// <param name="duration">지속 시간</param>
-        public void ActivateEffect(ItemType itemType, float duration)
+        public void ActivateEffect(PhotonView targetPlayerPhotonView, ItemType itemType, float duration)
         {
-            if (!photonView.IsMine) return; // 로컬 플레이어만 이펙트 활성화
-            
+            // 대상 플레이어의 PhotonView가 로컬 소유인 경우에만 RPC 호출을 시작합니다.
+            // 이렇게 하면 RPC가 한 번만 전송되고, 모든 클라이언트에서 올바른 대상에게 적용됩니다.
+            if (targetPlayerPhotonView.IsMine)
+            {
+                // 모든 클라이언트에게 효과 활성화 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCActivateEffect), RpcTarget.All, targetPlayerPhotonView.ViewID, itemType, duration);
+            }
+        }
+        
+        /// <summary>
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 이펙트를 활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerViewID">이펙트를 적용할 대상 플레이어의 ViewID</param>
+        /// <param name="itemType">아이템 타입</param>
+        /// <param name="duration">지속 시간</param>
+        [PunRPC]
+        private void RPCActivateEffect(int targetPlayerViewID, ItemType itemType, float duration)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCActivateEffect: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCActivateEffect: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            // 이제 올바른 'targetPlayer' 인스턴스에 이펙트를 적용합니다.
+            targetPlayer.InternalActivateEffect(itemType, duration);
+            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 특정 아이템 타입의 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerPhotonView">이펙트를 비활성화할 대상 플레이어의 PhotonView</param>
+        /// <param name="itemType">아이템 타입</param>
+        public void DeactivateEffect(PhotonView targetPlayerPhotonView, ItemType itemType)
+        {
+            if (targetPlayerPhotonView.IsMine)
+            {
+                // 모든 클라이언트에게 효과 비활성화 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCDeactivateEffect), RpcTarget.All, targetPlayerPhotonView.ViewID, itemType);
+            }
+        }
+        
+        /// <summary>
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerViewID">이펙트를 비활성화할 대상 플레이어의 ViewID</param>
+        /// <param name="itemType">아이템 타입</param>
+        [PunRPC]
+        private void RPCDeactivateEffect(int targetPlayerViewID, ItemType itemType)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCDeactivateEffect: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCDeactivateEffect: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            targetPlayer.InternalDeactivateEffect(itemType);
+            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 모든 이펙트를 비활성화합니다.
+        /// </summary>
+        /// <param name="targetPlayerPhotonView">모든 이펙트를 정리할 대상 플레이어의 PhotonView</param>
+        public void ClearAllEffects(PhotonView targetPlayerPhotonView)
+        {
+            if (targetPlayerPhotonView.IsMine)
+            {
+                // 모든 클라이언트에게 모든 효과 정리 RPC 전송 (대상 플레이어의 ViewID 포함)
+                targetPlayerPhotonView.RPC(nameof(RPCClearAllEffects), RpcTarget.All, targetPlayerPhotonView.ViewID);
+            }
+        }
+        
+        /// <summary>
+        /// RPC: 모든 클라이언트에서 특정 플레이어의 모든 이펙트를 정리합니다.
+        /// </summary>
+        /// <param name="targetPlayerViewID">모든 이펙트를 정리할 대상 플레이어의 ViewID</param>
+        [PunRPC]
+        private void RPCClearAllEffects(int targetPlayerViewID)
+        {
+            PhotonView targetView = PhotonView.Find(targetPlayerViewID);
+            if (targetView == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCClearAllEffects: Target PhotonView with ID {targetPlayerViewID} not found.");
+                return;
+            }
+            ReceiveGamePlayer targetPlayer = targetView.GetComponent<ReceiveGamePlayer>();
+            if (targetPlayer == null)
+            {
+                Debug.LogWarning($"[ReceiveGamePlayer] RPCClearAllEffects: ReceiveGamePlayer component not found on target object with ViewID {targetPlayerViewID}.");
+                return;
+            }
+
+            targetPlayer.InternalClearAllEffects();
+            Debug.Log($"[ReceiveGamePlayer] 모든 이펙트 정리 완료 (플레이어: {targetView.Owner.NickName})");
+        }
+        
+        /// <summary>
+        /// 실제 이펙트 활성화 로직을 수행합니다. (RPC에서 호출됨)
+        /// </summary>
+        private void InternalActivateEffect(ItemType itemType, float duration)
+        {
             // 이미 활성화된 이펙트가 있다면 제거
-            DeactivateEffect(itemType);
-            
+            if (activeEffects.TryGetValue(itemType, out GameObject existingEffect))
+            {
+                if (existingEffect != null)
+                {
+                    Destroy(existingEffect);
+                }
+                activeEffects.Remove(itemType);
+            }
+            if (effectCoroutines.TryGetValue(itemType, out Coroutine existingCoroutine))
+            {
+                if (existingCoroutine != null)
+                {
+                    StopCoroutine(existingCoroutine);
+                }
+                effectCoroutines.Remove(itemType);
+            }
+
             if (itemConfiguration == null)
             {
                 Debug.LogWarning($"[ReceiveGamePlayer] ItemConfiguration이 없어 {itemType} 이펙트를 활성화할 수 없습니다.");
                 return;
             }
-            
+
             ItemConfig config = itemConfiguration.GetItemConfig(itemType);
             if (config == null || config.playerEffectPrefab == null)
             {
                 Debug.LogWarning($"[ReceiveGamePlayer] {itemType} 타입의 이펙트 프리팹이 설정되지 않았습니다.");
                 return;
             }
-            
-            // 이펙트 생성
+
+            // 이펙트 생성 (이 ReceiveGamePlayer 인스턴스의 effectParent에 생성)
             GameObject effect = Instantiate(config.playerEffectPrefab, effectParent);
             effect.transform.localPosition = config.effectOffset;
-            
-            // 이펙트 추적에 추가
+
             activeEffects[itemType] = effect;
-            
+
             // 지속 시간 후 자동 제거하는 코루틴 시작
             Coroutine effectCoroutine = StartCoroutine(DeactivateEffectAfterDuration(itemType, duration));
             effectCoroutines[itemType] = effectCoroutine;
-            
-            Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 활성화 완료 - 지속시간: {duration}초");
         }
-        
+
         /// <summary>
-        /// 특정 아이템 타입의 이펙트를 비활성화합니다.
+        /// 실제 이펙트 비활성화 로직을 수행합니다. (RPC에서 호출됨)
         /// </summary>
-        /// <param name="itemType">아이템 타입</param>
-        public void DeactivateEffect(ItemType itemType)
+        private void InternalDeactivateEffect(ItemType itemType)
         {
-            // 활성화된 이펙트가 있는지 확인
             if (activeEffects.TryGetValue(itemType, out GameObject effect))
             {
                 if (effect != null)
@@ -1009,9 +1318,8 @@ namespace KYS
                     Destroy(effect);
                 }
                 activeEffects.Remove(itemType);
-                Debug.Log($"[ReceiveGamePlayer] {itemType} 이펙트 비활성화 완료");
             }
-            
+
             // 코루틴이 실행 중인지 확인하고 중지
             if (effectCoroutines.TryGetValue(itemType, out Coroutine coroutine))
             {
@@ -1022,11 +1330,11 @@ namespace KYS
                 effectCoroutines.Remove(itemType);
             }
         }
-        
+
         /// <summary>
-        /// 모든 이펙트를 비활성화합니다.
+        /// 실제 모든 이펙트 정리 로직을 수행합니다. (RPC에서 호출됨)
         /// </summary>
-        public void ClearAllEffects()
+        private void InternalClearAllEffects()
         {
             // 모든 활성화된 이펙트 제거
             foreach (var kvp in activeEffects)
@@ -1037,7 +1345,7 @@ namespace KYS
                 }
             }
             activeEffects.Clear();
-            
+
             // 모든 실행 중인 코루틴 중지
             foreach (var kvp in effectCoroutines)
             {
@@ -1047,8 +1355,6 @@ namespace KYS
                 }
             }
             effectCoroutines.Clear();
-            
-            Debug.Log("[ReceiveGamePlayer] 모든 이펙트 정리 완료");
         }
         
         /// <summary>
@@ -1059,7 +1365,7 @@ namespace KYS
         private IEnumerator DeactivateEffectAfterDuration(ItemType itemType, float duration)
         {
             yield return new WaitForSeconds(duration);
-            DeactivateEffect(itemType);
+            DeactivateEffect(this.photonView, itemType); // 현재 플레이어의 PhotonView를 사용
         }
         
         /// <summary>
@@ -1069,6 +1375,42 @@ namespace KYS
         public ItemType[] GetActiveEffects()
         {
             return activeEffects.Keys.ToArray();
+        }
+        
+        /// <summary>
+        /// ReceiveGameUI를 찾아서 할당합니다.
+        /// </summary>
+        private void InitializeGameUI()
+        {
+            if (gameUI == null)
+            {
+                // 씬에서 ReceiveGameUI 찾기
+                gameUI = FindObjectOfType<ReceiveGameUI>();
+                
+                if (gameUI != null)
+                {
+                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
+                }
+                else
+                {
+                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
+                }
+            }
+            
+            // ReceiveGameManagerEnhanced도 찾아서 할당
+            if (gameManager == null)
+            {
+                gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
+                
+                if (gameManager != null)
+                {
+                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
+                }
+                else
+                {
+                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
+                }
+            }
         }
     }
 } 

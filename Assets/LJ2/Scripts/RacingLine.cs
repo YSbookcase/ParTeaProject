@@ -33,13 +33,25 @@ public class RacingLine : MonoBehaviour
             }
             else
             {
-                if (photonView != null && isGoalLine)
+                if (isGoalLine)
                 {
-                    controller.isControllable = false;
                     RacingManager.Instance.managerView.RPC("PlayerArrive", RpcTarget.MasterClient, photonView.Owner.ActorNumber);
                 }
             }
         }
         
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        RacingController controller = other.GetComponent<RacingController>();
+        PhotonView photonView = other.gameObject.GetComponent<PhotonView>();
+        if (controller != null && photonView.IsMine) 
+        {
+            if(controller.linePassed > havePassLine && photonView != null && isGoalLine) 
+            {
+                controller.SetControllable(false);
+            }
+        }
     }
 }

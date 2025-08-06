@@ -106,7 +106,7 @@ namespace KYS
                         if (colorIndex >= 0 && colorIndex < playerColors.Length)
                         {
                             playerColorImage.color = playerColors[colorIndex];
-                            Debug.Log($"[PlayerScoreUI] 플레이어 {player.NickName}의 색상 설정: {colorIndex} -> {playerColors[colorIndex]}");
+                            //Debug.Log($"[PlayerScoreUI] 플레이어 {player.NickName}의 색상 설정: {colorIndex} -> {playerColors[colorIndex]}");
                             return;
                         }
                     }
@@ -127,7 +127,7 @@ namespace KYS
                 
                 int defaultColorIndex = (actorNumber - 1) % defaultColors.Length;
                 playerColorImage.color = defaultColors[defaultColorIndex];
-                Debug.Log($"[PlayerScoreUI] 플레이어 {playerName}의 기본 색상 설정: {defaultColorIndex} -> {defaultColors[defaultColorIndex]}");
+                //Debug.Log($"[PlayerScoreUI] 플레이어 {playerName}의 기본 색상 설정: {defaultColorIndex} -> {defaultColors[defaultColorIndex]}");
             }
         }
         
