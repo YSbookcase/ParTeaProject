@@ -138,6 +138,11 @@ public class RacingController : MonoBehaviourPun, IPunObservable
             rigid.MovePosition(Vector3.Lerp(rigid.position, networkPosition, Time.deltaTime * 10));
             transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10);
         }
+
+        if (!isControllable) 
+        {
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0.1f, acceleration * Time.deltaTime);
+        }
     }
 
     [PunRPC]
@@ -152,7 +157,6 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         else
         {
             moveDirection = Vector3.zero; // 컨트롤 불가능 시 방향 초기화
-            currentSpeed = 0f; // 컨트롤 불가능 시 속도 초기화
         }
     }
 
@@ -310,6 +314,16 @@ public class RacingController : MonoBehaviourPun, IPunObservable
         yield return null;
         Manager.Audio.SfxPlayLoop(soundKey, name, this.transform);
         Manager.Audio.SetVolumeLoopSfx(soundKey, 0.1f, soundMinDistance, soundMaxDistance);
+    }
+
+    [PunRPC]
+    public void StopRacingSound()
+    {
+        if (!string.IsNullOrEmpty(soundKey))
+        {
+            Manager.Audio.SfxStopLoop(soundKey);
+            soundKey = string.Empty;
+        }
     }
 
     public void OnDrawGizmos()

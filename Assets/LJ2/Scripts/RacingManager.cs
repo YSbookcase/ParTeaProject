@@ -55,7 +55,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-
+        
     }
 
     [PunRPC]
@@ -63,7 +63,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
     {
         if (racingCountDown != null)
             StopCoroutine(racingCountDown);
-
+        Manager.Audio.BgmPlay("racingBGM");
         racingCountDown = StartCoroutine(CountDown(3));
     }
 
@@ -80,8 +80,9 @@ public class RacingManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RacingFinish()
     {
-        if (isRacingFinished || !PhotonNetwork.IsMasterClient) return;
+        if (isRacingFinished) return;
         isRacingFinished = true;
+        if (!PhotonNetwork.IsMasterClient) return;
 
         foreach (Player retire in racingPlayers)
         {
@@ -89,7 +90,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
             retire.SetRank(retireRank);
             Debug.Log($"{retire.NickName} has retired with rank {retireRank}");
         }
-        
+        managerView.RPC("StopRacingSound", RpcTarget.All);
         if (PhotonNetwork.IsMasterClient)
         {
             SceneManager.LoadScene("Score");
@@ -99,10 +100,13 @@ public class RacingManager : MonoBehaviourPunCallbacks
     public void PlayerArrive(int actorNumber)
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        if (!firstArrive && PhotonNetwork.IsMasterClient)
+        if (!firstArrive)
         {
             firstArrive = true;
-            managerView.RPC("RetireCount", RpcTarget.All);
+            if(PhotonNetwork.IsMasterClient)
+            {
+                managerView.RPC("RetireCount", RpcTarget.All);
+            }
         }
 
         arrivePlayers.Add(player);
@@ -124,6 +128,7 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
         while (seconds > 0)
         {
+            Manager.Audio.SfxPlay("racingCountDown", Camera.main.transform);
             countdownText.text = seconds.ToString();
             yield return new WaitForSecondsRealtime(1f);
             seconds--;
@@ -149,6 +154,12 @@ public class RacingManager : MonoBehaviourPunCallbacks
                 controller.photonView.RPC("SetControllable", RpcTarget.All, false);
             }
         }
+        if (!isRacingFinished)
+        {
+            Manager.Audio.SfxPlay("racingStart", Camera.main.transform);
+            Debug.Log($"IsMasterClient = {PhotonNetwork.IsMasterClient} : Racing Start!");
+        }
+
         yield return null;
     }
 
