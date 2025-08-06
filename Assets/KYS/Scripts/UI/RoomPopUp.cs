@@ -247,8 +247,8 @@ namespace KYS
 
         private void LoadPrefabs()
         {
-            playerPanelItemPrefab = Resources.Load<GameObject>("UITest/PlayerPanelItemPrefab");
-            chatTextPrefab = Resources.Load<GameObject>("UITest/ChatTextPrefab");
+            playerPanelItemPrefab = Resources.Load<GameObject>("UI/PlayerPanelItemPrefab");
+            chatTextPrefab = Resources.Load<GameObject>("UI/ChatTextPrefab");
         }
 
         private void ConnectEvents()
@@ -717,6 +717,12 @@ namespace KYS
                 photonView.RPC(nameof(StopBGMForAllClients), RpcTarget.All);
             }
 
+            // UI 정리
+            UIManager.Instance.CleanAllUI();
+            
+            // 로딩 블로커 표시
+            UIManager.Instance.PopUp.ShowLoadingBlocker();
+
             if (Manager.game != null)
             {
                 int maxGameCount = 1;
@@ -738,8 +744,6 @@ namespace KYS
             {
                 PhotonNetwork.LoadLevel(sceneName);
             }
-
-            UIManager.Instance.CleanAllUI();
         }
 
         private bool CheckPlayerCountRequirement()

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace KYS
 {
@@ -119,12 +120,38 @@ namespace KYS
             }
             
             IsPopUpActive = false;
-            if (blocker != null)
+            if (blocker != null && SceneManager.GetActiveScene().name != "NetworkScene")
             {
                 blocker.SetActive(false);
             }
             
             Debug.Log("[PopUpUI] 강제 정리 완료");
+        }
+
+        /// <summary>
+        /// 로딩 블로커를 표시합니다 (게임 시작 시 사용)
+        /// </summary>
+        public void ShowLoadingBlocker()
+        {
+            Debug.Log("[PopUpUI] 로딩 블로커 표시");
+            if (blocker != null)
+            {
+                blocker.SetActive(true);
+                IsPopUpActive = true;
+            }
+        }
+
+        /// <summary>
+        /// 로딩 블로커를 숨깁니다 (게임 씬 로드 완료 시 사용)
+        /// </summary>
+        public void HideLoadingBlocker()
+        {
+            Debug.Log("[PopUpUI] 로딩 블로커 숨김");
+            if (blocker != null && stack.Count == 0)
+            {
+                blocker.SetActive(false);
+                IsPopUpActive = false;
+            }
         }
     }
 

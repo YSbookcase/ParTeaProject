@@ -117,16 +117,16 @@ namespace KYS
             }
 
             // SFX가 포함된 MenuButton 이벤트 등록
-            var MenuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
-            if (MenuButton != null)
-            {
-                MenuButton.Click -= OnMenu;
-                MenuButton.Click += OnMenu;
-            }
-            else
-            {
-                Debug.LogWarning("[EditPopUp] PassConfirmButton을 찾을 수 없습니다.");
-            }
+            //var MenuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
+            //if (MenuButton != null)
+            //{
+            //    MenuButton.Click -= OnMenu;
+            //    MenuButton.Click += OnMenu;
+            //}
+            //else
+            //{
+            //    Debug.LogWarning("[EditPopUp] PassConfirmButton을 찾을 수 없습니다.");
+            //}
 
 
         }

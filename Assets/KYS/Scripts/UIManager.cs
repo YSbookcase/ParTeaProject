@@ -126,14 +126,14 @@ namespace KYS
         {
             //Debug.Log($"[UIManager] 씬 전환 감지: {scene.name}");
             
-            // 게임 씬으로 전환되는 경우 모든 UI 정리
+            // 게임 씬으로 전환되는 경우 로딩 블로커 숨기기
             if (scene.name.Contains("Game") || scene.name.Contains("Arena") || 
                 scene.name.Contains("Jump") || scene.name.Contains("Racing") ||
                 scene.name.Contains("Tile") || scene.name.Contains("Rope") ||
                 scene.name.Contains("Receive"))
             {
-                Debug.Log("[UIManager] 게임 씬으로 전환 - 모든 UI 정리");
-                CleanAllUI();
+                Debug.Log("[UIManager] 게임 씬으로 전환 - 로딩 블로커 숨김");
+                PopUp.HideLoadingBlocker();
             }
             
             // NetworkScene으로 돌아올 때 RoomPopUp 표시 (게임 종료 후)
