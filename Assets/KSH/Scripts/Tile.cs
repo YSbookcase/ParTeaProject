@@ -6,6 +6,7 @@ namespace KSH
     public class Tile : MonoBehaviour
     {
         private Color curColor;
+        private bool isBgm = false;
 
         [PunRPC]
         public void SetColor(string hexcolor)
@@ -23,6 +24,14 @@ namespace KSH
         private void OnCollisionEnter(Collision other)
         {
             if (!GameManager.Instance.isGameStart) return; //게임 시작이 되지않으면 충돌 판정 X
+            
+            if (!isBgm)
+            {
+                Manager.Audio.SfxPlay("KSH_Walk");
+                isBgm = true;
+            }
+            isBgm = false;
+            
             PlayerController player = other.gameObject.GetComponent<PlayerController>();
 
             int team = 0;

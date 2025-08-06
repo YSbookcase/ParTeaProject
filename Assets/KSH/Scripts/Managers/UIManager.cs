@@ -4,9 +4,10 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System;
+using DG.Tweening;
 using Photon.Pun;
 using Photon.Realtime;
-using Unity.VisualScripting;
+using DG.Tweening;
 
 namespace KSH
 {
@@ -28,8 +29,15 @@ namespace KSH
         [SerializeField] private GameObject teamNickName;
         [SerializeField] private Image vsImage;
         
+        [SerializeField] private RectTransform titleRect;
+        [SerializeField] private RectTransform winnerRect;
+        
         public event Action OnCountDownEnd;
         public static UIManager Instance;
+        private Vector2 startPos;
+        private Vector2 targetPos;
+        private bool isTitle = false;
+        private bool isWin = false;
         
         private void Awake()
         {
@@ -63,6 +71,17 @@ namespace KSH
             redText.gameObject.SetActive(false);
             blueText.gameObject.SetActive(false);
             vsImage.gameObject.SetActive(false);
+            
+            targetPos = titleRect.anchoredPosition;
+            startPos = targetPos + Vector2.up * 1000f;
+            titleRect.anchoredPosition = startPos;
+            
+            if (!isTitle)
+            {
+                Manager.Audio.SfxPlay("KSH_Title");
+                isTitle = true;
+                UIEffect(titleRect);
+            }
         }
 
         void OnDisable()
@@ -116,6 +135,13 @@ namespace KSH
         {
             winnerText.text = msg;
             winnerPanelImage.color = winnercolor;
+            
+            UIEffect(winnerRect);
+            if(!isWin)
+            {
+                Manager.Audio.SfxPlay("KSH_Win");
+                isWin = true;
+            }
         }
 
         public void StartCountDown()
@@ -125,7 +151,8 @@ namespace KSH
 
         private IEnumerator CountDown()
         {
-            yield return new WaitForSeconds(3f);
+            yield return new WaitForSeconds(5f);
+            titleRect.gameObject.SetActive(false);
             countDownPanal.SetActive(true);
             
             for (int i = 3; i >= 0; i--)
@@ -160,6 +187,14 @@ namespace KSH
                 else if (team == 1)
                     gameObject.transform.SetParent(blueTeamPanel, false);;
             }
+        }
+
+        private void UIEffect(RectTransform rect)
+        {
+            Sequence seq = DOTween.Sequence();
+
+            seq.Append(rect.DOAnchorPosY(targetPos.y, 1.2f))
+                .SetEase(Ease.OutBounce);
         }
     }
 }
