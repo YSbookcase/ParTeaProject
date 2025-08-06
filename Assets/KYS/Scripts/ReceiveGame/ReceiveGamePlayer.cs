@@ -21,8 +21,8 @@ namespace KYS
         [SerializeField] private LayerMask itemLayerMask = -1; // 아이템 레이어 마스크
         
         [Header("Mobile Optimization")]
-        [SerializeField] private float collectionCheckInterval = 0.02f; // 충돌 체크 간격을 매우 짧게 (50fps)
-        [SerializeField] private float mobileCollectionRadius = 5f; // 모바일 전용 충돌 범위를 더 크게
+        [SerializeField] private float collectionCheckInterval = 0.01f; // 충돌 체크 간격을 더 짧게 (100fps)
+        [SerializeField] private float mobileCollectionRadius = 7f; // 모바일 전용 충돌 범위를 더 크게 (5f → 7f)
         
         [Header("Magnetic Effect Settings")]
         [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위
@@ -292,11 +292,24 @@ namespace KYS
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
                 if (item != null && !item.IsCollected)
                 {
+                    // 아이템 타입 확인
+                    ItemType itemType = GetItemType(item);
+                    
+                    // Slow 아이템은 자동 수집하지 않음 (플레이어가 피해야 하는 아이템)
+                    if (itemType == ItemType.Slow)
+                    {
+                        if (isMobilePlatform)
+                        {
+                            Debug.Log($"[ReceiveGamePlayer] Slow 아이템 감지 - 수집하지 않음: {item.name}");
+                        }
+                        continue; // Slow 아이템은 건너뛰기
+                    }
+                    
                     // 모바일 디버깅을 위한 상세 정보
                     if (isMobilePlatform)
                     {
                         float distance = Vector3.Distance(transform.position, item.transform.position);
-                        Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 거리: {distance:F2}, 수집 가능: {!item.IsCollected}, 위치: {item.transform.position}");
+                        Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 수집 가능: {!item.IsCollected}, 위치: {item.transform.position}");
                     }
                     
                     CollectItem(item);
@@ -338,7 +351,20 @@ namespace KYS
                     CollectibleItem item = hit.collider.GetComponent<CollectibleItem>();
                     if (item != null && !item.IsCollected)
                     {
-                        Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 발견: {item.name}, 거리: {hit.distance:F2}, 방향: {direction}");
+                        // 아이템 타입 확인
+                        ItemType itemType = GetItemType(item);
+                        
+                        // Slow 아이템은 자동 수집하지 않음
+                        if (itemType == ItemType.Slow)
+                        {
+                            if (isMobilePlatform)
+                            {
+                                Debug.Log($"[ReceiveGamePlayer] Raycast로 Slow 아이템 감지 - 수집하지 않음: {item.name}");
+                            }
+                            continue; // Slow 아이템은 건너뛰기
+                        }
+                        
+                        Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 발견: {item.name}, 타입: {itemType}, 거리: {hit.distance:F2}, 방향: {direction}");
                         CollectItem(item);
                     }
                 }
@@ -405,17 +431,18 @@ namespace KYS
                 return;
             }
             
-            if (item.IsCollected) 
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (item.IsCollected && !isMobilePlatform) 
             {
                 if (isMobilePlatform)
                 {
-                    Debug.Log($"[ReceiveGamePlayer] CollectItem: 이미 수집된 아이템 {item.name}");
+                    Debug.Log($"[ReceiveGamePlayer] CollectItem: 이미 수집된 아이템 {item.name} (데스크톱에서만 차단)");
                 }
                 return;
             }
             
-            // 중복 수집 방지를 위해 즉시 상태 변경
-            if (item.IsCollected) return; // 이중 체크
+            // 모바일에서는 중복 체크 완화
+            if (item.IsCollected && !isMobilePlatform) return; // 데스크톱에서만 이중 체크
             
             // 모바일 디버그 로그
             if (Application.isMobilePlatform)
@@ -876,11 +903,14 @@ namespace KYS
             CollectibleItem item = other.GetComponent<CollectibleItem>();
             if (item != null && !item.IsCollected)
             {
+                // 아이템 타입 확인 (디버깅용)
+                ItemType itemType = GetItemType(item);
+                
                 // 모바일 디버깅을 위한 상세 정보
                 if (isMobilePlatform)
                 {
                     float distance = Vector3.Distance(transform.position, item.transform.position);
-                    Debug.Log($"[ReceiveGamePlayer] OnTriggerEnter로 아이템 감지: {item.name}, 거리: {distance:F2}, 위치: {item.transform.position}");
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerEnter로 아이템 감지: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 위치: {item.transform.position}");
                 }
                 
                 CollectItem(item);
@@ -908,11 +938,14 @@ namespace KYS
             CollectibleItem item = other.GetComponent<CollectibleItem>();
             if (item != null && !item.IsCollected)
             {
+                // 아이템 타입 확인 (디버깅용)
+                ItemType itemType = GetItemType(item);
+                
                 // 모바일에서 주기적으로 체크 (0.5초마다)
                 if (isMobilePlatform && Time.time % 0.5f < Time.deltaTime)
                 {
                     float distance = Vector3.Distance(transform.position, item.transform.position);
-                    Debug.Log($"[ReceiveGamePlayer] OnTriggerStay로 아이템 감지: {item.name}, 거리: {distance:F2}");
+                    Debug.Log($"[ReceiveGamePlayer] OnTriggerStay로 아이템 감지: {item.name}, 타입: {itemType}, 거리: {distance:F2}");
                     CollectItem(item);
                 }
             }

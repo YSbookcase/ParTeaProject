@@ -66,6 +66,9 @@ namespace KYS
             // 시작 위치 저장
             startPosition = transform.position;
             
+            // 모바일에서 콜라이더 크기 확대
+            SetupColliderForMobile();
+            
             // 아이템 애니메이션 시작
             StartCoroutine(ItemAnimation());
         }
@@ -79,6 +82,42 @@ namespace KYS
                 rb.angularDrag = 0.5f; // 회전 저항
                 rb.mass = 1f;
                 rb.maxAngularVelocity = 10f; // 최대 각속도 제한
+            }
+        }
+        
+        /// <summary>
+        /// 모바일에서 아이템 수집을 위해 콜라이더 크기를 확대합니다.
+        /// </summary>
+        private void SetupColliderForMobile()
+        {
+            if (!isMobilePlatform) return;
+            
+            // SphereCollider 확대
+            SphereCollider sphereCollider = GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                sphereCollider.radius *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+            }
+            
+            // BoxCollider 확대
+            BoxCollider boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                boxCollider.size *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+            }
+            
+            // CapsuleCollider 확대
+            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                capsuleCollider.radius *= 1.5f;
+                capsuleCollider.height *= 1.5f;
+                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
@@ -164,7 +203,8 @@ namespace KYS
         
         public void Collect()
         {
-            if (isCollected) return;
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (isCollected && !isMobilePlatform) return;
             
             // 즉시 수집 상태로 변경하여 중복 수집 방지
             isCollected = true;

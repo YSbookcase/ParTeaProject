@@ -82,6 +82,9 @@ namespace KYS
             SetupRigidbody();
             startPosition = transform.position;
             
+            // 모바일에서 콜라이더 크기 확대
+            SetupColliderForMobile();
+            
             // 아이템 타입이 설정되지 않은 경우 기본값 사용
             if (itemType == ItemType.Normal)
             {
@@ -103,6 +106,42 @@ namespace KYS
                 
                 // Y축 회전만 허용
                 rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            }
+        }
+        
+        /// <summary>
+        /// 모바일에서 아이템 수집을 위해 콜라이더 크기를 확대합니다.
+        /// </summary>
+        private void SetupColliderForMobile()
+        {
+            if (!Application.isMobilePlatform) return;
+            
+            // SphereCollider 확대
+            SphereCollider sphereCollider = GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                sphereCollider.radius *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+            }
+            
+            // BoxCollider 확대
+            BoxCollider boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                boxCollider.size *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+            }
+            
+            // CapsuleCollider 확대
+            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider != null)
+            {
+                // 기존 크기의 1.5배로 확대
+                capsuleCollider.radius *= 1.5f;
+                capsuleCollider.height *= 1.5f;
+                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
@@ -345,7 +384,8 @@ namespace KYS
         
         private void OnTriggerEnter(Collider other)
         {
-            if (isCollected) return;
+            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
+            if (isCollected && !Application.isMobilePlatform) return;
             
             // 플레이어와 충돌했는지 확인
             if (other.CompareTag("Player"))
@@ -357,7 +397,7 @@ namespace KYS
                     Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
                 }
                 
-                // 중복 수집 방지를 위해 즉시 수집 상태로 변경
+                // 중복 수집 방지를 위해 즉시 수집 상태로 변경 (모바일에서는 더 관대하게)
                 isCollected = true;
                 
                 // 바운스 애니메이션 중지
