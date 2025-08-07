@@ -110,19 +110,34 @@ namespace KYS
         {
             Debug.Log($"[PopUpUI] 강제 정리 시작 - 현재 팝업 개수: {stack.Count}");
             
+            // 모든 팝업을 즉시 파괴
             while (stack.Count > 0)
             {
                 BaseUI popup = stack.Pop();
                 if (popup != null && popup.gameObject != null)
                 {
+                    Debug.Log($"[PopUpUI] 팝업 파괴: {popup.name}");
                     DestroyImmediate(popup.gameObject);
                 }
             }
             
+            // 스택을 완전히 비우고 상태 초기화
+            stack.Clear();
             IsPopUpActive = false;
-            if (blocker != null && SceneManager.GetActiveScene().name != "NetworkScene")
+            
+            // 블로커 비활성화 (NetworkScene이 아닌 경우)
+            if (blocker != null)
             {
-                blocker.SetActive(false);
+                // NetworkScene에서는 블로커를 유지 (RoomPopUp이 표시될 예정)
+                if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "NetworkScene")
+                {
+                    blocker.SetActive(false);
+                    Debug.Log("[PopUpUI] 블로커 비활성화 완료");
+                }
+                else
+                {
+                    Debug.Log("[PopUpUI] NetworkScene에서는 블로커 유지");
+                }
             }
             
             Debug.Log("[PopUpUI] 강제 정리 완료");
@@ -147,10 +162,21 @@ namespace KYS
         public void HideLoadingBlocker()
         {
             Debug.Log("[PopUpUI] 로딩 블로커 숨김");
-            if (blocker != null && stack.Count == 0)
+            if (blocker != null)
             {
                 blocker.SetActive(false);
+                Debug.Log("[PopUpUI] 로딩 블로커 비활성화 완료");
+            }
+            else
+            {
+                Debug.LogWarning("[PopUpUI] blocker가 null입니다");
+            }
+            
+            // 스택이 비어있으면 IsPopUpActive도 false로 설정
+            if (stack.Count == 0)
+            {
                 IsPopUpActive = false;
+                Debug.Log("[PopUpUI] 스택이 비어있어 IsPopUpActive = false로 설정");
             }
         }
     }

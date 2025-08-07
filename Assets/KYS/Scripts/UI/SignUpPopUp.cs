@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI; // Added for Button
 
 namespace KYS
 {
@@ -16,7 +17,7 @@ namespace KYS
         private TMP_InputField passInput => GetUI<TMP_InputField>("PasswordField");
         private TMP_InputField passConfirmInput => GetUI<TMP_InputField>("PasswordCheckField");
 
-        // 이메일 유효성 상태
+        // 이메일 중복 확인 플래그
         //private bool isEmailAvailable = false;
 
         private new void Awake()
@@ -42,10 +43,10 @@ namespace KYS
             }
         }
 
-        // 이메일 입력 필드 변경 시 중복 확인 상태 초기화
+        // 이메일 입력 필드 변경 시 중복 확인 플래그 초기화
         private void OnEmailChanged(string newValue)
         {
-            // 이메일이 변경되면 중복 확인 상태 초기화
+            // 이메일이 변경되면 중복 확인 플래그 초기화
             //isEmailAvailable = false; // 더 이상 사용하지 않음
         }
 
@@ -206,17 +207,34 @@ namespace KYS
 
         private void SignUp(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button signUpButton = GetUI<Button>("SignUpButton");
+            if (signUpButton != null)
+            {
+                signUpButton.interactable = false;
+            }
+
             // 이메일 형식 검증
             if (!ValidateEmailFormat(idInput.text))
             {
                 ShowErrorMessage("올바른 이메일 형식을 입력해주세요.");
+                // 버튼 다시 활성화
+                if (signUpButton != null)
+                {
+                    signUpButton.interactable = true;
+                }
                 return;
             }
 
-            // 이메일 중복 확인이 완료되지 않은 경우
+            // 이메일 중복 확인이 완료되지 않은 경우 경고
             //if (!isEmailAvailable)
             //{
-            //    ShowErrorMessage("이메일 중복 확인을 먼저 해주세요.");
+            //    ShowErrorMessage("이메일 중복 확인을 완료해주세요.");
+            //    // 버튼 다시 활성화
+            //    if (signUpButton != null)
+            //    {
+            //        signUpButton.interactable = true;
+            //    }
             //    return;
             //}
 
@@ -224,22 +242,38 @@ namespace KYS
             if (string.IsNullOrEmpty(passInput.text) || passInput.text.Length < 6)
             {
                 ShowErrorMessage("비밀번호는 최소 6자 이상이어야 합니다.");
+                // 버튼 다시 활성화
+                if (signUpButton != null)
+                {
+                    signUpButton.interactable = true;
+                }
                 return;
             }
 
             if (passInput.text != passConfirmInput.text)
             {
                 ShowErrorMessage("비밀번호가 일치하지 않습니다.");
+                // 버튼 다시 활성화
+                if (signUpButton != null)
+                {
+                    signUpButton.interactable = true;
+                }
                 return;
             }
 
-            // 디버깅을 위한 로그
-            Debug.Log($"회원가입 시도 - 이메일: {idInput.text}, 비밀번호 길이: {passInput.text?.Length ?? 0}");
+            // 회원가입 요청 로그
+            Debug.Log($"회원가입 요청 - 이메일: {idInput.text}, 비밀번호 길이: {passInput.text?.Length ?? 0}");
             
-            // 회원가입 시도 (Firebase가 자동으로 중복 확인)
+            // 회원가입 요청 (Firebase에서 자동으로 중복 확인)
             FirebaseManager.Auth.CreateUserWithEmailAndPasswordAsync(idInput.text, passInput.text)
                 .ContinueWithOnMainThread(task =>
                 {
+                    // 버튼 다시 활성화
+                    if (signUpButton != null)
+                    {
+                        signUpButton.interactable = true;
+                    }
+
                     if (task.IsCanceled)
                     {
                         ShowErrorMessage("회원가입이 취소되었습니다.");
@@ -247,12 +281,12 @@ namespace KYS
                     }
                     if (task.IsFaulted)
                     {
-                        // Firebase에서 중복 이메일 에러를 자동으로 처리
+                        // Firebase에서 중복 이메일 오류 코드로 처리
                         string errorMessage = task.Exception.ToString();
                         if (errorMessage.Contains("already in use") || errorMessage.Contains("already exists"))
                         {
-                            ShowErrorMessage("이미 사용 중인 이메일입니다.");
-                            // 중복 확인 상태 초기화
+                            ShowErrorMessage("이미 가입된 이메일입니다.");
+                            // 중복 확인 플래그 초기화
                             //isEmailAvailable = false;
                         }
                         else if (errorMessage.Contains("weak password"))
@@ -265,7 +299,7 @@ namespace KYS
                         }
                         else if (errorMessage.Contains("internal error"))
                         {
-                            ShowErrorMessage("서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                            ShowErrorMessage("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
                         }
                         else if (errorMessage.Contains("network") || errorMessage.Contains("connection"))
                         {
@@ -273,12 +307,12 @@ namespace KYS
                         }
                         else if (errorMessage.Contains("too many requests"))
                         {
-                            ShowErrorMessage("너무 많은 요청이 있었습니다. 잠시 후 다시 시도해주세요.");
+                            ShowErrorMessage("너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.");
                         }
                         else
                         {
-                            ShowErrorMessage($"오류로 인한 회원가입 실패");
-                            Debug.Log($"에이터 상에서 확인하는 Log {task.Exception}");
+                            ShowErrorMessage($"알 수 없는 오류로 회원가입 실패");
+                            Debug.Log($"오류 내용을 확인하세요 Log {task.Exception}");
                         }
                         return;
                     }
@@ -286,7 +320,7 @@ namespace KYS
                     Debug.Log("회원가입이 완료되었습니다!");
                     ResetInputs();
 
-                    // 회원가입 성공 후 이메일 인증 팝업으로 이동
+                    // 회원가입 완료 후 이메일 인증 팝업으로 이동
                     UIManager.Instance.ClosePopUp();
                     UIManager.Instance.ShowPopUp<EmailPopUp>();
                 });

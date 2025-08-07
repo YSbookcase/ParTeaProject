@@ -10,16 +10,14 @@ namespace KYS
     
         [Header("Item Settings")]
         [SerializeField] private float rotationSpeed = 90f;
-        [SerializeField] private float bobSpeed = 2f;
-        [SerializeField] private float bobHeight = 0.5f;
         [SerializeField] private int pointValue = 1;
         
         [Header("Physics Settings")]
         [SerializeField] private float groundLevel = 0.5f; // 바닥 레벨 (Y축)
         [SerializeField] private float bounceForce = 3f; // 바운스 힘
         [SerializeField] private float maxFallSpeed = 15f; // 최대 낙하 속도
-        [SerializeField] private float returnDelay = 3f; // 바닥 닿은 후 리턴 지연 시간
-        [SerializeField] private float mobileReturnDelay = 5f; // 모바일용 리턴 지연 시간 (더 길게)
+        [SerializeField] private float groundReturnDelay = 3f; // 바닥 닿은 후 풀 반환 지연 시간
+        [SerializeField] private float mobileGroundReturnDelay = 5f; // 모바일용 바닥 풀 반환 지연 시간
         
         [Header("Effects")]
         [SerializeField] private GameObject collectParticle;
@@ -28,12 +26,26 @@ namespace KYS
         [Header("Configuration")]
         [SerializeField] private ItemConfiguration itemConfiguration; // ScriptableObject 참조 추가
         
-        private Vector3 startPosition;
-        private bool isCollected = false;
-        private bool hasHitGround = false;
+        private bool isCollected = false; // 수집됨 여부
+        private bool hasLandedOnGround = false; // 바닥에 착지했는지 여부
+        private Vector3 previousPosition; // 이전 프레임 위치 (떨어지는 감지용)
+        
+        // 이전 위치 설정을 위한 public 프로퍼티
+        public Vector3 PreviousPosition
+        {
+            get { return previousPosition; }
+            set { previousPosition = value; }
+        }
+        
+        // 바닥 착지 상태를 위한 public 프로퍼티
+        public bool HasLandedOnGround
+        {
+            get { return hasLandedOnGround; }
+            set { hasLandedOnGround = value; }
+        }
         private Renderer itemRenderer;
         private Rigidbody rb;
-        private Coroutine returnCoroutine;
+        private Coroutine groundReturnCoroutine; // 바닥 착지 후 풀 반환 코루틴
         
         public bool IsCollected => isCollected;
         public int PointValue => pointValue;
@@ -44,8 +56,13 @@ namespace KYS
         // 모바일 플랫폼 감지
         private bool isMobilePlatform => Application.isMobilePlatform;
         
+        private bool isInitialized = false; // 초기화 완료 여부
+        
         private void Start()
         {
+            // 이미 초기화된 경우 중복 초기화 방지
+            if (isInitialized) return;
+            
             // PhotonView 초기화
             photonView = GetComponent<PhotonView>();
             if (photonView == null)
@@ -63,14 +80,17 @@ namespace KYS
             itemRenderer = GetComponent<Renderer>();
             rb = GetComponent<Rigidbody>();
             
-            // 시작 위치 저장
-            startPosition = transform.position;
+            // 초기 스폰 위치는 최초 생성 시에만 저장 (풀 재사용 시에는 저장하지 않음)
+            // initialSpawnPosition = transform.position; // ← 제거됨
             
             // 모바일에서 콜라이더 크기 확대
             SetupColliderForMobile();
             
             // 아이템 애니메이션 시작
             StartCoroutine(ItemAnimation());
+            
+            // 초기화 완료 표시
+            isInitialized = true;
         }
         
         private void SetupRigidbody()
@@ -98,7 +118,7 @@ namespace KYS
             {
                 // 기존 크기의 1.5배로 확대
                 sphereCollider.radius *= 1.5f;
-                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+                //Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
             }
             
             // BoxCollider 확대
@@ -107,7 +127,7 @@ namespace KYS
             {
                 // 기존 크기의 1.5배로 확대
                 boxCollider.size *= 1.5f;
-                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+                //Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
             }
             
             // CapsuleCollider 확대
@@ -117,63 +137,104 @@ namespace KYS
                 // 기존 크기의 1.5배로 확대
                 capsuleCollider.radius *= 1.5f;
                 capsuleCollider.height *= 1.5f;
-                Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
+                //Debug.Log($"[CollectibleItem] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
         private void Update()
         {
-            if (!isCollected && !hasHitGround)
+            if (!isCollected)
             {
-                // 회전 애니메이션
+                // 회전 애니메이션 (바닥에 닿아도 계속 회전)
                 transform.Rotate(0, rotationSpeed * Time.deltaTime, 0);
                 
-                // 낙하 속도 제한
-                if (rb != null && rb.velocity.y < -maxFallSpeed)
+                // 바닥에 착지하지 않았을 때만 낙하 처리
+                if (!hasLandedOnGround)
                 {
-                    rb.velocity = new Vector3(rb.velocity.x, -maxFallSpeed, rb.velocity.z);
+                    // 낙하 속도 제한
+                    if (rb != null && rb.velocity.y < -maxFallSpeed)
+                    {
+                        rb.velocity = new Vector3(rb.velocity.x, -maxFallSpeed, rb.velocity.z);
+                    }
+                    
+                    // 바닥 충돌 감지 (높은 위치에서 잘못 감지되지 않도록 개선)
+                    CheckGroundCollision();
                 }
                 
-                // 바닥 충돌 감지
-                CheckGroundCollision();
+                // 이전 위치 업데이트 (다음 프레임에서 떨어지는 감지용)
+                previousPosition = transform.position;
             }
         }
         
         private void CheckGroundCollision()
         {
-            if (transform.position.y <= groundLevel && !hasHitGround)
+            // 높은 위치에서 잘못된 바닥 충돌 감지를 방지
+            // 아이템이 실제로 떨어지는 중일 때만 바닥 충돌을 감지
+            if (transform.position.y <= groundLevel && !hasLandedOnGround)
             {
-                OnHitGround();
+                // 더 엄격한 검증: 실제로 떨어지는 중인지 확인
+                bool isActuallyFalling = false;
+                
+                if (rb != null && rb.velocity.y < 0)
+                {
+                    // Rigidbody가 있고 아래로 떨어지는 중
+                    isActuallyFalling = true;
+                }
+                else if (rb == null && previousPosition.y > transform.position.y)
+                {
+                    // Rigidbody가 없지만 이전 프레임보다 낮아졌음 (DropItemToGround 코루틴으로 이동 중)
+                    isActuallyFalling = true;
+                }
+                
+                // 실제로 떨어지는 중일 때만 바닥 착지 처리
+                if (isActuallyFalling)
+                {
+                    OnLandedOnGround();
+                }
+                // 그 외의 경우는 무시 (높은 위치에서 잘못된 감지 방지)
             }
         }
         
-        private void OnHitGround()
+        private void OnLandedOnGround()
         {
-            hasHitGround = true;
-            ////Debug.Log($"아이템이 바닥에 닿았습니다: {transform.position}");
+            hasLandedOnGround = true;
+            ////Debug.Log($"아이템이 바닥에 착지했습니다: {transform.position}");
             
-            // 바운스 효과
+            // 바운스 효과 (Trigger 콜라이더 대응)
             if (rb != null)
             {
+                // 현재 위치를 바닥 레벨로 고정
+                Vector3 currentPos = transform.position;
+                currentPos.y = groundLevel;
+                transform.position = currentPos;
+                
+                // 바운스 속도 적용
                 rb.velocity = new Vector3(rb.velocity.x, bounceForce, rb.velocity.z);
+            }
+            else
+            {
+                // Rigidbody가 없는 경우 위치만 조정
+                Vector3 currentPos = transform.position;
+                currentPos.y = groundLevel;
+                transform.position = currentPos;
             }
             
             // 일정 시간 후 오브젝트 풀로 반환
-            returnCoroutine = StartCoroutine(ReturnToPoolAfterDelay());
+            groundReturnCoroutine = StartCoroutine(ReturnToPoolAfterGroundDelay());
         }
         
-        private IEnumerator ReturnToPoolAfterDelay()
+        private IEnumerator ReturnToPoolAfterGroundDelay()
         {
-            // 플랫폼별 리턴 지연 시간 적용
-            float currentReturnDelay = isMobilePlatform ? mobileReturnDelay : returnDelay;
+            // 플랫폼별 바닥 착지 후 풀 반환 지연 시간 적용
+            float currentGroundReturnDelay = isMobilePlatform ? mobileGroundReturnDelay : groundReturnDelay;
             
             // 모바일 디버깅 로그
             if (isMobilePlatform)
             {
-                Debug.Log($"[CollectibleItem] 모바일에서 아이템 바닥 도착: {gameObject.name}, 리턴 지연: {currentReturnDelay}초");
+                //Debug.Log($"[CollectibleItem] 모바일에서 아이템 바닥 착지: {gameObject.name}, 풀 반환 지연: {currentGroundReturnDelay}초");
             }
             
-            yield return new WaitForSeconds(currentReturnDelay);
+            yield return new WaitForSeconds(currentGroundReturnDelay);
             
             // 오브젝트 풀로 반환
             if (returnPool != null)
@@ -189,13 +250,29 @@ namespace KYS
         
         private IEnumerator ItemAnimation()
         {
-            Vector3 originalPosition = transform.position;
+            // 애니메이션 기준 위치를 현재 위치로 설정 (풀에서 재사용될 때 대응)
+            Vector3 animationBasePosition = transform.position;
             
-            while (!isCollected && !hasHitGround)
+            while (!isCollected && gameObject.activeInHierarchy)
             {
-                // 위아래 움직임
-                float newY = originalPosition.y + Mathf.Sin(Time.time * bobSpeed) * bobHeight;
-                transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+                // 바닥에 착지하지 않았을 때만 위아래 움직임
+                if (!hasLandedOnGround)
+                {
+                    // DropItemToGround 코루틴이 실행 중일 때는 위치 변경하지 않음
+                    // 대기 시간을 두어 드롭 애니메이션이 완료될 때까지 기다림
+                    yield return new WaitForSeconds(4f); // DropItemToGround 완료 대기
+                    
+                    // 드롭 완료 후 바닥에 착지한 것으로 간주
+                    hasLandedOnGround = true;
+                    Debug.Log($"[CollectibleItem] ItemAnimation에서 드롭 완료 후 바닥 착지 처리 - 아이템: {gameObject.name}");
+                }
+                else
+                {
+                    // 바닥에 착지했으면 바닥 레벨에 고정
+                    Vector3 currentPos = transform.position;
+                    currentPos.y = groundLevel;
+                    transform.position = currentPos;
+                }
                 
                 yield return null;
             }
@@ -218,7 +295,7 @@ namespace KYS
             // 네트워크 동기화를 위해 RPC 호출
             if (photonView != null && photonView.IsMine)
             {
-                photonView.RPC("CollectRPC", RpcTarget.All);
+                photonView.RPC(nameof(CollectRPC), RpcTarget.All);
             }
             else if (photonView == null)
             {
@@ -245,24 +322,28 @@ namespace KYS
             
             // 이미 Collect()에서 isCollected = true로 설정했으므로 여기서는 중복 설정하지 않음
             
-            // 리턴 코루틴 중지
-            if (returnCoroutine != null)
+            // 바닥 착지 후 풀 반환 코루틴 중지
+            if (groundReturnCoroutine != null)
             {
-                StopCoroutine(returnCoroutine);
-                returnCoroutine = null;
+                StopCoroutine(groundReturnCoroutine);
+                groundReturnCoroutine = null;
             }
             
             // 수집 효과 재생
             PlayCollectEffect();
             
-            // 오브젝트 풀로 반환 (0.5초 후) - null 체크 추가
+            // 모바일에서는 즉시 비활성화 (사용자 경험 개선)
+            float returnDelay = isMobilePlatform ? 0.1f : 0.5f;
+            
+            // 오브젝트 풀로 반환 - null 체크 추가
             if (returnPool != null)
             {
-                ReturnToPool(0.5f);
+                ReturnToPool(returnDelay);
+                Debug.Log($"[CollectibleItem] 풀로 반환 예약: {gameObject.name}, 지연시간: {returnDelay}초");
             }
             else
             {
-                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 // 중복 파괴 방지를 위해 즉시 비활성화
                 gameObject.SetActive(false);
                 
@@ -282,7 +363,7 @@ namespace KYS
                     // 로컬 오브젝트이거나 Master Client가 아닌 경우 일반 Destroy 사용
                     if (gameObject != null)
                     {
-                        Destroy(gameObject, 0.5f);
+                        Destroy(gameObject, returnDelay);
                     }
                 }
             }
@@ -344,14 +425,20 @@ namespace KYS
         public void ResetItem()
         {
             isCollected = false;
-            hasHitGround = false;
-            startPosition = transform.position;
+            hasLandedOnGround = false;
             
-            // Rigidbody 리셋
+            // 풀에서 재사용될 때는 현재 위치를 초기 위치로 설정하지 않음
+            // ReceiveGameManagerEnhanced에서 올바른 높이로 설정할 예정
+            
+            // 이전 위치 초기화 (위치 설정 후에 업데이트됨)
+            // previousPosition = transform.position; // 위치 설정 후에 업데이트
+            
+            // Rigidbody 리셋 (속도만 리셋, 위치는 유지)
             if (rb != null)
             {
                 rb.velocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
+                rb.useGravity = false; // 드롭 코루틴 중에는 중력 비활성화
             }
             
             // 시각적 효과 리셋
@@ -362,16 +449,19 @@ namespace KYS
                 itemRenderer.material.color = originalColor;
             }
             
-            // 기존 코루틴 정리
-            if (returnCoroutine != null)
+            // 기존 바닥 착지 후 풀 반환 코루틴 정리
+            if (groundReturnCoroutine != null)
             {
-                StopCoroutine(returnCoroutine);
-                returnCoroutine = null;
+                StopCoroutine(groundReturnCoroutine);
+                groundReturnCoroutine = null;
             }
+            
+            // ItemAnimation 코루틴만 중지 (DropItemToGround 코루틴은 유지)
+            // StopAllCoroutines() 제거 - DropItemToGround 코루틴이 중단되지 않도록 함
             
             gameObject.SetActive(true);
             
-            ////Debug.Log($"[CollectibleItem] 아이템 리셋 완료 - 타입: {itemType}");
+            Debug.Log($"[CollectibleItem.ResetItem] 아이템 리셋 완료 - 타입: {itemType}, 현재위치: {transform.position}, 아이템: {gameObject.name}, hasLandedOnGround: {hasLandedOnGround}");
         }
         
         /// <summary>
@@ -379,11 +469,11 @@ namespace KYS
         /// </summary>
         public void ReturnToPoolWithDelay(float delay)
         {
-            if (returnCoroutine != null)
+            if (groundReturnCoroutine != null)
             {
-                StopCoroutine(returnCoroutine);
+                StopCoroutine(groundReturnCoroutine);
             }
-            returnCoroutine = StartCoroutine(ReturnToPoolDelayed(delay));
+            groundReturnCoroutine = StartCoroutine(ReturnToPoolDelayed(delay));
         }
         
         /// <summary>
@@ -402,18 +492,68 @@ namespace KYS
         }
         
         /// <summary>
+        /// ReceiveGameManagerEnhanced에서 groundLevel을 설정하는 메서드
+        /// </summary>
+        public void SetGroundLevel(float level)
+        {
+            groundLevel = level;
+            Debug.Log($"[CollectibleItem] Ground level 설정됨: {groundLevel}");
+        }
+        
+        /// <summary>
         /// 모든 코루틴을 중지하고 정리
         /// </summary>
         public new void StopAllCoroutines()
         {
-            if (returnCoroutine != null)
+            if (groundReturnCoroutine != null)
             {
-                StopCoroutine(returnCoroutine);
-                returnCoroutine = null;
+                StopCoroutine(groundReturnCoroutine);
+                groundReturnCoroutine = null;
             }
             
             // ItemAnimation 코루틴도 중지 (MonoBehaviour의 StopAllCoroutines 호출)
             base.StopAllCoroutines();
+        }
+        
+        private void OnEnable()
+        {
+            // 오브젝트가 활성화될 때마다 ItemAnimation 코루틴 재시작
+            // 단, 바닥에 착지한 후에만 시작 (DropItemToGround 코루틴과의 충돌 방지)
+            if (isInitialized && !isCollected)
+            {
+                // 이전 위치 업데이트 (풀에서 재활용될 때)
+                previousPosition = transform.position;
+                
+                // 기존 ItemAnimation 코루틴이 실행 중이면 중지
+                StopAllCoroutines();
+                
+                // 바닥에 착지하지 않았으면 잠시 대기 후 시작
+                if (!hasLandedOnGround)
+                {
+                    // DropItemToGround 코루틴이 완료될 때까지 대기
+                    StartCoroutine(DelayedItemAnimation());
+                }
+                else
+                {
+                    // 이미 바닥에 착지한 경우 즉시 시작
+                    StartCoroutine(ItemAnimation());
+                }
+            }
+        }
+        
+        private IEnumerator DelayedItemAnimation()
+        {
+            // DropItemToGround 코루틴이 완료될 때까지 대기 (itemDropToGroundSpeed + 여유시간)
+            yield return new WaitForSeconds(6f); // 5초(드롭시간) + 1초(여유시간)
+            
+            // 바닥에 착지했는지 확인 후 ItemAnimation 시작
+            if (!isCollected && gameObject.activeInHierarchy)
+            {
+                // 드롭 완료 후 바닥에 착지한 것으로 간주
+                hasLandedOnGround = true;
+                StartCoroutine(ItemAnimation());
+                Debug.Log($"[CollectibleItem] DelayedItemAnimation 완료 후 ItemAnimation 시작 - 아이템: {gameObject.name}");
+            }
         }
         
         private void OnDestroy()
@@ -436,7 +576,7 @@ namespace KYS
                 //Debug.LogWarning($"[CollectibleItem] 풀이 유효하지 않아 지연 반환 실패: {gameObject.name}");
             }
             
-            returnCoroutine = null;
+            groundReturnCoroutine = null;
         }
     }
 } 

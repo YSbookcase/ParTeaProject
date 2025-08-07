@@ -121,11 +121,9 @@ namespace KYS
                 return;
             }
 
-
             if (!string.IsNullOrEmpty(roomBgmName))
             {
                 Debug.Log($"[RoomPopUp] BGM 재생 시도: {roomBgmName}");
-
                 Manager.Audio.BgmPlay(roomBgmName, 0f);
             }
             else
@@ -143,10 +141,10 @@ namespace KYS
             // 화면 크기 모니터링 정지
             StopScreenSizeMonitoring();
 
-            // 게임 시작 중이면 BGM 변경하지 않음
-            if (isGameStarting)
+            // 게임 시작 중이거나 포톤 룸에 있으면 BGM 변경하지 않음
+            if (isGameStarting || PhotonNetwork.InRoom)
             {
-                Debug.Log("[RoomPopUp] 게임 시작 중이므로 BGM 변경을 건너뜁니다.");
+                Debug.Log("[RoomPopUp] 게임 시작 중이거나 포톤 룸에 있으므로 BGM 변경을 건너뜁니다.");
                 return;
             }
 
@@ -394,7 +392,15 @@ namespace KYS
         private IEnumerator StartRoomBGMAfterGameReturn()
         {
             Debug.Log("[RoomPopUp] StartRoomBGMAfterGameReturn 코루틴 시작");
-            yield return new WaitForSeconds(1f); // AudioManager 준비 대기 (1초로 증가)
+            
+            // BGM 즉시 중지 (기본 BGM이 재생되는 것을 방지)
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay(null, 0f);
+                Debug.Log("[RoomPopUp] BGM 즉시 중지");
+            }
+            
+            yield return new WaitForSeconds(0.1f); // 1초에서 0.1초로 단축
             
             Debug.Log($"[RoomPopUp] AudioManager 상태 확인: {Manager.Audio != null}");
             if (Manager.Audio != null)
@@ -480,12 +486,24 @@ namespace KYS
                 // 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시
                 if (UIManager.Instance != null)
                 {
+                    Debug.Log("[RoomPopUp] UIManager를 통한 UI 정리 시작");
                     UIManager.Instance.CleanAllUI();
+                    
                     if (UIManager.Instance.PopUp != null)
                     {
                         UIManager.Instance.PopUp.ShowLoadingBlocker();
+                        Debug.Log("[RoomPopUp] 로딩 블로커 표시 완료");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[RoomPopUp] PopUpUI가 null입니다");
                     }
                 }
+                else
+                {
+                    Debug.LogWarning("[RoomPopUp] UIManager.Instance가 null입니다");
+                }
+                
                 Debug.Log("[RoomPopUp] 모든 클라이언트에서 UI 정리 및 로딩 블로커 표시 완료");
                 
                 if (Manager.Audio != null)
@@ -707,20 +725,41 @@ namespace KYS
         #region Game Management
         private void GameStart(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            if (startButton != null)
+            {
+                startButton.interactable = false;
+            }
+
             if (!PhotonNetwork.IsMasterClient)
             {
                 ShowErrorMessage("방장만 게임을 시작할 수 있습니다.");
+                // 버튼 다시 활성화
+                if (startButton != null)
+                {
+                    startButton.interactable = true;
+                }
                 return;
             }
 
             if (!AllPlayerReadyCheck())
             {
                 ShowErrorMessage("모든 플레이어가 Ready 상태이고 색상을 선택해야 합니다.");
+                // 버튼 다시 활성화
+                if (startButton != null)
+                {
+                    startButton.interactable = true;
+                }
                 return;
             }
 
             if (!CheckPlayerCountRequirement())
             {
+                // 버튼 다시 활성화
+                if (startButton != null)
+                {
+                    startButton.interactable = true;
+                }
                 return;
             }
 
@@ -1290,11 +1329,11 @@ namespace KYS
             string message = "";
             if (newMasterClient.ActorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
             {
-                message = "🎉 당신이 새로운 방장이 되었습니다! 🎉";
+                message = " 당신이 새로운 방장이 되었습니다! ";
             }
             else
             {
-                message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
+                message = $" {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
             }
 
             // 마스터 클라이언트만 시스템 메시지 전송

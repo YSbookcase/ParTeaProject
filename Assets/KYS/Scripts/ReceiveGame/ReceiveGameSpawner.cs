@@ -94,8 +94,9 @@ namespace KYS
             // 스폰 위치 계산 (안전한 방식 사용)
             Vector3 spawnPosition = GetSpawnPositionSafe(PhotonNetwork.LocalPlayer);
             
-            // 플레이어 생성
-            GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
+            // 플레이어 생성 (-Z 방향을 바라보도록 회전 설정)
+            Quaternion spawnRotation = Quaternion.Euler(0, 180, 0); // Y축 180도 회전 = -Z 방향
+            GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, spawnRotation);
             if (playerObject != null)
             {
                 // 플레이어 컨트롤러 설정
@@ -186,8 +187,9 @@ namespace KYS
             
             //Debug.Log($"스폰 위치: {spawnPosition}");
             
-            // 플레이어 스폰
-            GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
+            // 플레이어 스폰 (-Z 방향을 바라보도록 회전 설정)
+            Quaternion spawnRotation = Quaternion.Euler(0, 180, 0); // Y축 180도 회전 = -Z 방향
+            GameObject playerObject = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, spawnRotation);
             
             if (playerObject == null)
             {

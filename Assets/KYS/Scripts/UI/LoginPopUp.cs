@@ -4,6 +4,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI; // Added for Button
 
 namespace KYS
 {
@@ -87,54 +88,93 @@ namespace KYS
             }
         }
 
-        private void SignUp(PointerEventData eventData)
-        {
-            //signUpPanel.SetActive(true);
-            //gameObject.SetActive(false);
-            //PopUP System으로 변경 진행.
-            UIManager.Instance.ShowPopUp<SignUpPopUp>();
-        }
-
         // LoginPanel.cs의 Login 메서드 수정
         private void Login(PointerEventData eventData)
         {
-            // YSK 네임스페이스의 FirebaseManager 사용
+            // 버튼 비활성화
+            Button loginButton = GetUI<Button>("LoginButton");
+            if (loginButton != null)
+            {
+                loginButton.interactable = false;
+            }
+
+            // YSK 로그인 기능을 FirebaseManager 사용
             KYS.FirebaseManager.Auth.SignInWithEmailAndPasswordAsync(idInput.text, passInput.text)
             .ContinueWithOnMainThread(task =>
             {
-            if (task.IsCanceled)
-            {
-                Debug.Log("로그인이 취소됨");
-                ShowLoginFailMessage("로그인이 취소되었습니다.");
-                return;
-            }
-            if (task.IsFaulted)
-            {
-                Debug.LogError("로그인 오류: " + task.Exception);
-                ShowLoginFailMessage("로그인 중 오류가 발생했습니다.");
-                return;
-            }
+                // 버튼 다시 활성화
+                if (loginButton != null)
+                {
+                    loginButton.interactable = true;
+                }
 
-            var authResult = task.Result;
-            if (authResult != null && authResult.User != null)
-            {
-                Debug.Log("로그인 성공: " + authResult.User.UserId);
+                if (task.IsCanceled)
+                {
+                    Debug.Log("로그인이 취소됨");
+                    ShowLoginFailMessage("로그인이 취소되었습니다.");
+                    return;
+                }
+                if (task.IsFaulted)
+                {
+                    Debug.LogError("로그인 실패: " + task.Exception);
+                    ShowLoginFailMessage("로그인에 실패했습니다.");
+                    return;
+                }
 
-                // 로그인 성공 후 검증 진행
-                CheckUserVerification(authResult.User);
-            }
-            else
-            {
-                Debug.Log("로그인 실패: 결과가 null");
-                ShowLoginFailMessage("로그인에 실패했습니다.");
+                var authResult = task.Result;
+                if (authResult != null && authResult.User != null)
+                {
+                    Debug.Log("로그인 성공: " + authResult.User.UserId);
 
-            }
+                    // 로그인 성공 시 사용자 확인
+                    CheckUserVerification(authResult.User);
+                }
+                else
+                {
+                    Debug.Log("로그인 실패: 결과 null");
+                    ShowLoginFailMessage("로그인에 실패했습니다.");
+
+                }
             });
+        }
+
+        private void SignUp(PointerEventData eventData)
+        {
+            // 버튼 비활성화
+            Button signUpButton = GetUI<Button>("SignUpButton");
+            if (signUpButton != null)
+            {
+                signUpButton.interactable = false;
+            }
+
+            //signUpPanel.SetActive(true);
+            //gameObject.SetActive(false);
+            //PopUP System으로 변경 완료.
+            UIManager.Instance.ShowPopUp<SignUpPopUp>();
+
+            // 버튼 다시 활성화
+            if (signUpButton != null)
+            {
+                signUpButton.interactable = true;
+            }
         }
 
         private void FindPassword(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button findPasswordButton = GetUI<Button>("FindPasswordButton");
+            if (findPasswordButton != null)
+            {
+                findPasswordButton.interactable = false;
+            }
+
             UIManager.Instance.ShowPopUp<PasswordResetPopUp>();
+
+            // 버튼 다시 활성화
+            if (findPasswordButton != null)
+            {
+                findPasswordButton.interactable = true;
+            }
         }
 
 

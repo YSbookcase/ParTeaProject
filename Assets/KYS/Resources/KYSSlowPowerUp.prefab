@@ -219,8 +219,8 @@ MonoBehaviour:
   groundLevel: 0.5
   bounceForce: 3
   maxFallSpeed: 15
-  returnDelay: 3
-  mobileReturnDelay: 5
+  groundReturnDelay: 5
+  mobileGroundReturnDelay: 7
   collectParticle: {fileID: 0}
   collectSoundName: SFX_SlowItem
   itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}

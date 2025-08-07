@@ -29,7 +29,7 @@ namespace KYS
         [SerializeField] private float magnetForce = 10f; // 자석 효과 힘
         
         [Header("Components")]
-        [SerializeField] private Renderer playerRenderer;
+        [SerializeField] private Renderer[] playerRenderers; // 여러 렌더 요소에 색상 적용
         [SerializeField] private Animator playerAnimator;
         
         [Header("UI Elements")]
@@ -270,23 +270,6 @@ namespace KYS
             
             Collider[] colliders = Physics.OverlapSphere(transform.position, currentCollectionRadius, itemLayerMask);
             
-            // 디버그 정보 (모바일에서만 출력)
-            if (isMobilePlatform)
-            {
-                if (colliders.Length > 0)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 충돌 감지: {colliders.Length}개 오브젝트 발견, 범위: {currentCollectionRadius}, 위치: {transform.position}");
-                }
-                else
-                {
-                    // 주기적으로 범위 정보 출력 (디버깅용)
-                    if (Time.frameCount % 300 == 0) // 5초마다 (60fps 기준)
-                    {
-                        Debug.Log($"[ReceiveGamePlayer] 충돌 범위: {currentCollectionRadius}, 위치: {transform.position}, 모바일: {isMobilePlatform}");
-                    }
-                }
-            }
-            
             foreach (Collider collider in colliders)
             {
                 CollectibleItem item = collider.GetComponent<CollectibleItem>();
@@ -312,7 +295,25 @@ namespace KYS
                         Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 수집 가능: {!item.IsCollected}, 위치: {item.transform.position}");
                     }
                     
-                    CollectItem(item);
+                    // 모바일에서는 즉시 수집 처리
+                    if (isMobilePlatform)
+                    {
+                        // 아이템이 활성화되어 있는지 한 번 더 확인
+                        if (item.gameObject.activeInHierarchy)
+                        {
+                            CollectItem(item);
+                            
+                            // 수집 후 즉시 비활성화 확인
+                            if (!item.gameObject.activeInHierarchy)
+                            {
+                                Debug.Log($"[ReceiveGamePlayer] 아이템 수집 완료 및 비활성화 확인: {item.name}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        CollectItem(item);
+                    }
                 }
                 else if (item != null && item.IsCollected && isMobilePlatform)
                 {
@@ -365,7 +366,26 @@ namespace KYS
                         }
                         
                         Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 발견: {item.name}, 타입: {itemType}, 거리: {hit.distance:F2}, 방향: {direction}");
-                        CollectItem(item);
+                        
+                        // 모바일에서는 즉시 수집 처리
+                        if (isMobilePlatform)
+                        {
+                            // 아이템이 활성화되어 있는지 한 번 더 확인
+                            if (item.gameObject.activeInHierarchy)
+                            {
+                                CollectItem(item);
+                                
+                                // 수집 후 즉시 비활성화 확인
+                                if (!item.gameObject.activeInHierarchy)
+                                {
+                                    Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 수집 완료 및 비활성화 확인: {item.name}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            CollectItem(item);
+                        }
                     }
                 }
             }
@@ -424,60 +444,44 @@ namespace KYS
         {
             if (item == null) 
             {
-                if (isMobilePlatform)
-                {
-                    Debug.LogWarning("[ReceiveGamePlayer] CollectItem: item이 null입니다.");
-                }
                 return;
             }
             
-            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
-            if (item.IsCollected && !isMobilePlatform) 
-            {
-                if (isMobilePlatform)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] CollectItem: 이미 수집된 아이템 {item.name} (데스크톱에서만 차단)");
-                }
-                return;
-            }
+            // 이미 수집된 아이템은 무시
+            if (item.IsCollected) return;
             
-            // 모바일에서는 중복 체크 완화
-            if (item.IsCollected && !isMobilePlatform) return; // 데스크톱에서만 이중 체크
+            // 아이템 타입 확인 (수집 전에)
+            ItemType itemType = GetItemType(item);
             
-            // 모바일 디버그 로그
-            if (Application.isMobilePlatform)
-            {
-                Debug.Log($"[Mobile] 아이템 수집 시작 - {item.name}, IsCollected: {item.IsCollected}");
-            }
+            // 디버그 로그 추가
+            Debug.Log($"[ReceiveGamePlayer] 아이템 수집 시도: {item.name}, 타입: {itemType}, 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}");
             
-            // 아이템 수집 (네트워크 동기화 포함)
+            // 아이템 수집 (네트워크 동기화 포함) - 먼저 실행하여 IsCollected 플래그 설정
             item.Collect();
+            
+            // 모바일에서는 즉시 비활성화 (시각적 피드백 개선) - Collect() 이후에 실행
+            if (isMobilePlatform)
+            {
+                item.gameObject.SetActive(false);
+                Debug.Log($"[ReceiveGamePlayer] 모바일에서 아이템 즉시 비활성화: {item.name}");
+            }
+            
+            // 게임 매니저 참조 확인 및 재설정
+            if (gameManager == null)
+            {
+                gameManager = FindObjectOfType<ReceiveGameManagerEnhanced>();
+                Debug.Log($"[ReceiveGamePlayer] 게임 매니저 재찾기: {gameManager != null}");
+            }
             
             // 게임 매니저에 수집 알림 (로컬 플레이어만)
             if (gameManager != null && photonView.IsMine)
             {
-                ItemType itemType = GetItemType(item);
-                
-                // 모바일에서 추가 로그
-                if (Application.isMobilePlatform)
-                {
-                    Debug.Log($"[Mobile] 게임매니저에 수집 알림 - 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}, 아이템타입: {itemType}");
-                }
-                
+                Debug.Log($"[ReceiveGamePlayer] 게임 매니저에 점수 요청: 플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}, 아이템 타입: {itemType}");
                 gameManager.CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, itemType);
-                
-                // 모바일 디버깅을 위한 로그
-                if (isMobilePlatform)
-                {
-                    Debug.Log($"[ReceiveGamePlayer] 모바일에서 아이템 수집 성공: {itemType}, 위치: {item.transform.position}, 플레이어 위치: {transform.position}");
-                }
             }
-            else if (gameManager == null)
+            else
             {
-                if (isMobilePlatform)
-                {
-                    Debug.LogError("[ReceiveGamePlayer] CollectItem: ReceiveGameManagerEnhanced를 찾을 수 없습니다!");
-                }
+                Debug.LogWarning($"[ReceiveGamePlayer] 게임 매니저가 null이거나 로컬 플레이어가 아님. gameManager: {gameManager != null}, IsMine: {photonView.IsMine}");
             }
         }
         
@@ -487,10 +491,19 @@ namespace KYS
             EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
             if (enhancedController != null)
             {
-                return enhancedController.GetItemType();
+                ItemType itemType = enhancedController.GetItemType();
+                Debug.Log($"[ReceiveGamePlayer] EnhancedItemController에서 아이템 타입 가져옴: {itemType}");
+                return itemType;
             }
             
-            // 기본값
+            // CollectibleItem에서 직접 아이템 타입 가져오기 (fallback)
+            if (item.itemType != ItemType.Normal)
+            {
+                Debug.Log($"[ReceiveGamePlayer] CollectibleItem에서 직접 아이템 타입 가져옴: {item.itemType}");
+                return item.itemType;
+            }
+            
+            Debug.LogWarning($"[ReceiveGamePlayer] 아이템 타입을 찾을 수 없어 기본값 사용: {item.name}");
             return ItemType.Normal;
         }
         
@@ -511,16 +524,25 @@ namespace KYS
         
         private void SetPlayerColor()
         {
-            if (playerRenderer != null && !isColorSet)
+            if (playerRenderers != null && playerRenderers.Length > 0 && !isColorSet)
             {
                 // RoomPopUp에서 설정된 색상 가져오기
                 int colorIndex = GetPlayerColorIndex();
                 playerColorIndex = colorIndex; // 네트워크 동기화용 변수에 저장
                 Color playerColor = GetColorByIndex(colorIndex);
-                playerRenderer.material.color = playerColor;
+                
+                // 모든 렌더러에 색상 적용
+                foreach (Renderer renderer in playerRenderers)
+                {
+                    if (renderer != null && renderer.material != null)
+                    {
+                        renderer.material.color = playerColor;
+                    }
+                }
+                
                 isColorSet = true;
                 
-                //Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
+                Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}, 렌더러 수: {playerRenderers.Length}");
             }
         }
         
@@ -705,12 +727,18 @@ namespace KYS
                 if (receivedColorIndex != playerColorIndex && !isColorSet)
                 {
                     playerColorIndex = receivedColorIndex;
-                    if (playerRenderer != null)
+                    if (playerRenderers != null && playerRenderers.Length > 0)
                     {
                         Color playerColor = GetColorByIndex(playerColorIndex);
-                        playerRenderer.material.color = playerColor;
+                        foreach (Renderer renderer in playerRenderers)
+                        {
+                            if (renderer != null && renderer.material != null)
+                            {
+                                renderer.material.color = playerColor;
+                            }
+                        }
                         isColorSet = true;
-                        //Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
+                        Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}, 렌더러 수: {playerRenderers.Length}");
                     }
                 }
                 
@@ -1389,11 +1417,11 @@ namespace KYS
                 
                 if (gameUI != null)
                 {
-                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
+                    Debug.Log("[ReceiveGamePlayer] ReceiveGameUI 찾기 성공");
                 }
                 else
                 {
-                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
+                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameUI를 찾을 수 없습니다. 조이스틱 입력이 작동하지 않을 수 있습니다.");
                 }
             }
             
@@ -1404,13 +1432,61 @@ namespace KYS
                 
                 if (gameManager != null)
                 {
-                    //Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
+                    Debug.Log("[ReceiveGamePlayer] ReceiveGameManagerEnhanced 찾기 성공");
                 }
                 else
                 {
-                    //Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
+                    Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
                 }
             }
+        }
+        
+        /// <summary>
+        /// 모든 렌더러에 색상을 적용하는 public 메서드
+        /// </summary>
+        public void SetPlayerColor(Color color)
+        {
+            if (playerRenderers != null && playerRenderers.Length > 0)
+            {
+                foreach (Renderer renderer in playerRenderers)
+                {
+                    if (renderer != null && renderer.material != null)
+                    {
+                        renderer.material.color = color;
+                    }
+                }
+                Debug.Log($"플레이어 색상 변경: {color}, 렌더러 수: {playerRenderers.Length}");
+            }
+        }
+        
+        /// <summary>
+        /// 색상 인덱스로 색상을 설정하는 public 메서드
+        /// </summary>
+        public void SetPlayerColorByIndex(int colorIndex)
+        {
+            if (colorIndex >= 0)
+            {
+                playerColorIndex = colorIndex;
+                Color playerColor = GetColorByIndex(colorIndex);
+                SetPlayerColor(playerColor);
+                isColorSet = true;
+            }
+        }
+        
+        /// <summary>
+        /// 현재 설정된 색상 인덱스를 반환
+        /// </summary>
+        public int GetCurrentColorIndex()
+        {
+            return playerColorIndex;
+        }
+        
+        /// <summary>
+        /// 렌더러 배열을 가져오는 public 메서드
+        /// </summary>
+        public Renderer[] GetPlayerRenderers()
+        {
+            return playerRenderers;
         }
     }
 } 

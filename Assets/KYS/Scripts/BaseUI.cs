@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace KYS
 {
@@ -154,13 +155,21 @@ namespace KYS
             }
         }
 
-        // 이벤트 등록 시 자동 SFX 추가
+        // 이벤트 등록과 동시에 SFX 추가
         public PointerHandler GetEventWithSFX(in string name, string clickSound = null)
         {
             PointerHandler handler = GetEvent(name);
             if (handler != null)
             {
-                handler.Click += (data) => PlayClickSound(clickSound);
+                handler.Click += (data) => {
+                    // 버튼이 비활성화되어 있으면 클릭 무시
+                    Button button = handler.GetComponent<Button>();
+                    if (button != null && !button.interactable)
+                    {
+                        return;
+                    }
+                    PlayClickSound(clickSound);
+                };
             }
             return handler;
         }

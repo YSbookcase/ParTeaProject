@@ -56,20 +56,22 @@ MonoBehaviour:
   slowEffectMultiplier: 0.5
   itemLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  collectionCheckInterval: 0.1
-  mobileCollectionRadius: 3
-  magnetRadius: 5
-  magnetForce: 10
-  playerRenderer: {fileID: 3467787480541739041}
+    m_Bits: 64
+  collectionCheckInterval: 0.01
+  mobileCollectionRadius: 2
+  magnetRadius: 10
+  magnetForce: 200
+  playerRenderers:
+  - {fileID: 3467787480541739041}
+  - {fileID: 8863601734945251056}
   playerAnimator: {fileID: 4985343708486770554}
   nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
     type: 3}
-  nameTagOffset: {x: 0, y: 2.5, z: 0}
+  nameTagOffset: {x: 0, y: 3, z: 0}
   collectEffect: {fileID: 0}
   collectSoundName: SFX_NormalItem
   effectParent: {fileID: 1427451300138239232}
-  itemConfiguration: {fileID: 0}
+  itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
     type: 3}
 --- !u!136 &2652187264152053537
@@ -1220,6 +1222,12 @@ SkinnedMeshRenderer:
 --- !u!95 &4985343708486770554 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: cabeaf0214bc4974997ebc93152265b5,
+    type: 3}
+  m_PrefabInstance: {fileID: 1460831049399771883}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &8863601734945251056 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8017600068626889755, guid: cabeaf0214bc4974997ebc93152265b5,
     type: 3}
   m_PrefabInstance: {fileID: 1460831049399771883}
   m_PrefabAsset: {fileID: 0}

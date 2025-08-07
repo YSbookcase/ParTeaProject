@@ -124,7 +124,17 @@ namespace KYS
         // 씬 전환 시 자동으로 모든 UI 정리
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            //Debug.Log($"[UIManager] 씬 전환 감지: {scene.name}");
+            Debug.Log($"[UIManager] 씬 로드됨: {scene.name}");
+            
+            // 씬 전환 시 모든 UI 정리
+            if (PopUp != null)
+            {
+                PopUp.ForceCleanAll();
+                Debug.Log("[UIManager] 씬 전환 시 PopUpUI 강제 정리 완료");
+            }
+            
+            // mainPanels도 정리
+            mainPanels.Clear();
             
             // 게임 씬으로 전환되는 경우 로딩 블로커 숨기기
             if (scene.name.Contains("Game") || scene.name.Contains("Arena") || 
@@ -133,14 +143,15 @@ namespace KYS
                 scene.name.Contains("Receive"))
             {
                 Debug.Log("[UIManager] 게임 씬으로 전환 - 로딩 블로커 숨김");
-                PopUp.HideLoadingBlocker();
+                if (PopUp != null)
+                {
+                    PopUp.HideLoadingBlocker();
+                }
             }
             
-            // NetworkScene으로 돌아올 때 RoomPopUp 표시 (게임 종료 후)
+            // NetworkScene이 로드되면 RoomPopUp 표시
             if (scene.name == "NetworkScene" && PhotonNetwork.InRoom)
             {
-                Debug.Log("[UIManager] NetworkScene으로 돌아옴 - RoomPopUp 표시 및 초기화");
-                // 약간의 지연을 두어 씬 로딩 완료 후 UI 표시
                 StartCoroutine(ShowRoomPopUpAfterDelay());
             }
         }
@@ -148,7 +159,15 @@ namespace KYS
         private System.Collections.IEnumerator ShowRoomPopUpAfterDelay()
         {
             Debug.Log("[UIManager] ShowRoomPopUpAfterDelay 코루틴 시작");
-            yield return new WaitForSeconds(0.5f);
+            
+            // BGM 즉시 중지 (기본 BGM이 재생되는 것을 방지)
+            if (Manager.Audio != null)
+            {
+                Manager.Audio.BgmPlay(null, 0f);
+                Debug.Log("[UIManager] BGM 즉시 중지");
+            }
+            
+            yield return new WaitForSeconds(0.1f); // 0.5초에서 0.1초로 단축
             
             // 이미 RoomPopUp이 표시되어 있는지 확인
             RoomPopUp existingRoomPopUp = FindActivePopUp<RoomPopUp>();
@@ -170,7 +189,8 @@ namespace KYS
         private void Start()
         {
             // Start에서 첫 화면 설정 (더 안전)
-            if (isInitialized && SceneManager.GetActiveScene().name =="NetworkScene")
+            // NetworkScene에서 룸에 있을 때만 ShowFirstScreen() 건너뜀
+            if (isInitialized && SceneManager.GetActiveScene().name == "NetworkScene")
             {
                 ShowFirstScreen();
             }
@@ -264,10 +284,19 @@ namespace KYS
         // 모든 UI 정리
         public void CleanAllUI()
         {
+            Debug.Log("[UIManager] CleanAllUI 시작");
+            
             if (PopUp != null)
             {
                 PopUp.ForceCleanAll(); // 강제 정리 사용
+                Debug.Log("[UIManager] PopUpUI 강제 정리 완료");
             }
+            else
+            {
+                Debug.LogWarning("[UIManager] PopUpUI가 null입니다");
+            }
+            
+            // mainPanels도 정리
             mainPanels.Clear();
             Debug.Log("[UIManager] 모든 UI가 정리되었습니다.");
         }

@@ -6,6 +6,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
 using Photon.Pun;
+using UnityEngine.UI;
 
 
 namespace KYS
@@ -133,15 +134,32 @@ namespace KYS
 
         private void ChangeNickname(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button nicknameButton = GetUI<Button>("NicknameConfirmButton");
+            if (nicknameButton != null)
+            {
+                nicknameButton.interactable = false;
+            }
+
             if (nameInput == null)
             {
                 Debug.LogError("[EditPopUp] nameInput이 null입니다.");
+                // 버튼 다시 활성화
+                if (nicknameButton != null)
+                {
+                    nicknameButton.interactable = true;
+                }
                 return;
             }
 
             if (string.IsNullOrEmpty(nameInput.text))
             {
                 ShowErrorMessage("닉네임을 입력해주세요.");
+                // 버튼 다시 활성화
+                if (nicknameButton != null)
+                {
+                    nicknameButton.interactable = true;
+                }
                 return;
             }
 
@@ -149,6 +167,11 @@ namespace KYS
             if (user == null)
             {
                 ShowErrorMessage("사용자 정보를 찾을 수 없습니다.");
+                // 버튼 다시 활성화
+                if (nicknameButton != null)
+                {
+                    nicknameButton.interactable = true;
+                }
                 return;
             }
 
@@ -158,6 +181,12 @@ namespace KYS
             user.UpdateUserProfileAsync(profile)
                 .ContinueWithOnMainThread(task =>
                 {
+                    // 버튼 다시 활성화
+                    if (nicknameButton != null)
+                    {
+                        nicknameButton.interactable = true;
+                    }
+
                     if (task.IsCanceled)
                     {
                         ShowErrorMessage("닉네임 변경이 취소되었습니다.");
@@ -166,14 +195,14 @@ namespace KYS
                     if (task.IsFaulted)
                     {
                         ShowErrorMessage($"닉네임 변경 실패");
-                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
+                        Debug.Log($"오류 내용을 확인하세요 Log {task.Exception}");
                         return;
                     }
 
                     ShowSuccessMessage("닉네임이 성공적으로 변경되었습니다.");
                     Debug.Log("닉네임 변경 성공");
 
-                    // Photon 연결 및 닉네임 동기화
+                    // Photon 연결 후 닉네임 동기화
                     if (PhotonManager.Instance != null)
                     {
                         // Photon에 연결되어 있지 않으면 연결 시도
@@ -201,15 +230,32 @@ namespace KYS
 
         private void ChangePassword(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button passwordButton = GetUI<Button>("PassConfirmButton");
+            if (passwordButton != null)
+            {
+                passwordButton.interactable = false;
+            }
+
             if (passInput == null || passConfirmInput == null)
             {
                 Debug.LogError("[EditPopUp] 비밀번호 입력 필드가 null입니다.");
+                // 버튼 다시 활성화
+                if (passwordButton != null)
+                {
+                    passwordButton.interactable = true;
+                }
                 return;
             }
 
             if (passInput.text != passConfirmInput.text)
             {
                 ShowErrorMessage("비밀번호가 일치하지 않습니다.");
+                // 버튼 다시 활성화
+                if (passwordButton != null)
+                {
+                    passwordButton.interactable = true;
+                }
                 return;
             }
 
@@ -217,12 +263,23 @@ namespace KYS
             if (user == null)
             {
                 ShowErrorMessage("사용자 정보를 찾을 수 없습니다.");
+                // 버튼 다시 활성화
+                if (passwordButton != null)
+                {
+                    passwordButton.interactable = true;
+                }
                 return;
             }
 
             user.UpdatePasswordAsync(passInput.text)
                 .ContinueWithOnMainThread(task =>
                 {
+                    // 버튼 다시 활성화
+                    if (passwordButton != null)
+                    {
+                        passwordButton.interactable = true;
+                    }
+
                     if (task.IsCanceled)
                     {
                         ShowErrorMessage("비밀번호 변경이 취소되었습니다.");
@@ -231,7 +288,7 @@ namespace KYS
                     if (task.IsFaulted)
                     {
                         ShowErrorMessage($"비밀번호 변경 실패");
-                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
+                        Debug.Log($"오류 내용을 확인하세요 Log {task.Exception}");
                         return;
                     }
 
@@ -239,7 +296,7 @@ namespace KYS
                     Debug.Log("비밀번호 변경 성공");
                 });
 
-            // 비밀번호 변경 성공 후 입력 필드 초기화
+            // 비밀번호 변경 완료 후 입력 필드 초기화
             ClearPasswordFields();
         }
 
@@ -305,11 +362,24 @@ namespace KYS
             Debug.Log("[EditPopUp] 비밀번호 입력 필드가 초기화되었습니다.");
         }
 
-        // 방 삭제 버튼 클릭 시
+        // 계정 삭제 버튼 클릭 시
         private void DeleteUser(PointerEventData eventData)
         {
-            // DeletePopUp 생성
+            // 버튼 비활성화
+            Button deleteButton = GetUI<Button>("IDDeleteButton");
+            if (deleteButton != null)
+            {
+                deleteButton.interactable = false;
+            }
+
+            // DeletePopUp 표시
             UIManager.Instance.ShowPopUp<DeletePopUp>();
+
+            // 버튼 다시 활성화
+            if (deleteButton != null)
+            {
+                deleteButton.interactable = true;
+            }
         }
 
 

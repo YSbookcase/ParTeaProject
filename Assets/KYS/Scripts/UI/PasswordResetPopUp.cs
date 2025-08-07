@@ -3,6 +3,7 @@ using Firebase.Extensions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI; // Added for Button
 
 namespace KYS
 {
@@ -30,43 +31,61 @@ namespace KYS
 
         private void SendResetEmail(PointerEventData eventData)
         {
-            string email = emailInput.text.Trim();
-            if (string.IsNullOrEmpty(email))
+            // 버튼 비활성화
+            Button sendButton = GetUI<Button>("SendButton");
+            if (sendButton != null)
+            {
+                sendButton.interactable = false;
+            }
+
+            // 이메일 입력값 검증
+            if (string.IsNullOrEmpty(emailInput.text))
             {
                 ShowErrorMessage("이메일을 입력해주세요.");
+                // 버튼 다시 활성화
+                if (sendButton != null)
+                {
+                    sendButton.interactable = true;
+                }
                 return;
             }
 
             // 이메일 형식 검증
-            if (!ValidateEmailFormat(email))
+            if (!ValidateEmailFormat(emailInput.text))
             {
                 ShowErrorMessage("올바른 이메일 형식을 입력해주세요.");
+                // 버튼 다시 활성화
+                if (sendButton != null)
+                {
+                    sendButton.interactable = true;
+                }
                 return;
             }
 
-            Debug.Log($"[PasswordResetPopUp] 비밀번호 재설정 이메일 전송 시작: {email}");
-            
-            FirebaseManager.Auth.SendPasswordResetEmailAsync(email)
+            // 비밀번호 재설정 이메일 전송
+            FirebaseManager.Auth.SendPasswordResetEmailAsync(emailInput.text)
                 .ContinueWithOnMainThread(task =>
                 {
-                    Debug.Log($"[PasswordResetPopUp] Task 상태 확인 - IsCompleted: {task.IsCompleted}, IsCanceled: {task.IsCanceled}, IsFaulted: {task.IsFaulted}");
-                    
+                    // 버튼 다시 활성화
+                    if (sendButton != null)
+                    {
+                        sendButton.interactable = true;
+                    }
+
                     if (task.IsCanceled)
                     {
-                        Debug.LogWarning("[PasswordResetPopUp] 이메일 전송이 취소되었습니다.");
                         ShowErrorMessage("비밀번호 재설정 이메일 전송이 취소되었습니다.");
                         return;
                     }
                     if (task.IsFaulted)
                     {
-                        Debug.LogError($"[PasswordResetPopUp] 이메일 전송 실패: {task.Exception}");
                         ShowErrorMessage("비밀번호 재설정 이메일 전송에 실패했습니다.");
+                        Debug.LogError($"비밀번호 재설정 이메일 전송 오류: {task.Exception}");
                         return;
                     }
 
-                    Debug.Log("[PasswordResetPopUp] 비밀번호 재설정 이메일 전송 성공!");
                     ShowSuccessMessage("비밀번호 재설정 이메일이 전송되었습니다. 이메일을 확인해주세요.");
-                    // 성공 메시지 팝업이 표시된 후 현재 팝업은 닫지 않음 (사용자가 확인 버튼을 누를 때까지 대기)
+                    Debug.Log("비밀번호 재설정 이메일 전송 성공");
                 });
         }
 

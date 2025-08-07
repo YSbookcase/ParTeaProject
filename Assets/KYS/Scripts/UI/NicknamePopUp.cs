@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Photon.Pun;
+using UnityEngine.UI;
 
 namespace KYS
 {
@@ -28,9 +29,21 @@ namespace KYS
 
         private void Confirm(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button confirmButton = GetUI<Button>("ConfirmButton");
+            if (confirmButton != null)
+            {
+                confirmButton.interactable = false;
+            }
+
             if (string.IsNullOrEmpty(nicknameInput.text))
             {
                 ShowErrorMessage("닉네임을 입력해주세요.");
+                // 버튼 다시 활성화
+                if (confirmButton != null)
+                {
+                    confirmButton.interactable = true;
+                }
                 return;
             }
 
@@ -41,22 +54,28 @@ namespace KYS
             user.UpdateUserProfileAsync(profile)
                 .ContinueWithOnMainThread(task =>
                 {
+                    // 버튼 다시 활성화
+                    if (confirmButton != null)
+                    {
+                        confirmButton.interactable = true;
+                    }
+
                     if (task.IsCanceled)
                     {
-                        ShowErrorMessage("닉네임 설정이 취소되었습니다.");
+                        ShowErrorMessage("닉네임 변경이 취소되었습니다.");
                         return;
                     }
                     if (task.IsFaulted)
                     {
-                        ShowErrorMessage($"닉네임 설정 실패");
-                        Debug.Log($"에디터 확인용 로그 : {task.Exception}");
+                        ShowErrorMessage($"닉네임 변경 실패");
+                        Debug.Log($"오류 내용을 확인하세요 Log {task.Exception}");
                         return;
                     }
 
-                    Debug.Log("닉네임 설정 성공");
+                    Debug.Log("닉네임 변경 성공");
                     ShowSuccessMessage("닉네임이 성공적으로 설정되었습니다.");
 
-                    // Photon 연결 및 닉네임 동기화
+                    // Photon 연결 후 닉네임 동기화
                     if (PhotonManager.Instance != null)
                     {
                         // Photon에 연결되어 있지 않으면 연결 시도

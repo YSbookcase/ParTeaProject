@@ -79,9 +79,15 @@ namespace KYS
             }
         }
 
-        // 공개 메서드들 (UI에서 호출)
         public void CreateRoom(string roomName)
         {
+            // 이미 방에 있는지 확인
+            if (PhotonNetwork.InRoom)
+            {
+                Debug.LogWarning("[PhotonManager] 이미 방에 입장되어 있습니다.");
+                return;
+            }
+
             // 방 이름 검증
             if (string.IsNullOrEmpty(roomName) || string.IsNullOrWhiteSpace(roomName))
             {

@@ -34,15 +34,14 @@ namespace KYS
         [SerializeField] private GameObject wallPrefab;
         [SerializeField] private GameObject obstaclePrefab;
         [SerializeField] private GameObject powerUpPrefab;
-        [SerializeField] private Transform[] spawnPoints;
         
         [Header("Item Spawn Settings")]
         [SerializeField] private float itemSpawnInterval = 2f;
         [SerializeField] private float powerUpSpawnInterval = 10f;
         [SerializeField] private float obstacleSpawnInterval = 5f;
-        [SerializeField] private float itemSpawnHeight = 2f; // 아이템 스폰 높이 (하늘에서 떨어지는 효과)
-        [SerializeField] private float itemDropSpeed = 2f; // 아이템 떨어지는 속도
-        [SerializeField] private float obstacleDropSpeed = 2f; // 장애물 떨어지는 속도
+        [SerializeField] private float itemSpawnHeight = 15f; // 아이템 스폰 높이 (하늘에서 떨어지는 효과) - 더 높게 설정
+        [SerializeField] private float itemDropToGroundSpeed = 3f; // 아이템이 하늘에서 바닥까지 떨어지는 시간 - 더 오래 떨어지도록
+        [SerializeField] private float obstacleDropToGroundSpeed = 3f; // 장애물이 하늘에서 바닥까지 떨어지는 시간 - 더 오래 떨어지도록
         [SerializeField] private float bonusItemChance = 0.3f; // 보너스 아이템 생성 확률 (0.0 ~ 1.0)
         
         [Header("Mobile Item Lifetime Settings")]
@@ -61,8 +60,8 @@ namespace KYS
         [SerializeField] private Vector3 spawnCenter = Vector3.zero; // 스폰 중심 좌표
         [SerializeField] private float spawnRangeX = 3f; // X축 스폰 범위 (-spawnRangeX ~ +spawnRangeX)
         [SerializeField] private float spawnRangeZ = 3f; // Z축 스폰 범위 (-spawnRangeZ ~ +spawnRangeZ)
-        [SerializeField] private float spawnHeight = 1f; // 아이템 스폰 높이 (Y축)
-        [SerializeField] private float obstacleSpawnHeight = 1f; // 장애물 도착 높이 (Y축) - 아이템과 같은 높이에서 떨어짐
+        [SerializeField] private float itemTargetGroundHeight = 1f; // 아이템이 도착할 바닥 높이 (Y축)
+        [SerializeField] private float obstacleTargetGroundHeight = 1f; // 장애물이 도착할 바닥 높이 (Y축)
         
         [Header("Item Configuration")]
         [SerializeField] private ItemConfiguration itemConfiguration;
@@ -72,6 +71,10 @@ namespace KYS
         
         [Header("Audio Settings")]
         [SerializeField] private string receiveGameBgmName = "BGM_ReceiveGame"; // ReceiveGame BGM 이름
+        
+        [Header("Camera Transition")]
+        [SerializeField] private CameraTransitionManager cameraTransitionManager; // 카메라 전환 매니저
+        [SerializeField] private bool enableCameraTransition = false; // 카메라 전환 활성화 (테스트를 위해 false로 변경)
         
         [Header("//Debug Settings")]
         [SerializeField] private bool autoStartCountdown = true; // 테스트용: 자동 카운트다운 시작 (플레이어 준비 상태 확인 후 시작)
@@ -219,63 +222,22 @@ namespace KYS
             if (itemConfiguration == null)
             {
                 itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
-                if (itemConfiguration == null)
-                {
-                    //Debug.LogWarning("[ReceiveGameManagerEnhanced] ItemConfiguration을 찾을 수 없습니다. 기본 설정을 사용합니다.");
-                }
-                else
-                {
-                    //Debug.Log("[ReceiveGameManagerEnhanced] ItemConfiguration 로드 완료");
-                    
-                    // 보너스 아이템 설정 확인
-                    ItemConfig bonusConfig = itemConfiguration.GetItemConfig(ItemType.Bonus);
-                    if (bonusConfig != null)
-                    {
-                        //Debug.Log($"[ReceiveGameManagerEnhanced] 보너스 아이템 설정 확인 - 점수: {bonusConfig.pointValue}, 색상: {bonusConfig.itemColor}, 크기: {bonusConfig.scale}");
-                    }
-                    else
-                    {
-                        //Debug.LogWarning("[ReceiveGameManagerEnhanced] 보너스 아이템 설정을 찾을 수 없습니다!");
-                    }
-                    
-                    // 전체 아이템 설정 개수 확인
-                    ItemConfig[] allConfigs = itemConfiguration.GetAllItemConfigs();
-                    //Debug.Log($"[ReceiveGameManagerEnhanced] 총 {allConfigs.Length}개의 아이템 설정이 로드되었습니다.");
-                }
             }
             
             // 아이템 프리팹 로드
             if (powerUpPrefab == null)
             {
                 powerUpPrefab = Resources.Load<GameObject>("KYSPowerUp");
-                if (powerUpPrefab != null)
-                {
-                    //Debug.Log("[ReceiveGameManagerEnhanced] KYSPowerUp을 Resources에서 로드했습니다.");
-                }
-                else
-                {
-                    //Debug.LogError("[ReceiveGameManagerEnhanced] Resources/KYSPowerUp을 찾을 수 없습니다!");
-                }
             }
             
             // 풀 매니저 찾기 (싱글톤 패턴 사용)
             itemPoolManager = ItemPoolManager.Instance;
-            if (itemPoolManager == null)
-            {
-                //Debug.LogError("[ReceiveGameManagerEnhanced] ItemPoolManager.Instance가 null입니다!");
-            }
-            else
-            {
-                //Debug.Log("[ReceiveGameManagerEnhanced] ItemPoolManager 싱글톤 인스턴스 연결 완료");
-            }
         }
         
         private void InitializeGameState()
         {
             currentTime = gameTime;
             UpdateUI();
-            
-            //Debug.Log($"ReceiveGameManagerEnhanced 시작 - 플레이어 수: {PhotonNetwork.PlayerList.Length}, Master Client: {PhotonNetwork.IsMasterClient}");
             
             // 모든 플레이어의 점수 초기화
             foreach (Player player in PhotonNetwork.PlayerList)
@@ -289,12 +251,7 @@ namespace KYS
         {
             if (PhotonNetwork.IsMasterClient)
             {
-                //Debug.Log("Master Client - 게임 시작 준비");
                 StartCoroutine(StartGameDelayed());
-            }
-            else
-            {
-                //Debug.Log("Non-Master Client - 게임 시작 대기");
             }
         }
         
@@ -308,29 +265,96 @@ namespace KYS
         #region Game Management
         private void InitializeGame()
         {
-            //Debug.Log("게임 초기화 시작");
+            // 게임 초기화 로직 (카메라 전환은 RPC에서 처리됨)
+            Debug.Log("[ReceiveGameManagerEnhanced] InitializeGame() 호출됨");
+        }
+        
+        [PunRPC]
+        public void RPCStartGameAndTransition()
+        {
+            if (isGameStarted) return; // Prevent multiple starts
+
+            Debug.Log("[ReceiveGameManagerEnhanced] RPCStartGameAndTransition() 호출됨");
+
+            // 카메라 전환 로직 (이제 모든 클라이언트에서 실행)
+            if (enableCameraTransition && cameraTransitionManager != null)
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] CameraTransitionManager로 카메라 전환 시작");
+                cameraTransitionManager.StartCameraTransition();
+            }
+            else if (enableCameraTransition)
+            {
+                ReceiveGameCamera gameCamera = FindObjectOfType<ReceiveGameCamera>();
+                if (gameCamera != null)
+                {
+                    Debug.Log("[ReceiveGameManagerEnhanced] ReceiveGameCamera로 카메라 전환 시작");
+                    gameCamera.StartCameraTransition();
+                }
+                else
+                {
+                    Debug.LogWarning("[ReceiveGameManagerEnhanced] 카메라 전환 매니저를 찾을 수 없습니다. 카메라 전환을 건너뜁니다.");
+                }
+            }
+            else
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] 카메라 전환 비활성화됨.");
+            }
+
+            // Start the coroutine that waits for transition and sets game state
+            StartCoroutine(StartGameAfterCameraTransition());
+        }
+        
+        private IEnumerator StartGameAfterCameraTransition()
+        {
+            Debug.Log("[ReceiveGameManagerEnhanced] 카메라 전환 대기 시작");
             
-            // 게임 시작을 Room Properties로 설정
-            StartGame();
+            // 카메라 전환이 완료될 때까지 대기
+            if (enableCameraTransition && cameraTransitionManager != null)
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] CameraTransitionManager 사용하여 전환 대기");
+                while (!cameraTransitionManager.IsTransitionComplete())
+                {
+                    yield return null;
+                }
+            }
+            else if (enableCameraTransition)
+            {
+                // ReceiveGameCamera 사용 시
+                ReceiveGameCamera gameCamera = FindObjectOfType<ReceiveGameCamera>();
+                if (gameCamera != null)
+                {
+                    Debug.Log("[ReceiveGameManagerEnhanced] ReceiveGameCamera 사용하여 전환 대기");
+                    while (!gameCamera.IsTransitionComplete())
+                    {
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[ReceiveGameManagerEnhanced] 카메라 전환 매니저를 찾을 수 없습니다. 3초 후 게임 시작");
+                    yield return new WaitForSeconds(3f); // 안전장치: 3초 후 게임 시작
+                }
+            }
+            else
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] 카메라 전환 비활성화됨. 즉시 게임 시작");
+                yield return new WaitForSeconds(0.5f); // 짧은 지연
+            }
+            
+            Debug.Log("[ReceiveGameManagerEnhanced] 게임 시작!");
+            
+            // 게임 시작
+            isGameStarted = true;
+            currentTime = gameTime;
             
             // 아이템 스폰 시작 (마스터 클라이언트만)
             if (PhotonNetwork.IsMasterClient)
             {
+                Debug.Log("[ReceiveGameManagerEnhanced] 아이템 스폰 시작");
                 spawnItemsCoroutine = StartCoroutine(SpawnItemsRoutine());
                 spawnPowerUpsCoroutine = StartCoroutine(SpawnPowerUpsRoutine());
                 spawnObstaclesCoroutine = StartCoroutine(SpawnObstaclesRoutine());
-                //Debug.Log("아이템 스폰 루틴 시작됨");
             }
-        }
-        
-        public void StartGame()
-        {
-            if (isGameStarted) return;
-            
-            isGameStarted = true;
-            currentTime = gameTime;
-            
-            //Debug.Log($"[StartGame] 게임 시작! 초기 시간: {currentTime}초");
             
             // Room Properties에 게임 시작 상태 설정
             ExitGames.Client.Photon.Hashtable roomProps = new ExitGames.Client.Photon.Hashtable();
@@ -368,14 +392,11 @@ namespace KYS
         
         private void StopAllSpawningCoroutines()
         {
-            //Debug.Log("[ReceiveGameManagerEnhanced] 모든 스폰 코루틴 중지 시작");
-            
             // 아이템 스폰 코루틴 중지
             if (spawnItemsCoroutine != null)
             {
                 StopCoroutine(spawnItemsCoroutine);
                 spawnItemsCoroutine = null;
-                //Debug.Log("[ReceiveGameManagerEnhanced] 아이템 스폰 코루틴 중지됨");
             }
             
             // 파워업 스폰 코루틴 중지
@@ -383,7 +404,6 @@ namespace KYS
             {
                 StopCoroutine(spawnPowerUpsCoroutine);
                 spawnPowerUpsCoroutine = null;
-                //Debug.Log("[ReceiveGameManagerEnhanced] 파워업 스폰 코루틴 중지됨");
             }
             
             // 장애물 스폰 코루틴 중지
@@ -391,10 +411,7 @@ namespace KYS
             {
                 StopCoroutine(spawnObstaclesCoroutine);
                 spawnObstaclesCoroutine = null;
-                //Debug.Log("[ReceiveGameManagerEnhanced] 장애물 스폰 코루틴 중지됨");
             }
-            
-            //Debug.Log("[ReceiveGameManagerEnhanced] 모든 스폰 코루틴 중지 완료");
         }
         
         private void EndGame()
@@ -402,7 +419,6 @@ namespace KYS
             if (isGameEnded) return;
             
             isGameEnded = true;
-            //Debug.Log("ReceiveGame 종료 시작!");
             
             // 스폰 코루틴들을 명시적으로 중지
             StopAllSpawningCoroutines();
@@ -532,7 +548,7 @@ namespace KYS
                     // 중심 좌표를 기준으로 범위 내에서 아이템 스폰
                     Vector3 spawnPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        spawnHeight, 
+                        itemTargetGroundHeight, 
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnItem(spawnPosition);
@@ -553,7 +569,7 @@ namespace KYS
                     // 중심 좌표를 기준으로 범위 내에서 파워업 스폰
                     Vector3 spawnPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        spawnHeight, 
+                        itemTargetGroundHeight, 
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnPowerUp(spawnPosition);
@@ -573,7 +589,7 @@ namespace KYS
                     // 장애물도 아이템처럼 높은 위치에서 시작하여 떨어지는 효과
                     Vector3 targetPosition = new Vector3(
                         spawnCenter.x + Random.Range(-spawnRangeX, spawnRangeX), 
-                        obstacleSpawnHeight, // 도착 지점 (지면)
+                        obstacleTargetGroundHeight, // 도착 지점 (지면)
                         spawnCenter.z + Random.Range(-spawnRangeZ, spawnRangeZ)
                     );
                     SpawnObstacle(targetPosition);
@@ -610,7 +626,7 @@ namespace KYS
                 }
                 
                 // 모든 클라이언트에서 동일한 위치에 아이템 생성 (장애물과 같은 방식)
-                photonViewRef.RPC("SpawnItemRPC", RpcTarget.All, position, (int)selectedType);
+                photonViewRef.RPC(nameof(SpawnItemRPC), RpcTarget.All, position, (int)selectedType);
             }
             else
             {
@@ -631,7 +647,7 @@ namespace KYS
             ItemType selectedPowerUpType = DeterminePowerUpType();
             
             // 모든 클라이언트에서 동일한 위치에 파워업 생성 (장애물과 같은 방식)
-            photonViewRef.RPC("SpawnPowerUpRPC", RpcTarget.All, position, (int)selectedPowerUpType);
+            photonViewRef.RPC(nameof(SpawnPowerUpRPC), RpcTarget.All, position, (int)selectedPowerUpType);
         }
         
         // PowerUp 타입 결정 메서드 (개별 빈도 조절 지원)
@@ -680,7 +696,7 @@ namespace KYS
             if (obstaclePrefab != null)
             {
                 // 모든 클라이언트에서 동일한 위치에 방해물 생성
-                photonViewRef.RPC("SpawnObstacleRPC", RpcTarget.All, position);
+                photonViewRef.RPC(nameof(SpawnObstacleRPC), RpcTarget.All, position);
             }
         }
         
@@ -699,6 +715,11 @@ namespace KYS
             
             // 아이템도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
+            
+            // 바닥 도착 위치 설정 (Y축만 itemTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, itemTargetGroundHeight, targetPosition.z);
+            
+            Debug.Log($"[SpawnItemRPC] 아이템 스폰 시작 - 타입: {selectedType}, 스폰위치: {spawnPosition}, 목표위치: {groundTargetPosition}");
             
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
@@ -725,10 +746,24 @@ namespace KYS
                     // 풀에서 가져온 아이템에도 컴포넌트 설정 적용
                     SetupItemComponents(item, selectedType);
                     
-                    //Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    // EnhancedItemController와 CollectibleItem의 groundLevel 동기화
+                    EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
+                    if (enhancedController != null)
+                    {
+                        enhancedController.SetGroundLevel(itemTargetGroundHeight);
+                    }
+                    
+                    CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                    if (collectibleItem != null)
+                    {
+                        collectibleItem.SetGroundLevel(itemTargetGroundHeight);
+                    }
+                    
+                    //Debug.Log($"[SpawnItemRPC] 풀에서 아이템 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                     
                     // 아이템이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
+                    Debug.Log($"[SpawnItemRPC] 아이템 드롭 코루틴 시작: {spawnPosition} -> {groundTargetPosition}");
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, groundTargetPosition));
                     TrackCoroutine(item, dropCoroutine);
                 }
                 else
@@ -745,11 +780,11 @@ namespace KYS
                 // 아이템 타입 설정
                 SetupItemComponents(item, selectedType);
                 
-                //Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                //Debug.Log($"[SpawnItemRPC] 기존 방식으로 아이템 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                 
-                                    // 아이템이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, targetPosition));
-                    TrackCoroutine(item, dropCoroutine);
+                // 아이템이 떨어지는 효과 시작
+                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(item, groundTargetPosition));
+                TrackCoroutine(item, dropCoroutine);
             }
         }
         
@@ -769,6 +804,9 @@ namespace KYS
             // 파워업도 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
             
+            // 바닥 도착 위치 설정 (Y축만 itemTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, itemTargetGroundHeight, targetPosition.z);
+            
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
             {
@@ -782,10 +820,23 @@ namespace KYS
                     // 풀에서 가져온 파워업에도 컴포넌트 설정 적용
                     SetupItemComponents(powerUp, selectedType);
                     
-                    //Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                    // EnhancedItemController와 CollectibleItem의 groundLevel 동기화
+                    EnhancedItemController enhancedController = powerUp.GetComponent<EnhancedItemController>();
+                    if (enhancedController != null)
+                    {
+                        enhancedController.SetGroundLevel(itemTargetGroundHeight);
+                    }
+                    
+                    CollectibleItem collectibleItem = powerUp.GetComponent<CollectibleItem>();
+                    if (collectibleItem != null)
+                    {
+                        collectibleItem.SetGroundLevel(itemTargetGroundHeight);
+                    }
+                    
+                    //Debug.Log($"[SpawnPowerUpRPC] 풀에서 파워업 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                     
                     // 파워업이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, groundTargetPosition));
                     TrackCoroutine(powerUp, dropCoroutine);
                     
                     // 플랫폼별 파워업 수명 적용
@@ -815,10 +866,10 @@ namespace KYS
                 // 파워업 타입 설정
                 SetupItemComponents(powerUp, selectedType);
                 
-                //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {targetPosition}, 타입: {selectedType}");
+                //Debug.Log($"[SpawnPowerUpRPC] 기존 방식으로 파워업 생성 완료: {spawnPosition} -> {groundTargetPosition}, 타입: {selectedType}");
                 
                 // 파워업이 떨어지는 효과 시작
-                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, targetPosition));
+                Coroutine dropCoroutine = StartCoroutine(DropItemToGround(powerUp, groundTargetPosition));
                 TrackCoroutine(powerUp, dropCoroutine);
                 
                 // 플랫폼별 파워업 수명 적용
@@ -851,6 +902,11 @@ namespace KYS
             // 장애물도 아이템처럼 높은 위치에서 시작 (하늘에서 떨어지는 효과)
             Vector3 spawnPosition = new Vector3(targetPosition.x, itemSpawnHeight, targetPosition.z);
             
+            // 바닥 도착 위치 설정 (Y축만 obstacleTargetGroundHeight로 변경)
+            Vector3 groundTargetPosition = new Vector3(targetPosition.x, obstacleTargetGroundHeight, targetPosition.z);
+            
+            Debug.Log($"[SpawnObstacleRPC] 장애물 스폰 시작 - 스폰위치: {spawnPosition}, 목표위치: {groundTargetPosition}");
+            
             // 새로운 풀 시스템 우선 사용
             if (itemPoolManager != null)
             {
@@ -860,10 +916,10 @@ namespace KYS
                     obstacle = pooledObstacle.gameObject;
                     spawnedObstacles.Add(obstacle);
                     
-                    //Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {spawnPosition} -> {targetPosition}");
+                    //Debug.Log($"[SpawnObstacleRPC] 풀에서 장애물 생성 완료: {spawnPosition} -> {groundTargetPosition}");
                     
                     // 장애물이 떨어지는 효과 시작
-                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                    Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, groundTargetPosition));
                     TrackCoroutine(obstacle, dropCoroutine);
                     
                     // 플랫폼별 장애물 수명 적용
@@ -900,10 +956,10 @@ namespace KYS
                     obstacleCollider.isTrigger = false;
                 }
                 
-                //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {targetPosition}, ObstacleController 추가됨");
+                //Debug.Log($"[SpawnObstacleRPC] 기존 방식으로 장애물 생성 완료: {spawnPosition} -> {groundTargetPosition}, ObstacleController 추가됨");
                 
                 // 장애물이 떨어지는 효과 시작
-                Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, targetPosition));
+                Coroutine dropCoroutine = StartCoroutine(DropObstacleToGround(obstacle, groundTargetPosition));
                 TrackCoroutine(obstacle, dropCoroutine);
                 
                 // 플랫폼별 장애물 수명 적용
@@ -923,14 +979,15 @@ namespace KYS
         
         private void SetupItemComponents(GameObject item, ItemType itemType)
         {
-            // CollectibleItem 컴포넌트 확인 및 추가
+            // CollectibleItem 컴포넌트 유지 (오브젝트 풀 시스템과 호환성 유지)
             CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
-            if (collectibleItem == null)
+            if (collectibleItem != null)
             {
-                collectibleItem = item.AddComponent<CollectibleItem>();
+                // CollectibleItem의 아이템 타입 설정
+                collectibleItem.itemType = itemType;
             }
             
-            // 아이템 타입 설정 - EnhancedItemController만 사용
+            // EnhancedItemController 추가/설정 (시각적 및 게임플레이 설정용)
             EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
             if (enhancedController == null)
             {
@@ -941,7 +998,7 @@ namespace KYS
             // (시각적 설정, 게임플레이 속성, 마그네틱 힘 값 등 모든 설정이 포함됨)
             enhancedController.SetItemType(itemType);
             
-            Debug.Log($"[SetupItemComponents] {itemType} 아이템 설정 완료 - EnhancedItemController 사용: {item.name}");
+            Debug.Log($"[SetupItemComponents] {itemType} 아이템 설정 완료 - CollectibleItem + EnhancedItemController 사용: {item.name}");
         }
         
         private void SetupItemVisual(GameObject item, ItemType itemType)
@@ -1041,6 +1098,8 @@ namespace KYS
         #region Item Collection
         public void CollectItem(int playerActorNumber, ItemType itemType = ItemType.Normal)
         {
+            Debug.Log($"[ReceiveGameManagerEnhanced] CollectItem 호출됨: 플레이어 {playerActorNumber}, 아이템 타입: {itemType}, 게임 시작됨: {isGameStarted}, 게임 종료됨: {isGameEnded}");
+            
             if (isGameStarted && !isGameEnded)
             {
                 if (photonViewRef == null)
@@ -1049,34 +1108,22 @@ namespace KYS
                     return;
                 }
                 
-                // 모바일 디버그 로그
-                if (Application.isMobilePlatform)
-                {
-                    Debug.Log($"[Mobile] CollectItem 호출됨 - 플레이어: {playerActorNumber}, 아이템: {itemType}, IsMasterClient: {PhotonNetwork.IsMasterClient}");
-                }
-                
                 // Master Client에서만 점수 증가 처리
                 if (PhotonNetwork.IsMasterClient)
                 {
+                    Debug.Log($"[ReceiveGameManagerEnhanced] Master Client에서 직접 점수 처리: 플레이어 {playerActorNumber}, 아이템 타입: {itemType}");
                     CollectItemRPC(playerActorNumber, itemType);
                 }
                 else
                 {
                     // Non-Master Client는 Master Client에게 점수 증가 요청
-                    if (Application.isMobilePlatform)
-                    {
-                        Debug.Log($"[Mobile] 마스터 클라이언트에게 점수 증가 요청 전송 - 플레이어: {playerActorNumber}, 아이템: {itemType}");
-                    }
-                    
+                    Debug.Log($"[ReceiveGameManagerEnhanced] Non-Master Client에서 Master Client에게 점수 요청: 플레이어 {playerActorNumber}, 아이템 타입: {itemType}");
                     photonViewRef.RPC(nameof(RequestScoreIncrease), RpcTarget.MasterClient, playerActorNumber, (int)itemType);
                 }
             }
             else
             {
-                if (Application.isMobilePlatform)
-                {
-                    Debug.LogWarning($"[Mobile] 게임 상태가 올바르지 않음 - 시작됨: {isGameStarted}, 종료됨: {isGameEnded}");
-                }
+                Debug.LogWarning($"[ReceiveGameManagerEnhanced] 게임이 시작되지 않았거나 이미 종료됨. 게임 시작됨: {isGameStarted}, 게임 종료됨: {isGameEnded}");
             }
         }
         
@@ -1099,7 +1146,7 @@ namespace KYS
                 else
                 {
                     // Non-Master Client는 Master Client에게 점수 감점 요청
-                    photonViewRef.RPC("RequestObstaclePenalty", RpcTarget.MasterClient, playerActorNumber, penaltyPoints);
+                    photonViewRef.RPC(nameof(RequestObstaclePenalty), RpcTarget.MasterClient, playerActorNumber, penaltyPoints);
                 }
             }
         }
@@ -1107,24 +1154,15 @@ namespace KYS
         [PunRPC]
         private void RequestScoreIncrease(int playerActorNumber, int itemType)
         {
-            // 모바일 디버그 로그
-            if (Application.isMobilePlatform)
-            {
-                Debug.Log($"[Mobile] RequestScoreIncrease RPC 수신됨 - 플레이어: {playerActorNumber}, 아이템: {(ItemType)itemType}, IsMasterClient: {PhotonNetwork.IsMasterClient}");
-            }
-            
             // Master Client에서만 실행되는 RPC
             if (PhotonNetwork.IsMasterClient)
             {
-                Debug.Log($"[RequestScoreIncrease] Master Client가 점수 증가 요청 처리: 플레이어 {playerActorNumber}, 아이템 타입: {(ItemType)itemType}");
+                Debug.Log($"[ReceiveGameManagerEnhanced] RequestScoreIncrease RPC 수신: 플레이어 {playerActorNumber}, 아이템 타입: {(ItemType)itemType}");
                 CollectItemRPC(playerActorNumber, (ItemType)itemType);
             }
             else
             {
-                if (Application.isMobilePlatform)
-                {
-                    Debug.LogWarning($"[Mobile] 마스터 클라이언트가 아닌데 RequestScoreIncrease를 받음 - 플레이어: {playerActorNumber}");
-                }
+                Debug.LogWarning($"[ReceiveGameManagerEnhanced] RequestScoreIncrease RPC가 Non-Master Client에서 호출됨: 플레이어 {playerActorNumber}, 아이템 타입: {(ItemType)itemType}");
             }
         }
         
@@ -1195,32 +1233,21 @@ namespace KYS
             // Master Client에서만 점수 증가 처리
             if (!PhotonNetwork.IsMasterClient) return;
             
+            Debug.Log($"[ReceiveGameManagerEnhanced] CollectItemRPC 실행: 플레이어 {playerActorNumber}, 아이템 타입: {itemType}");
+            
             // 플레이어 점수 초기화
             if (!playerScores.ContainsKey(playerActorNumber))
             {
                 playerScores[playerActorNumber] = 0;
+                Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {playerActorNumber} 점수 초기화: 0");
             }
             
             // 아이템 타입에 따른 점수 계산
             int scoreToAdd = GetScoreForItemType(itemType);
-            int oldScore = playerScores[playerActorNumber];
+            int previousScore = playerScores[playerActorNumber];
             playerScores[playerActorNumber] += scoreToAdd;
             
-            // 모바일 디버그 로그 (모든 아이템에 대해)
-            if (Application.isMobilePlatform)
-            {
-                Debug.Log($"[Mobile] 점수 업데이트 완료 - 플레이어: {playerActorNumber}, 아이템: {itemType}, 추가점수: +{scoreToAdd}, 기존점수: {oldScore}, 새점수: {playerScores[playerActorNumber]}");
-            }
-            
-            // 보너스 아이템인 경우 추가 로깅
-            if (itemType == ItemType.Bonus)
-            {
-                Debug.Log($"[CollectItemRPC] 보너스 아이템 수집! 플레이어 {playerActorNumber} - 획득 점수: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
-            }
-            else
-            {
-                Debug.Log($"플레이어 {playerActorNumber} {itemType} 아이템 수집: +{scoreToAdd}점, 총점: {playerScores[playerActorNumber]}");
-            }
+            Debug.Log($"[ReceiveGameManagerEnhanced] 점수 추가: 플레이어 {playerActorNumber}, 이전 점수: {previousScore}, 추가 점수: {scoreToAdd}, 새로운 점수: {playerScores[playerActorNumber]}");
             
             // 플레이어 속성으로 점수 업데이트 (네트워크 동기화)
             Player player = PhotonNetwork.CurrentRoom.GetPlayer(playerActorNumber);
@@ -1229,15 +1256,11 @@ namespace KYS
                 ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
                 playerProps["score"] = playerScores[playerActorNumber];
                 player.SetCustomProperties(playerProps);
-                
-                if (Application.isMobilePlatform)
-                {
-                    Debug.Log($"[Mobile] 플레이어 속성 업데이트 완료 - 플레이어: {playerActorNumber}, 네트워크 점수: {playerScores[playerActorNumber]}");
-                }
+                Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {playerActorNumber} 속성 업데이트 완료: 점수 {playerScores[playerActorNumber]}");
             }
             else
             {
-                Debug.LogError($"플레이어 {playerActorNumber}를 찾을 수 없습니다!");
+                Debug.LogError($"[ReceiveGameManagerEnhanced] 플레이어 {playerActorNumber}를 찾을 수 없습니다!");
             }
             
             // UI 업데이트
@@ -1281,21 +1304,45 @@ namespace KYS
                 ItemConfig itemConfig = itemConfiguration.GetItemConfig(itemType);
                 if (itemConfig != null)
                 {
-                    //Debug.Log($"[GetScoreForItemType] {itemType} 아이템 점수: {itemConfig.pointValue} (Scriptable Object에서 가져옴)");
+                    Debug.Log($"[ReceiveGameManagerEnhanced] {itemType} ScriptableObject에서 점수 가져옴: {itemConfig.pointValue}");
                     return itemConfig.pointValue;
                 }
                 else
                 {
-                    //Debug.LogWarning($"[GetScoreForItemType] {itemType} 타입에 대한 설정을 Scriptable Object에서 찾을 수 없습니다. 기본값 사용: {defaultScore}");
+                    Debug.LogWarning($"[ReceiveGameManagerEnhanced] {itemType} ScriptableObject 설정을 찾을 수 없음. 기본값 사용");
                 }
             }
             else
             {
-                //Debug.LogWarning("[GetScoreForItemType] ItemConfiguration이 null입니다. 기본값 사용: " + defaultScore);
+                Debug.LogWarning($"[ReceiveGameManagerEnhanced] ItemConfiguration이 null입니다. 기본값 사용");
             }
             
-            // Scriptable Object에서 값을 가져올 수 없으면 기본값 반환
-            return defaultScore;
+            // Scriptable Object에서 값을 가져올 수 없으면 아이템 타입별 기본값 반환
+            int defaultScoreValue;
+            switch (itemType)
+            {
+                case ItemType.Normal:
+                    defaultScoreValue = 1;
+                    break;
+                case ItemType.Bonus:
+                    defaultScoreValue = 5;
+                    break;
+                case ItemType.Speed:
+                    defaultScoreValue = 3;
+                    break;
+                case ItemType.Slow:
+                    defaultScoreValue = 2;
+                    break;
+                case ItemType.Magnet:
+                    defaultScoreValue = 4;
+                    break;
+                default:
+                    defaultScoreValue = defaultScore;
+                    break;
+            }
+            
+            Debug.Log($"[ReceiveGameManagerEnhanced] {itemType} 기본값 사용: {defaultScoreValue}");
+            return defaultScoreValue;
         }
         
         public void RemoveItemFromList(GameObject item)
@@ -1438,24 +1485,81 @@ namespace KYS
             Vector3 startPosition = item.transform.position;
             float elapsedTime = 0f;
             
-            while (elapsedTime < itemDropSpeed && item != null)
+            // 바닥 높이가 고정되어 있는지 확인
+            Vector3 finalTargetPosition = new Vector3(targetPosition.x, itemTargetGroundHeight, targetPosition.z);
+            
+            Debug.Log($"[DropItemToGround] 아이템 드롭 시작 - 시작위치: {startPosition}, 목표위치: {finalTargetPosition}, 설정된 바닥높이: {itemTargetGroundHeight}, 아이템: {item.name}");
+            
+            // Rigidbody 중력 비활성화 (코루틴으로 위치 제어)
+            Rigidbody rb = item.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.useGravity = false;
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            
+            while (elapsedTime < itemDropToGroundSpeed && item != null && item.activeInHierarchy)
             {
                 elapsedTime += Time.deltaTime;
-                float progress = elapsedTime / itemDropSpeed;
+                float progress = elapsedTime / itemDropToGroundSpeed;
                 
                 // 부드러운 떨어지는 효과 (ease-out)
                 float easedProgress = 1f - Mathf.Pow(1f - progress, 3f);
                 
-                Vector3 newPosition = Vector3.Lerp(startPosition, targetPosition, easedProgress);
+                Vector3 newPosition = Vector3.Lerp(startPosition, finalTargetPosition, easedProgress);
                 item.transform.position = newPosition;
                 
                 yield return null;
             }
             
             // 최종 위치로 정확히 설정
-            if (item != null)
+            if (item != null && item.activeInHierarchy)
             {
-                item.transform.position = targetPosition;
+                item.transform.position = finalTargetPosition;
+                Debug.Log($"[DropItemToGround] 아이템 드롭 완료 - 최종위치: {finalTargetPosition}, 아이템: {item.name}");
+                
+                // Rigidbody 중력 다시 활성화 (바닥에 착지 후)
+                if (rb != null)
+                {
+                    rb.useGravity = true;
+                }
+                
+                // CollectibleItem에 바닥 착지 알림
+                CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                if (collectibleItem != null)
+                {
+                    // HasLandedOnGround를 true로 설정하여 ItemAnimation이 바닥에 고정되도록 함
+                    collectibleItem.HasLandedOnGround = true;
+                    Debug.Log($"[DropItemToGround] CollectibleItem.HasLandedOnGround = true 설정 - 아이템: {item.name}");
+                }
+                
+                // EnhancedItemController에 드롭 애니메이션 완료 알림
+                EnhancedItemController enhancedController = item.GetComponent<EnhancedItemController>();
+                if (enhancedController != null)
+                {
+                    enhancedController.OnDropAnimationComplete();
+                    Debug.Log($"[DropItemToGround] EnhancedItemController.OnDropAnimationComplete() 호출됨 - 아이템: {item.name}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[DropItemToGround] EnhancedItemController를 찾을 수 없음 - 아이템: {item.name}");
+                }
+            }
+            else
+            {
+                // 아이템이 수집되었는지 확인
+                CollectibleItem collectibleItem = item?.GetComponent<CollectibleItem>();
+                if (collectibleItem != null && collectibleItem.IsCollected)
+                {
+                    // 아이템이 수집되어 비활성화된 경우 (예상된 동작)
+                    Debug.Log($"[DropItemToGround] 아이템이 수집되어 비활성화됨 - 아이템: {item.name}");
+                }
+                else
+                {
+                    // 아이템이 예상치 못한 이유로 비활성화되거나 파괴된 경우 (진정한 경고)
+                    Debug.LogWarning($"[DropItemToGround] 아이템이 중간에 비활성화되거나 파괴됨 (예상치 못한 이유) - 아이템: {(item != null ? item.name : "null")}");
+                }
             }
         }
         
@@ -1469,10 +1573,10 @@ namespace KYS
             Vector3 startPosition = obstacle.transform.position;
             float elapsedTime = 0f;
             
-            while (elapsedTime < obstacleDropSpeed && obstacle != null)
+            while (elapsedTime < obstacleDropToGroundSpeed && obstacle != null)
             {
                 elapsedTime += Time.deltaTime;
-                float progress = elapsedTime / obstacleDropSpeed;
+                float progress = elapsedTime / obstacleDropToGroundSpeed;
                 
                 // 부드러운 떨어지는 효과 (ease-out)
                 float easedProgress = 1f - Mathf.Pow(1f - progress, 3f);
@@ -1639,8 +1743,6 @@ namespace KYS
             // JTW GameManager의 isLoaded 시스템을 사용하여 모든 플레이어가 씬을 로드했는지 확인
             if (changedProps.ContainsKey("isLoaded"))
             {
-                Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {targetPlayer.NickName}의 isLoaded 상태 변경: {changedProps["isLoaded"]}");
-                
                 // 모든 플레이어가 로드되었는지 확인하고 카운트다운 시작
                 CheckAllPlayersReady();
             }
@@ -1651,7 +1753,6 @@ namespace KYS
             // 최소 1명 이상이면 게임 시작 가능
             if (PhotonNetwork.PlayerList.Length < 1) 
             {
-                Debug.Log("[ReceiveGameManagerEnhanced] 플레이어가 없습니다. 카운트다운을 시작하지 않습니다.");
                 return;
             }
             
@@ -1660,17 +1761,14 @@ namespace KYS
             if (Manager.game != null)
             {
                 allPlayersLoaded = Manager.game.isAllPlayerLoaded();
-                Debug.Log($"[ReceiveGameManagerEnhanced] JTW GameManager - 모든 플레이어 로드 상태: {allPlayersLoaded}");
             }
             else
             {
-                Debug.LogWarning("[ReceiveGameManagerEnhanced] JTW GameManager가 null입니다. 기본 준비 상태 확인을 사용합니다.");
                 // JTW GameManager가 없는 경우 기본 준비 상태 확인
                 allPlayersLoaded = true;
                 foreach (Player player in PhotonNetwork.PlayerList)
                 {
                     bool isPlayerReady = PhotonManager.Instance.GetPlayerReady(player);
-                    Debug.Log($"[ReceiveGameManagerEnhanced] 플레이어 {player.NickName} 준비 상태: {isPlayerReady}");
                     
                     if (!isPlayerReady)
                     {
@@ -1679,11 +1777,8 @@ namespace KYS
                 }
             }
             
-            Debug.Log($"[ReceiveGameManagerEnhanced] 모든 플레이어 준비 상태: {allPlayersLoaded}, 게임 시작됨: {isGameStarted}, 마스터 클라이언트: {PhotonNetwork.IsMasterClient}");
-            
             if (allPlayersLoaded && !isGameStarted && PhotonNetwork.IsMasterClient)
             {
-                Debug.Log("[ReceiveGameManagerEnhanced] 모든 플레이어가 준비되었습니다. 카운트다운을 시작합니다.");
                 StartCountdown();
             }
         }
@@ -1773,7 +1868,8 @@ namespace KYS
             // 카운트다운 완료 후 게임 시작
             if (PhotonNetwork.IsMasterClient)
             {
-                InitializeGame();
+                // 모든 클라이언트에게 카메라 전환과 게임 시작을 동기화
+                photonViewRef.RPC(nameof(RPCStartGameAndTransition), RpcTarget.All);
             }
             
             isCountdownActive = false;
@@ -1809,5 +1905,63 @@ namespace KYS
                 itemPoolManager.ClearAllActiveObjects();
             }
         }
+
+        #region Debug Methods
+        /// <summary>
+        /// 점수 시스템 테스트를 위한 디버그 메서드
+        /// </summary>
+        [ContextMenu("Test Score System")]
+        public void TestScoreSystem()
+        {
+            Debug.Log("[ReceiveGameManagerEnhanced] 점수 시스템 테스트 시작");
+            
+            // 현재 게임 상태 확인
+            Debug.Log($"게임 시작됨: {isGameStarted}, 게임 종료됨: {isGameEnded}");
+            Debug.Log($"Master Client: {PhotonNetwork.IsMasterClient}");
+            Debug.Log($"현재 플레이어 수: {PhotonNetwork.PlayerList.Length}");
+            
+            // 각 플레이어의 현재 점수 출력
+            foreach (Player player in PhotonNetwork.PlayerList)
+            {
+                int currentScore = playerScores.ContainsKey(player.ActorNumber) ? playerScores[player.ActorNumber] : 0;
+                Debug.Log($"플레이어 {player.ActorNumber} ({player.NickName}) 현재 점수: {currentScore}");
+            }
+            
+            // ItemConfiguration 상태 확인
+            if (itemConfiguration != null)
+            {
+                Debug.Log("ItemConfiguration 로드됨");
+                foreach (ItemType itemType in System.Enum.GetValues(typeof(ItemType)))
+                {
+                    ItemConfig config = itemConfiguration.GetItemConfig(itemType);
+                    if (config != null)
+                    {
+                        Debug.Log($"{itemType} 아이템 설정 - 점수: {config.pointValue}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"{itemType} 아이템 설정을 찾을 수 없음");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError("ItemConfiguration이 null입니다!");
+            }
+        }
+        
+        /// <summary>
+        /// 특정 플레이어에게 테스트 점수 추가
+        /// </summary>
+        [ContextMenu("Add Test Score")]
+        public void AddTestScore()
+        {
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                Debug.Log($"[ReceiveGameManagerEnhanced] 테스트 점수 추가: 플레이어 {PhotonNetwork.LocalPlayer.ActorNumber}");
+                CollectItem(PhotonNetwork.LocalPlayer.ActorNumber, ItemType.Bonus);
+            }
+        }
+        #endregion
     }
 } 

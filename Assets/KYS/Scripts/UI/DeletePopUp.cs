@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine.EventSystems;
 using Firebase.Auth;
 using Firebase.Extensions;
+using UnityEngine.UI; // Added for Button
 
 namespace KYS
 {
@@ -29,29 +30,51 @@ namespace KYS
         // 삭제 버튼 클릭 시
         private void OnDeleteButtonClick(PointerEventData eventData)
         {
+            // 버튼 비활성화
+            Button deleteButton = GetUI<Button>("DeleteButton");
+            if (deleteButton != null)
+            {
+                deleteButton.interactable = false;
+            }
+
             // 입력값 검증
             if (string.IsNullOrEmpty(idInput.text) || string.IsNullOrEmpty(passwordInput.text))
             {
                 ShowErrorMessage("ID와 비밀번호를 모두 입력해주세요.");
+                // 버튼 다시 활성화
+                if (deleteButton != null)
+                {
+                    deleteButton.interactable = true;
+                }
                 return;
             }
 
-            // 현재 로그인된 사용자 정보와 비교
+            // 현재 로그인된 사용자 정보 확인
             FirebaseUser currentUser = FirebaseManager.Auth.CurrentUser;
             if (currentUser == null)
             {
                 ShowErrorMessage("로그인 정보를 찾을 수 없습니다.");
+                // 버튼 다시 활성화
+                if (deleteButton != null)
+                {
+                    deleteButton.interactable = true;
+                }
                 return;
             }
 
-            // ID가 현재 사용자의 이메일과 일치하는지 확인
+            // ID가 현재 로그인된 사용자와 일치하는지 확인
             if (idInput.text != currentUser.Email)
             {
-                ShowErrorMessage("입력한 ID가 현재 로그인된 계정과 일치하지 않습니다.");
+                ShowErrorMessage("입력한 ID가 현재 로그인된 사용자와 일치하지 않습니다.");
+                // 버튼 다시 활성화
+                if (deleteButton != null)
+                {
+                    deleteButton.interactable = true;
+                }
                 return;
             }
 
-            // 확인 팝업 띄우기
+            // 확인 팝업 표시
             ShowConfirmDeletePopup();
         }
 
