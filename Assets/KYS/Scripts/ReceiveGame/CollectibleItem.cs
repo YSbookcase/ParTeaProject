@@ -10,8 +10,6 @@ namespace KYS
     
         [Header("Item Settings")]
         [SerializeField] private float rotationSpeed = 90f;
-        [SerializeField] private float bobSpeed = 2f;
-        [SerializeField] private float bobHeight = 0.5f;
         [SerializeField] private int pointValue = 1;
         
         [Header("Physics Settings")]
@@ -291,7 +289,7 @@ namespace KYS
             // 모바일 디버그 로그
             if (Application.isMobilePlatform)
             {
-                //Debug.Log($"[Mobile] CollectibleItem.Collect() 호출됨 - {gameObject.name}, PhotonView: {photonView != null}, IsMine: {photonView?.IsMine}");
+                Debug.Log($"[Mobile] CollectibleItem.Collect() 호출됨 - {gameObject.name}, PhotonView: {photonView != null}, IsMine: {photonView?.IsMine}");
             }
             
             // 네트워크 동기화를 위해 RPC 호출
@@ -334,14 +332,18 @@ namespace KYS
             // 수집 효과 재생
             PlayCollectEffect();
             
-            // 오브젝트 풀로 반환 (0.5초 후) - null 체크 추가
+            // 모바일에서는 즉시 비활성화 (사용자 경험 개선)
+            float returnDelay = isMobilePlatform ? 0.1f : 0.5f;
+            
+            // 오브젝트 풀로 반환 - null 체크 추가
             if (returnPool != null)
             {
-                ReturnToPool(0.5f);
+                ReturnToPool(returnDelay);
+                Debug.Log($"[CollectibleItem] 풀로 반환 예약: {gameObject.name}, 지연시간: {returnDelay}초");
             }
             else
             {
-                //Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
+                Debug.LogWarning($"[CollectibleItem] returnPool이 null입니다. 오브젝트를 파괴합니다: {gameObject.name}");
                 // 중복 파괴 방지를 위해 즉시 비활성화
                 gameObject.SetActive(false);
                 
@@ -361,7 +363,7 @@ namespace KYS
                     // 로컬 오브젝트이거나 Master Client가 아닌 경우 일반 Destroy 사용
                     if (gameObject != null)
                     {
-                        Destroy(gameObject, 0.5f);
+                        Destroy(gameObject, returnDelay);
                     }
                 }
             }

@@ -42,7 +42,7 @@ namespace KYS
         private Vector3 targetPosition;
         private float targetFieldOfView;
         private bool isTransitioning = false;
-        private bool isGameStarted = false;
+        private bool isGameStarted = false; // 게임 시작 여부
         private Vector3 startPosition;
         private Quaternion startRotation;
         private Vector3 endPosition;

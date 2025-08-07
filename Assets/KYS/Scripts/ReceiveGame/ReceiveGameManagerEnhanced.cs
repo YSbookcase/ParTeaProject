@@ -265,24 +265,18 @@ namespace KYS
         #region Game Management
         private void InitializeGame()
         {
-            // 카메라 전환 시작 (기존 ReceiveGameCamera 사용 시)
-            ReceiveGameCamera gameCamera = FindObjectOfType<ReceiveGameCamera>();
-            if (gameCamera != null && enableCameraTransition && cameraTransitionManager == null)
-            {
-                gameCamera.StartCameraTransition();
-            }
-            
-            // 게임 시작을 Room Properties로 설정
-            StartGame();
+            // 게임 초기화 로직 (카메라 전환은 RPC에서 처리됨)
+            Debug.Log("[ReceiveGameManagerEnhanced] InitializeGame() 호출됨");
         }
         
-        public void StartGame()
+        [PunRPC]
+        public void RPCStartGameAndTransition()
         {
-            if (isGameStarted) return;
-            
-            Debug.Log("[ReceiveGameManagerEnhanced] StartGame() 호출됨");
-            
-            // 카메라 전환을 먼저 시작
+            if (isGameStarted) return; // Prevent multiple starts
+
+            Debug.Log("[ReceiveGameManagerEnhanced] RPCStartGameAndTransition() 호출됨");
+
+            // 카메라 전환 로직 (이제 모든 클라이언트에서 실행)
             if (enableCameraTransition && cameraTransitionManager != null)
             {
                 Debug.Log("[ReceiveGameManagerEnhanced] CameraTransitionManager로 카메라 전환 시작");
@@ -290,16 +284,23 @@ namespace KYS
             }
             else if (enableCameraTransition)
             {
-                // ReceiveGameCamera 사용 시
                 ReceiveGameCamera gameCamera = FindObjectOfType<ReceiveGameCamera>();
                 if (gameCamera != null)
                 {
                     Debug.Log("[ReceiveGameManagerEnhanced] ReceiveGameCamera로 카메라 전환 시작");
                     gameCamera.StartCameraTransition();
                 }
+                else
+                {
+                    Debug.LogWarning("[ReceiveGameManagerEnhanced] 카메라 전환 매니저를 찾을 수 없습니다. 카메라 전환을 건너뜁니다.");
+                }
             }
-            
-            // 카메라 전환 완료 후 게임 시작 (지연)
+            else
+            {
+                Debug.Log("[ReceiveGameManagerEnhanced] 카메라 전환 비활성화됨.");
+            }
+
+            // Start the coroutine that waits for transition and sets game state
             StartCoroutine(StartGameAfterCameraTransition());
         }
         
@@ -1498,9 +1499,6 @@ namespace KYS
                 rb.angularVelocity = Vector3.zero;
             }
             
-            // 코루틴이 중단되지 않도록 안전장치 추가
-            bool dropCompleted = false;
-            
             while (elapsedTime < itemDropToGroundSpeed && item != null && item.activeInHierarchy)
             {
                 elapsedTime += Time.deltaTime;
@@ -1519,7 +1517,6 @@ namespace KYS
             if (item != null && item.activeInHierarchy)
             {
                 item.transform.position = finalTargetPosition;
-                dropCompleted = true;
                 Debug.Log($"[DropItemToGround] 아이템 드롭 완료 - 최종위치: {finalTargetPosition}, 아이템: {item.name}");
                 
                 // Rigidbody 중력 다시 활성화 (바닥에 착지 후)
@@ -1551,7 +1548,18 @@ namespace KYS
             }
             else
             {
-                Debug.LogWarning($"[DropItemToGround] 아이템이 중간에 비활성화되거나 파괴됨 - 아이템: {(item != null ? item.name : "null")}");
+                // 아이템이 수집되었는지 확인
+                CollectibleItem collectibleItem = item?.GetComponent<CollectibleItem>();
+                if (collectibleItem != null && collectibleItem.IsCollected)
+                {
+                    // 아이템이 수집되어 비활성화된 경우 (예상된 동작)
+                    Debug.Log($"[DropItemToGround] 아이템이 수집되어 비활성화됨 - 아이템: {item.name}");
+                }
+                else
+                {
+                    // 아이템이 예상치 못한 이유로 비활성화되거나 파괴된 경우 (진정한 경고)
+                    Debug.LogWarning($"[DropItemToGround] 아이템이 중간에 비활성화되거나 파괴됨 (예상치 못한 이유) - 아이템: {(item != null ? item.name : "null")}");
+                }
             }
         }
         
@@ -1860,7 +1868,8 @@ namespace KYS
             // 카운트다운 완료 후 게임 시작
             if (PhotonNetwork.IsMasterClient)
             {
-                InitializeGame();
+                // 모든 클라이언트에게 카메라 전환과 게임 시작을 동기화
+                photonViewRef.RPC(nameof(RPCStartGameAndTransition), RpcTarget.All);
             }
             
             isCountdownActive = false;

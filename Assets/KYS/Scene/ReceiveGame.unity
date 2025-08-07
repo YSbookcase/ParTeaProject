@@ -2669,8 +2669,8 @@ MonoBehaviour:
     type: 3}
   powerUpPrefab: {fileID: 7504042543773716186, guid: aec07e2f0ad64274bb8780838cdc9c73,
     type: 3}
-  itemSpawnInterval: 1.5
-  powerUpSpawnInterval: 3.5
+  itemSpawnInterval: 1
+  powerUpSpawnInterval: 3
   obstacleSpawnInterval: 1.5
   itemSpawnHeight: 20
   itemDropToGroundSpeed: 5
@@ -2680,9 +2680,9 @@ MonoBehaviour:
   mobilePowerUpLifetime: 90
   obstacleLifetime: 8
   mobileObstacleLifetime: 12
-  speedPowerUpChance: 0.4
-  slowPowerUpChance: 0.3
-  magnetPowerUpChance: 0.3
+  speedPowerUpChance: 0.6
+  slowPowerUpChance: 0.2
+  magnetPowerUpChance: 0.2
   enablePowerUpTypeControl: 1
   spawnCenter: {x: 0, y: 0, z: -1}
   spawnRangeX: 9

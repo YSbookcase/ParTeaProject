@@ -295,7 +295,25 @@ namespace KYS
                         Debug.Log($"[ReceiveGamePlayer] 아이템 발견: {item.name}, 타입: {itemType}, 거리: {distance:F2}, 수집 가능: {!item.IsCollected}, 위치: {item.transform.position}");
                     }
                     
-                    CollectItem(item);
+                    // 모바일에서는 즉시 수집 처리
+                    if (isMobilePlatform)
+                    {
+                        // 아이템이 활성화되어 있는지 한 번 더 확인
+                        if (item.gameObject.activeInHierarchy)
+                        {
+                            CollectItem(item);
+                            
+                            // 수집 후 즉시 비활성화 확인
+                            if (!item.gameObject.activeInHierarchy)
+                            {
+                                Debug.Log($"[ReceiveGamePlayer] 아이템 수집 완료 및 비활성화 확인: {item.name}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        CollectItem(item);
+                    }
                 }
                 else if (item != null && item.IsCollected && isMobilePlatform)
                 {
@@ -348,7 +366,26 @@ namespace KYS
                         }
                         
                         Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 발견: {item.name}, 타입: {itemType}, 거리: {hit.distance:F2}, 방향: {direction}");
-                        CollectItem(item);
+                        
+                        // 모바일에서는 즉시 수집 처리
+                        if (isMobilePlatform)
+                        {
+                            // 아이템이 활성화되어 있는지 한 번 더 확인
+                            if (item.gameObject.activeInHierarchy)
+                            {
+                                CollectItem(item);
+                                
+                                // 수집 후 즉시 비활성화 확인
+                                if (!item.gameObject.activeInHierarchy)
+                                {
+                                    Debug.Log($"[ReceiveGamePlayer] Raycast로 아이템 수집 완료 및 비활성화 확인: {item.name}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            CollectItem(item);
+                        }
                     }
                 }
             }
@@ -419,8 +456,15 @@ namespace KYS
             // 디버그 로그 추가
             Debug.Log($"[ReceiveGamePlayer] 아이템 수집 시도: {item.name}, 타입: {itemType}, 플레이어: {PhotonNetwork.LocalPlayer.ActorNumber}");
             
-            // 아이템 수집 (네트워크 동기화 포함)
+            // 아이템 수집 (네트워크 동기화 포함) - 먼저 실행하여 IsCollected 플래그 설정
             item.Collect();
+            
+            // 모바일에서는 즉시 비활성화 (시각적 피드백 개선) - Collect() 이후에 실행
+            if (isMobilePlatform)
+            {
+                item.gameObject.SetActive(false);
+                Debug.Log($"[ReceiveGamePlayer] 모바일에서 아이템 즉시 비활성화: {item.name}");
+            }
             
             // 게임 매니저 참조 확인 및 재설정
             if (gameManager == null)
