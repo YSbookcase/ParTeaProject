@@ -18,9 +18,8 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
         };
 
     [SerializeField] List<GameObject> carryFoods = new List<GameObject>();
-    [SerializeField] private AudioData audioData;
 
-    private void Start()
+    private void OnEnable()
     {
         ApplyColor();
     }
@@ -36,7 +35,7 @@ public class RacingColorSynk : MonoBehaviourPunCallbacks
                 if(i == colorIndex)
                 {
                     carryFoods[i].SetActive(true);
-                    racingController.SetRacingSound(audioData.clip.name, i);
+                    racingController.SetRacingSound("int_high_on", i);
                 }
                 else
                 {

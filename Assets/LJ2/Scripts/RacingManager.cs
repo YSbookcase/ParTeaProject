@@ -99,11 +99,6 @@ public class RacingManager : MonoBehaviourPunCallbacks
 
     private IEnumerator FinishRoutine()
     {
-        foreach (RacingController controller in racingControllers.Values)
-        {
-            controller.photonView.RPC("StopRacingSound", RpcTarget.All);
-        }
-
         yield return new WaitForSeconds(1f); // RPC 전파 시간 확보
 
         SceneManager.LoadScene("Score");

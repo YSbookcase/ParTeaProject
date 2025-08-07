@@ -95,7 +95,7 @@ public class RacingController : MonoBehaviourPun, IPunObservable
 
     private void OnDestroy()
     {
-        PhotonNetwork.Destroy(gameObject);
+        PhotonNetwork.Destroy(this.gameObject);
     }
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
