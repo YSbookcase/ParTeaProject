@@ -42,6 +42,13 @@ public class JumpPlayerController : MonoBehaviourPun
         }
     }
 
+    private void OnDestroy()
+    {
+        if (!photonView.IsMine) return;
+
+        PhotonNetwork.Destroy(gameObject);
+    }
+
     public void OnJump(InputValue value)
     {
         Debug.Log($"{photonView.Owner.NickName} 점프 입력 감지");
