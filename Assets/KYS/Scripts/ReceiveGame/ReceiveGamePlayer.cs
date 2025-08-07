@@ -29,7 +29,7 @@ namespace KYS
         [SerializeField] private float magnetForce = 10f; // 자석 효과 힘
         
         [Header("Components")]
-        [SerializeField] private Renderer playerRenderer;
+        [SerializeField] private Renderer[] playerRenderers; // 여러 렌더 요소에 색상 적용
         [SerializeField] private Animator playerAnimator;
         
         [Header("UI Elements")]
@@ -480,16 +480,25 @@ namespace KYS
         
         private void SetPlayerColor()
         {
-            if (playerRenderer != null && !isColorSet)
+            if (playerRenderers != null && playerRenderers.Length > 0 && !isColorSet)
             {
                 // RoomPopUp에서 설정된 색상 가져오기
                 int colorIndex = GetPlayerColorIndex();
                 playerColorIndex = colorIndex; // 네트워크 동기화용 변수에 저장
                 Color playerColor = GetColorByIndex(colorIndex);
-                playerRenderer.material.color = playerColor;
+                
+                // 모든 렌더러에 색상 적용
+                foreach (Renderer renderer in playerRenderers)
+                {
+                    if (renderer != null && renderer.material != null)
+                    {
+                        renderer.material.color = playerColor;
+                    }
+                }
+                
                 isColorSet = true;
                 
-                //Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}");
+                Debug.Log($"플레이어 {photonView.Owner?.NickName ?? "Unknown"} 색상 설정: {colorIndex}, 렌더러 수: {playerRenderers.Length}");
             }
         }
         
@@ -674,12 +683,18 @@ namespace KYS
                 if (receivedColorIndex != playerColorIndex && !isColorSet)
                 {
                     playerColorIndex = receivedColorIndex;
-                    if (playerRenderer != null)
+                    if (playerRenderers != null && playerRenderers.Length > 0)
                     {
                         Color playerColor = GetColorByIndex(playerColorIndex);
-                        playerRenderer.material.color = playerColor;
+                        foreach (Renderer renderer in playerRenderers)
+                        {
+                            if (renderer != null && renderer.material != null)
+                            {
+                                renderer.material.color = playerColor;
+                            }
+                        }
                         isColorSet = true;
-                        //Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}");
+                        Debug.Log($"네트워크에서 받은 색상 적용: {playerColorIndex}, 렌더러 수: {playerRenderers.Length}");
                     }
                 }
                 
@@ -1380,6 +1395,54 @@ namespace KYS
                     Debug.LogWarning("[ReceiveGamePlayer] ReceiveGameManagerEnhanced를 찾을 수 없습니다. 아이템 수집이 작동하지 않을 수 있습니다.");
                 }
             }
+        }
+        
+        /// <summary>
+        /// 모든 렌더러에 색상을 적용하는 public 메서드
+        /// </summary>
+        public void SetPlayerColor(Color color)
+        {
+            if (playerRenderers != null && playerRenderers.Length > 0)
+            {
+                foreach (Renderer renderer in playerRenderers)
+                {
+                    if (renderer != null && renderer.material != null)
+                    {
+                        renderer.material.color = color;
+                    }
+                }
+                Debug.Log($"플레이어 색상 변경: {color}, 렌더러 수: {playerRenderers.Length}");
+            }
+        }
+        
+        /// <summary>
+        /// 색상 인덱스로 색상을 설정하는 public 메서드
+        /// </summary>
+        public void SetPlayerColorByIndex(int colorIndex)
+        {
+            if (colorIndex >= 0)
+            {
+                playerColorIndex = colorIndex;
+                Color playerColor = GetColorByIndex(colorIndex);
+                SetPlayerColor(playerColor);
+                isColorSet = true;
+            }
+        }
+        
+        /// <summary>
+        /// 현재 설정된 색상 인덱스를 반환
+        /// </summary>
+        public int GetCurrentColorIndex()
+        {
+            return playerColorIndex;
+        }
+        
+        /// <summary>
+        /// 렌더러 배열을 가져오는 public 메서드
+        /// </summary>
+        public Renderer[] GetPlayerRenderers()
+        {
+            return playerRenderers;
         }
     }
 } 

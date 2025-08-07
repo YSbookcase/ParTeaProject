@@ -34,7 +34,6 @@ namespace KYS
         [SerializeField] private GameObject wallPrefab;
         [SerializeField] private GameObject obstaclePrefab;
         [SerializeField] private GameObject powerUpPrefab;
-        [SerializeField] private Transform[] spawnPoints;
         
         [Header("Item Spawn Settings")]
         [SerializeField] private float itemSpawnInterval = 2f;
