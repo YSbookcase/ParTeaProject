@@ -27,30 +27,24 @@ namespace GIL.Scripts
 
         private IEnumerator DestroyPlayer(Collision other)
         {
+            other.gameObject.GetComponent<SphereCollider>().enabled = false;
             Rigidbody rb = other.collider.GetComponent<Rigidbody>();
             PhotonView view = other.gameObject.GetComponent<PhotonView>();
             
-            if (rb != null)
-            {
-                rb.AddForce(Vector3.up * shootSpeed, ForceMode.Impulse);
-                rb.AddTorque(Random.insideUnitSphere.normalized, ForceMode.Impulse);
+            rb.AddForce(Vector3.up * shootSpeed, ForceMode.Impulse);
+            rb.AddTorque(Random.insideUnitSphere.normalized, ForceMode.Impulse);
                 
-                PhotonView otherPhotonView = other.gameObject.GetComponent<PhotonView>();
-                if (otherPhotonView != null)
-                {
-                    Vector3 hitPos = other.contacts[0].point;
+            Vector3 hitPos = other.contacts[0].point;
 
-                    if (PhotonNetwork.IsConnected == false)
-                    {
-                        Debug.Log("이펙트 발생");
-                        Instantiate(effectPrefab, hitPos, Quaternion.identity);
-                        Manager.Audio.SfxPlay(soundEffectName);
-                    }
-                    
-                    _view.RPC(nameof(ArenaKillZoneEffect), RpcTarget.All, hitPos);
-                }
+            if (PhotonNetwork.IsConnected == false)
+            {
+                Debug.Log("이펙트 발생");
+                Instantiate(effectPrefab, hitPos, Quaternion.identity);
+                Manager.Audio.SfxPlay(soundEffectName);
             }
-
+                    
+            _view.RPC(nameof(ArenaKillZoneEffect), RpcTarget.All, hitPos);
+            
             yield return new WaitForSeconds(shootTime);
             
             if (view.IsMine)
