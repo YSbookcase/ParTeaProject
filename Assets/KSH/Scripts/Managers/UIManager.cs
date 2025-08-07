@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -7,7 +6,6 @@ using System;
 using DG.Tweening;
 using Photon.Pun;
 using Photon.Realtime;
-using DG.Tweening;
 
 namespace KSH
 {

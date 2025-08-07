@@ -1,7 +1,6 @@
 using UnityEngine;
 using Photon.Pun;
 using TMPro;
-using UnityEngine.UI;
 
 namespace KSH
 {
@@ -15,10 +14,10 @@ namespace KSH
         [SerializeField] private Material body;
         [SerializeField] private SkinnedMeshRenderer bodyRenderer;
         public Color color;
+        [SerializeField] private Texture2D[] textures;
+        [Header("닉네임 관련")]
         [SerializeField] private TextMeshProUGUI nickName;
         public TextMeshProUGUI NickName => nickName;
-        
-        [SerializeField] private Texture2D[] textures;
 
         private Animator animator;
         private Rigidbody rigid;
@@ -26,9 +25,9 @@ namespace KSH
         private Vector2 inputDir;
         private PlayerAction playerAction;
         private float curSpeed;
-        private Vector3 photonPosition; //보간
-        private Quaternion photonRotation; //보간
-        private Vector3 previousPhotonPosition;
+        private Vector3 photonPosition; //보간용 위치
+        private Quaternion photonRotation; //보간용 회전
+        //private Vector3 previousPhotonPosition;
         private double lastPacketTime;
         private Rigidbody photonRigid;
         
