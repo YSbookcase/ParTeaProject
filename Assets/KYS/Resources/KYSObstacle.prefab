@@ -118,8 +118,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0f48282f066e6b4f9b9727ec8cc8ddd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hitEffect: {fileID: 0}
-  hitSound: {fileID: 0}
+  returnPool: {fileID: 0}
+  hitEffect: {fileID: 1334071670866236, guid: ebc354909110c6541bf43e95b81e6549, type: 3}
+  hitSoundName: SFX_ButtonClick
 --- !u!1001 &4205693989392929141
 PrefabInstance:
   m_ObjectHideFlags: 0

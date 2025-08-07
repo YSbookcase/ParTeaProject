@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  collectionRadius: 2
+  collectionRadius: 1
   baseMoveSpeed: 5
   speedBoostMultiplier: 1.5
   slowEffectMultiplier: 0.5
@@ -58,7 +58,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   collectionCheckInterval: 0.01
-  mobileCollectionRadius: 2
+  mobileCollectionRadius: 1
   magnetRadius: 10
   magnetForce: 200
   playerRenderers:
@@ -68,8 +68,9 @@ MonoBehaviour:
   nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
     type: 3}
   nameTagOffset: {x: 0, y: 3, z: 0}
-  collectEffect: {fileID: 0}
-  collectSoundName: SFX_NormalItem
+  collectEffect: {fileID: 1242912157399330, guid: 70bdf605763a4734cb01eda51d703da6,
+    type: 3}
+  collectSoundName: null
   effectParent: {fileID: 1427451300138239232}
   itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
