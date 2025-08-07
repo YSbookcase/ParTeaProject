@@ -158,7 +158,6 @@ MonoBehaviour:
   - {fileID: 2137250159508350007}
   - {fileID: 3112145259432194371}
   - {fileID: 86340366211742747}
-  audioData: {fileID: 11400000, guid: ca2a667edc46cd94ab191667f0e2551f, type: 2}
 --- !u!1 &6079455596860033062
 GameObject:
   m_ObjectHideFlags: 0
