@@ -1329,11 +1329,11 @@ namespace KYS
             string message = "";
             if (newMasterClient.ActorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
             {
-                message = "🎉 당신이 새로운 방장이 되었습니다! 🎉";
+                message = " 당신이 새로운 방장이 되었습니다! ";
             }
             else
             {
-                message = $"👑 {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
+                message = $" {newMasterClient.NickName}님이 새로운 방장이 되었습니다.";
             }
 
             // 마스터 클라이언트만 시스템 메시지 전송
