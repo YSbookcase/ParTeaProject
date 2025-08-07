@@ -44,6 +44,8 @@ public class JumpPlayerController : MonoBehaviourPun
 
     private void OnDestroy()
     {
+        if (!photonView.IsMine) return;
+
         PhotonNetwork.Destroy(gameObject);
     }
 
