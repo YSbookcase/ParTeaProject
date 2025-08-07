@@ -68,10 +68,9 @@ namespace PJW
         {
 
             Debug.Log($"[RPCAddRopePassScore] »£√‚µ , isMine={photonView.IsMine}, hasJumped={hasJumped}");
-            if (photonView.IsMine && !isDead && hasJumped)
+            if (photonView.IsMine && !isDead)
             {
                 PhotonNetwork.LocalPlayer.AddRopeGameScore(1);
-                hasJumped = false;
 
                 if (ropePassCountUIManager != null)
                 {
@@ -110,7 +109,6 @@ namespace PJW
             {
                 isGrounded = true;
                 photonView.RPC(nameof(RPCRopeSetJumping), RpcTarget.All, false);
-                hasJumped = false;
             }
             else if (!isDead && collision.gameObject.CompareTag("Rope"))
             {
@@ -133,7 +131,7 @@ namespace PJW
             if (isDead) return;
             isDead = true;
 
-            Vector3 bounceDir = (Vector3.forward + Random.onUnitSphere).normalized;
+            Vector3 bounceDir = (Vector3.up + Random.onUnitSphere).normalized;
             playerRigidbody.AddForce(bounceDir * bounceForce, ForceMode.Impulse);
 
             photonView.RPC(
