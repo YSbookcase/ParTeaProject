@@ -374,19 +374,26 @@ namespace KYS
 
             if (item != null)
             {
-                // 아이템 상태 초기화
+                // 위치 설정을 먼저 수행
+                item.transform.position = position;
+                Debug.Log($"[ItemPoolManager.GetItem] 아이템 위치 설정: {position}, 아이템: {item.name}");
+                
+                // 이전 위치 업데이트 (떨어지는 감지용)
+                CollectibleItem collectibleItem = item.GetComponent<CollectibleItem>();
+                if (collectibleItem != null)
+                {
+                    collectibleItem.PreviousPosition = position;
+                    Debug.Log($"[ItemPoolManager.GetItem] PreviousPosition 설정: {position}, 아이템: {item.name}");
+                }
+
+                // 아이템 상태 초기화 (위치 설정 후에)
                 item.ResetItem();
 
                 // 아이템 타입 설정
                 item.itemType = itemType;
 
-                // 위치 설정
-                item.transform.position = position;
-
                 // 아이템의 시각적 설정 적용
                 ApplyItemVisualSettings(item.gameObject, itemType);
-
-
 
                 // 풀 참조 설정 (returnPool이 null인 문제 해결)
                 item.returnPool = itemPool;
@@ -397,11 +404,11 @@ namespace KYS
                     activeItems.Add(item);
                 }
 
-                //Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, 활성 아이템 수: {activeItems?.Count ?? 0}");
+                Debug.Log($"[ItemPoolManager] 아이템 활성화 - 위치: {position}, 타입: {itemType}, 활성 아이템 수: {activeItems?.Count ?? 0}");
             }
             else
             {
-                //Debug.LogError("[ItemPoolManager] PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
+                Debug.LogError("[ItemPoolManager] PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
             }
 
             return item;
@@ -445,21 +452,28 @@ namespace KYS
 
             if (powerUp != null)
             {
-                // 파워업 상태 초기화
+                // 위치 설정을 먼저 수행
+                powerUp.transform.position = position;
+                Debug.Log($"[ItemPoolManager.GetPowerUp] 파워업 위치 설정: {position}, 아이템: {powerUp.name}");
+                
+                // 이전 위치 업데이트 (떨어지는 감지용)
+                CollectibleItem collectibleItem = powerUp.GetComponent<CollectibleItem>();
+                if (collectibleItem != null)
+                {
+                    collectibleItem.PreviousPosition = position;
+                    Debug.Log($"[ItemPoolManager.GetPowerUp] PreviousPosition 설정: {position}, 아이템: {powerUp.name}");
+                }
+
+                // 파워업 상태 초기화 (위치 설정 후에)
                 powerUp.ResetItem();
 
-                // 아이템 타입 설정
+                // 파워업 타입 설정
                 powerUp.itemType = powerUpType;
 
-                // 위치 설정
-                powerUp.transform.position = position;
-
-                // PowerUp 아이템의 시각적 설정 적용
+                // 파워업의 시각적 설정 적용
                 ApplyItemVisualSettings(powerUp.gameObject, powerUpType);
 
-
-
-                // 풀 참조 설정 (returnPool이 null인 문제 해결)
+                // 풀 참조 설정
                 powerUp.returnPool = powerUpPool;
 
                 // 활성 파워업 목록에 추가
@@ -468,11 +482,11 @@ namespace KYS
                     activePowerUps[powerUpType].Add(powerUp);
                 }
 
-                //Debug.Log($"[ItemPoolManager] {powerUpType} 파워업 활성화 - 위치: {position}, 활성 {powerUpType} 수: {activePowerUps?[powerUpType]?.Count ?? 0}");
+                Debug.Log($"[ItemPoolManager] 파워업 활성화 - 위치: {position}, 타입: {powerUpType}");
             }
             else
             {
-                //Debug.LogError($"[ItemPoolManager] {powerUpType} PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다!");
+                Debug.LogError($"[ItemPoolManager] PooledObject를 CollectibleItem으로 캐스팅할 수 없습니다! (타입: {powerUpType})");
             }
 
             return powerUp;

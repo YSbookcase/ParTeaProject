@@ -29,14 +29,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4586844112806833844}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1427451300138239232}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!114 &5090567324223254773
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -56,20 +56,20 @@ MonoBehaviour:
   slowEffectMultiplier: 0.5
   itemLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  collectionCheckInterval: 0.1
-  mobileCollectionRadius: 3
+    m_Bits: 64
+  collectionCheckInterval: 0.05
+  mobileCollectionRadius: 5
   magnetRadius: 5
   magnetForce: 10
   playerRenderer: {fileID: 3467787480541739041}
   playerAnimator: {fileID: 4985343708486770554}
   nameTagPrefab: {fileID: 6113054335981631203, guid: a83eda394cdabe447b980819a3d89613,
     type: 3}
-  nameTagOffset: {x: 0, y: 2.5, z: 0}
+  nameTagOffset: {x: 0, y: 3, z: 0}
   collectEffect: {fileID: 0}
   collectSoundName: SFX_NormalItem
   effectParent: {fileID: 1427451300138239232}
-  itemConfiguration: {fileID: 0}
+  itemConfiguration: {fileID: 11400000, guid: 01a025d0717e974488154cfb7ddd3ce9, type: 2}
   inputActions: {fileID: -944628639613478452, guid: e6463ac0f3824aa4485c83ec29fc9421,
     type: 3}
 --- !u!136 &2652187264152053537

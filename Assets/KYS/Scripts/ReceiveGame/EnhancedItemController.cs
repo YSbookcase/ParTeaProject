@@ -123,7 +123,7 @@ namespace KYS
             {
                 // 기존 크기의 1.5배로 확대
                 sphereCollider.radius *= 1.5f;
-                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
+                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
             }
             
             // BoxCollider 확대
@@ -132,7 +132,7 @@ namespace KYS
             {
                 // 기존 크기의 1.5배로 확대
                 boxCollider.size *= 1.5f;
-                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
+                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
             }
             
             // CapsuleCollider 확대
@@ -142,7 +142,7 @@ namespace KYS
                 // 기존 크기의 1.5배로 확대
                 capsuleCollider.radius *= 1.5f;
                 capsuleCollider.height *= 1.5f;
-                Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
+                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
@@ -198,6 +198,7 @@ namespace KYS
             if (bobCoroutine == null)
             {
                 bobCoroutine = StartCoroutine(BobAnimation());
+                Debug.Log($"[EnhancedItemController.StartBobAnimation] 바운스 애니메이션 시작 - 아이템: {gameObject.name}, 현재위치: {transform.position}");
             }
         }
         
@@ -398,7 +399,7 @@ namespace KYS
                 if (Application.isMobilePlatform)
                 {
                     float distance = Vector3.Distance(transform.position, other.transform.position);
-                    Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
+                    //Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
                 }
                 
                 // 중복 수집 방지를 위해 즉시 수집 상태로 변경 (모바일에서는 더 관대하게)
@@ -429,7 +430,7 @@ namespace KYS
                     // 모바일 디버깅을 위한 경고
                     if (Application.isMobilePlatform)
                     {
-                        Debug.LogWarning($"[EnhancedItemController] ReceiveGamePlayer 컴포넌트를 찾을 수 없음: {other.name}");
+                        //Debug.LogWarning($"[EnhancedItemController] ReceiveGamePlayer 컴포넌트를 찾을 수 없음: {other.name}");
                     }
                 }
                 
@@ -439,7 +440,7 @@ namespace KYS
             else if (Application.isMobilePlatform)
             {
                 // 플레이어가 아닌 다른 오브젝트와의 충돌 디버그
-                Debug.Log($"[EnhancedItemController] 다른 오브젝트와 충돌: {gameObject.name} <-> {other.name} (태그: {other.tag})");
+                //Debug.Log($"[EnhancedItemController] 다른 오브젝트와 충돌: {gameObject.name} <-> {other.name} (태그: {other.tag})");
             }
         }
         
@@ -511,7 +512,17 @@ namespace KYS
         {
             isDropAnimationComplete = true;
             hasHitGround = true; // 바닥에 착지한 것으로 간주
+            Debug.Log($"[EnhancedItemController.OnDropAnimationComplete] 드롭 애니메이션 완료 - 아이템: {gameObject.name}, 현재위치: {transform.position}, groundLevel: {groundLevel}");
             StartBobAnimation(); // 바운스 애니메이션 시작
+        }
+        
+        /// <summary>
+        /// ReceiveGameManagerEnhanced에서 groundLevel을 설정하는 메서드
+        /// </summary>
+        public void SetGroundLevel(float level)
+        {
+            groundLevel = level;
+            Debug.Log($"[EnhancedItemController] Ground level 설정됨: {groundLevel}");
         }
         
         /// <summary>

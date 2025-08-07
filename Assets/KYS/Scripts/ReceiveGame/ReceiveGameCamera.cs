@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cinemachine;
 
 namespace KYS
 {
@@ -24,9 +25,29 @@ namespace KYS
         [SerializeField] private float minDistance = 5f;
         [SerializeField] private float maxDistance = 15f;
         
+        [Header("Camera Transition")]
+        [SerializeField] private bool enableTransition = true; // 카메라 전환 활성화
+        [SerializeField] private Vector3 introPosition = new Vector3(0, 50, -30); // 첫 화면 카메라 위치
+        [SerializeField] private Vector3 introRotation = new Vector3(60, 0, 0); // 첫 화면 카메라 회전
+        [SerializeField] private Vector3 gamePosition = new Vector3(0, 20, -8); // 게임 카메라 위치
+        [SerializeField] private Vector3 gameRotation = new Vector3(30, 0, 0); // 게임 카메라 회전
+        [SerializeField] private float transitionDuration = 3f; // 전환 시간
+        [SerializeField] private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // 전환 커브
+        
+        [Header("Cinemachine Integration")]
+        [SerializeField] private CinemachineVirtualCamera virtualCamera; // 시네머신 가상 카메라
+        [SerializeField] private bool useCinemachine = false; // 시네머신 사용 여부
+        
         private Camera gameCamera;
         private Vector3 targetPosition;
         private float targetFieldOfView;
+        private bool isTransitioning = false;
+        private bool isGameStarted = false;
+        private Vector3 startPosition;
+        private Quaternion startRotation;
+        private Vector3 endPosition;
+        private Quaternion endRotation;
+        private float transitionStartTime;
         
         private void Start()
         {
@@ -36,50 +57,59 @@ namespace KYS
                 gameCamera = Camera.main;
             }
             
+            // 시네머신 가상 카메라 찾기
+            if (virtualCamera == null && useCinemachine)
+            {
+                virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+            }
+            
             SetupCamera();
+            
+            // 첫 화면 위치로 설정
+            if (enableTransition)
+            {
+                SetIntroPosition();
+            }
         }
         
         private void SetupCamera()
         {
-            if (gameCamera == null) return;
-            
-            // 카메라를 원근 투영으로 설정
-            gameCamera.orthographic = false;
-            gameCamera.fieldOfView = fieldOfView;
-            
-            // 화면 비율 설정 (세로 화면 16:9)
-            float currentAspect = (float)Screen.width / Screen.height;
-            float scaleHeight = currentAspect / targetAspectRatio;
-            
-            if (scaleHeight < 1.0f)
+            if (gameCamera != null)
             {
-                // 화면이 더 넓은 경우
-                Rect rect = gameCamera.rect;
-                rect.width = 1.0f / scaleHeight;
-                rect.x = (1.0f - rect.width) / 2.0f;
-                gameCamera.rect = rect;
+                // 종횡비 설정
+                float currentAspect = (float)Screen.width / Screen.height;
+                if (currentAspect != targetAspectRatio)
+                {
+                    float scaleHeight = currentAspect / targetAspectRatio;
+                    if (scaleHeight < 1.0f)
+                    {
+                        Rect rect = gameCamera.rect;
+                        rect.width = 1.0f / scaleHeight;
+                        rect.x = (1.0f - rect.width) / 2.0f;
+                        gameCamera.rect = rect;
+                    }
+                    else
+                    {
+                        float scaleWidth = 1.0f / scaleHeight;
+                        Rect rect = gameCamera.rect;
+                        rect.height = scaleWidth;
+                        rect.y = (1.0f - rect.height) / 2.0f;
+                        gameCamera.rect = rect;
+                    }
+                }
+                
+                // Field of View 설정
+                gameCamera.fieldOfView = fieldOfView;
             }
-            else
-            {
-                // 화면이 더 좁은 경우
-                float scaleWidth = 1.0f / scaleHeight;
-                Rect rect = gameCamera.rect;
-                rect.height = scaleWidth;
-                rect.y = (1.0f - rect.height) / 2.0f;
-                gameCamera.rect = rect;
-            }
-            
-            // 초기 위치 설정 - Inspector에서 조절 가능
-            Vector3 initialPosition = useAdvancedOffset ? cameraOffset : new Vector3(0, cameraHeight, -cameraDistance);
-            transform.position = initialPosition;
-            transform.rotation = Quaternion.Euler(cameraAngle, 0f, 0f);
-            targetPosition = transform.position;
-            targetFieldOfView = fieldOfView;
         }
         
         private void Update()
         {
-            if (followPlayers)
+            if (isTransitioning)
+            {
+                UpdateTransition();
+            }
+            else if (followPlayers && !isTransitioning)
             {
                 UpdateCameraPosition();
                 UpdateCameraZoom();
@@ -133,42 +163,109 @@ namespace KYS
         {
             if (gameCamera == null) return;
             
-            // 플레이어들 간의 거리에 따라 줌 조정
+            // 플레이어 수에 따른 줌 조정
             GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-            
-            if (players.Length > 1)
+            if (players.Length > 0)
             {
+                // 플레이어들 간의 최대 거리 계산
                 float maxDistance = 0f;
-                
                 for (int i = 0; i < players.Length; i++)
                 {
                     for (int j = i + 1; j < players.Length; j++)
                     {
-                        if (players[i] != null && players[j] != null)
+                        float distance = Vector3.Distance(players[i].transform.position, players[j].transform.position);
+                        if (distance > maxDistance)
                         {
-                            float distance = Vector3.Distance(players[i].transform.position, players[j].transform.position);
-                            maxDistance = Mathf.Max(maxDistance, distance);
+                            maxDistance = distance;
                         }
                     }
                 }
                 
-                // 거리에 따른 줌 계산
-                targetFieldOfView = Mathf.Clamp(maxDistance * 2f, minDistance, maxDistance);
+                // 거리에 따른 Field of View 조정
+                float targetFOV = Mathf.Lerp(this.minDistance, this.maxDistance, maxDistance / 20f);
+                gameCamera.fieldOfView = Mathf.Lerp(gameCamera.fieldOfView, targetFOV, Time.deltaTime * followSpeed);
+            }
+        }
+        
+        /// <summary>
+        /// 첫 화면 위치로 설정
+        /// </summary>
+        public void SetIntroPosition()
+        {
+            if (useCinemachine && virtualCamera != null)
+            {
+                // 시네머신 사용 시
+                virtualCamera.transform.position = introPosition;
+                virtualCamera.transform.rotation = Quaternion.Euler(introRotation);
             }
             else
             {
-                targetFieldOfView = fieldOfView;
+                // 일반 카메라 사용 시
+                transform.position = introPosition;
+                transform.rotation = Quaternion.Euler(introRotation);
             }
-            
-            // 부드러운 줌 조정
-            gameCamera.fieldOfView = Mathf.Lerp(gameCamera.fieldOfView, targetFieldOfView, followSpeed * Time.deltaTime);
         }
         
-        // Inspector에서 실시간으로 카메라 설정 변경 가능
+        /// <summary>
+        /// 게임 시작 시 카메라 전환 시작
+        /// </summary>
+        public void StartCameraTransition()
+        {
+            if (isTransitioning || !enableTransition) return;
+            
+            isTransitioning = true;
+            isGameStarted = true;
+            transitionStartTime = Time.time;
+            
+            // 시작 위치와 회전 저장
+            startPosition = transform.position;
+            startRotation = transform.rotation;
+            
+            // 목표 위치와 회전 설정
+            endPosition = gamePosition;
+            endRotation = Quaternion.Euler(gameRotation);
+            
+            Debug.Log("[ReceiveGameCamera] 카메라 전환 시작");
+        }
+        
+        private void UpdateTransition()
+        {
+            float elapsed = Time.time - transitionStartTime;
+            float t = elapsed / transitionDuration;
+            
+            if (t >= 1f)
+            {
+                // 전환 완료
+                transform.position = endPosition;
+                transform.rotation = endRotation;
+                isTransitioning = false;
+                
+                Debug.Log("[ReceiveGameCamera] 카메라 전환 완료");
+            }
+            else
+            {
+                // 전환 중
+                float curveValue = transitionCurve.Evaluate(t);
+                transform.position = Vector3.Lerp(startPosition, endPosition, curveValue);
+                transform.rotation = Quaternion.Lerp(startRotation, endRotation, curveValue);
+            }
+        }
+        
+        /// <summary>
+        /// 카메라 전환이 완료되었는지 확인
+        /// </summary>
+        public bool IsTransitionComplete()
+        {
+            return !isTransitioning;
+        }
+        
+        /// <summary>
+        /// 카메라 높이 설정
+        /// </summary>
         public void SetCameraHeight(float height)
         {
             cameraHeight = height;
-            if (!useAdvancedOffset)
+            if (!isTransitioning)
             {
                 Vector3 newPosition = transform.position;
                 newPosition.y = height;
@@ -176,10 +273,13 @@ namespace KYS
             }
         }
         
+        /// <summary>
+        /// 카메라 거리 설정
+        /// </summary>
         public void SetCameraDistance(float distance)
         {
             cameraDistance = distance;
-            if (!useAdvancedOffset)
+            if (!isTransitioning)
             {
                 Vector3 newPosition = transform.position;
                 newPosition.z = -distance;
@@ -187,42 +287,85 @@ namespace KYS
             }
         }
         
+        /// <summary>
+        /// 카메라 각도 설정
+        /// </summary>
         public void SetCameraAngle(float angle)
         {
             cameraAngle = angle;
-            transform.rotation = Quaternion.Euler(angle, 0f, 0f);
+            if (!isTransitioning)
+            {
+                transform.rotation = Quaternion.Euler(angle, 0f, 0f);
+            }
         }
         
+        /// <summary>
+        /// 카메라 위치 설정
+        /// </summary>
         public void SetCameraPosition(Vector3 position)
         {
-            targetPosition = position + cameraOffset;
+            if (!isTransitioning)
+            {
+                transform.position = position;
+            }
         }
         
+        /// <summary>
+        /// 카메라 줌 설정
+        /// </summary>
         public void SetCameraZoom(float zoom)
         {
-            targetFieldOfView = Mathf.Clamp(zoom, minDistance, maxDistance);
+            if (gameCamera != null)
+            {
+                gameCamera.fieldOfView = zoom;
+            }
         }
         
+        /// <summary>
+        /// 카메라 리셋
+        /// </summary>
         public void ResetCamera()
         {
-            targetPosition = useAdvancedOffset ? cameraOffset : new Vector3(0, cameraHeight, -cameraDistance);
-            targetFieldOfView = fieldOfView;
+            isTransitioning = false;
+            isGameStarted = false;
+            SetIntroPosition();
         }
         
-        // 고급 설정 토글
+        /// <summary>
+        /// 고급 오프셋 토글
+        /// </summary>
         public void ToggleAdvancedOffset(bool useAdvanced)
         {
             useAdvancedOffset = useAdvanced;
-            SetupCamera();
         }
         
         private void OnValidate()
         {
-            // 에디터에서 값이 변경될 때 카메라 설정 업데이트
-            if (Application.isPlaying)
+            // Inspector에서 값이 변경될 때 실시간 적용 (에디터에서만)
+            if (Application.isPlaying && !isTransitioning)
             {
                 SetupCamera();
             }
+        }
+        
+        /// <summary>
+        /// 테스트용: 즉시 게임 위치로 이동
+        /// </summary>
+        [ContextMenu("Move to Game Position")]
+        public void MoveToGamePosition()
+        {
+            transform.position = gamePosition;
+            transform.rotation = Quaternion.Euler(gameRotation);
+        }
+        
+        /// <summary>
+        /// 테스트용: 즉시 첫 화면 위치로 이동
+        /// </summary>
+        [ContextMenu("Move to Intro Position")]
+        public void MoveToIntroPosition()
+        {
+            transform.position = introPosition;
+            transform.rotation = Quaternion.Euler(introRotation);
         }
     }
 } 
