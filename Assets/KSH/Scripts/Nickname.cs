@@ -1,19 +1,19 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Nickname : MonoBehaviour
+namespace KSH
 {
-    private Transform camera;
-
-    private void Start()
+    public class Nickname : MonoBehaviour
     {
-        camera = Camera.main.transform;
-    }
+        private Transform myCamera;
 
-    private void Update()
-    {
-        transform.LookAt(transform.position + camera.forward);
-    }
+        private void Start()
+        {
+            myCamera = Camera.main.transform;
+        }
+
+        private void Update()
+        {
+            transform.LookAt(transform.position + myCamera.forward);
+        }
+    }    
 }
