@@ -66,7 +66,7 @@ namespace KYS
         private PhotonView photonView;
 
         // 채팅용 고정 ViewID (모든 클라이언트가 공유)
-        private const int CHAT_VIEW_ID = 9999;
+        private const int CHAT_VIEW_ID = 777;
         #endregion
 
         #region Unity Lifecycle
