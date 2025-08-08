@@ -160,20 +160,9 @@ namespace KYS
                             UIManager.Instance.CleanPopUp();
 
                             // 로그인 패널로 이동
-                            GameObject loginPanel = UIManager.Instance.GetMainPanel("LoginPopUp");
-                            if (loginPanel != null)
-                            {
-                                // 로그인 패널을 비활성화했다가 다시 활성화하여 OnEnable 호출 보장
-                                loginPanel.SetActive(false);
-                                loginPanel.SetActive(true);
-
-                                // 추가로 LoginPanel의 ResetInputs 메서드를 직접 호출
-                                LoginPopUp loginPanelScript = loginPanel.GetComponent<LoginPopUp>();
-                                if (loginPanelScript != null)
-                                {
-                                    loginPanelScript.ResetInputs();
-                                }
-                            }
+                                UIManager.Instance.ShowPopUp<LoginPopUp>();
+                             
+                            
                         });
                 });
         }
