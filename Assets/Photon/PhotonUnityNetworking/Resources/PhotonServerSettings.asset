@@ -33,64 +33,7 @@ MonoBehaviour:
   EnableSupportLogger: 0
   RunInBackground: 1
   StartInOfflineMode: 0
-  RpcList:
-  - ArenaApplyPushForce
-  - ArenaEndGame
-  - ArenaHitEffect
-  - ArenaKillZoneEffect
-  - ArenaPlayerDied
-  - CheckJumpGamePlayerAlive
-  - ClickRpc
-  - CollectRPC
-  - DeleteJumpGamePlayer
-  - DestroyRpc
-  - DestroySpaceship
-  - Fire
-  - GoNextGame
-  - JumpGame_Jump
-  - JumpGamePlayerOut
-  - JumpGameStart
-  - PlayerArrive
-  - PunRPC_CountTile
-  - RacingCrash
-  - RacingFinish
-  - RacingStart
-  - RacingWorldCrash
-  - RequestObstaclePenalty
-  - RequestScoreIncrease
-  - RequestSpawnPlayer
-  - ResetAllPlayersReadyState
-  - RespawnSpaceship
-  - RetireCount
-  - RPC_CanMove
-  - RPC_Dead
-  - RPC_DontMove
-  - RPCActivateEffect
-  - RPCAddRopePassScore
-  - RPCBeginCountdown
-  - RPCClearAllEffects
-  - RPCDeactivateEffect
-  - RpcNotifyLoaded
-  - RPCRopeNotifyDeath
-  - RPCRopeSetJumping
-  - RPCRopeShowDeathPanel
-  - RpcStartGame
-  - RPCStartGameAndTransition
-  - RPCStartRope
-  - SendChatMessage
-  - SetColor
-  - SetControllable
-  - SetDollyCart
-  - SetStartLine
-  - SetTrack
-  - SetupItemTypeRPC
-  - SpawnItemRPC
-  - SpawnObstacle_JumpGame
-  - SpawnObstacleRPC
-  - SpawnPowerUpRPC
-  - StartCount
-  - StopBGMForAllClients
-  - StopRacingSound
+  RpcList: []
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
