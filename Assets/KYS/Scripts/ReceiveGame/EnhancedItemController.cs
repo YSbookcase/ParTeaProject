@@ -7,73 +7,119 @@ namespace KYS
     public class EnhancedItemController : MonoBehaviourPun
     {
         [Header("Configuration")]
-        [SerializeField] private ItemConfiguration itemConfiguration;
+        [SerializeField] private ItemConfiguration itemConfiguration; // 아이템 설정
         
         [Header("Item Settings")]
-        [SerializeField] private ItemType itemType = ItemType.Normal;
-        [SerializeField] private int pointValue = 1;
-        [SerializeField] private float effectDuration = 5f;
+        [SerializeField] private ItemType itemType = ItemType.Normal; // 아이템 타입
+        [SerializeField] private int pointValue = 1; // 점수 값
+        [SerializeField] private float effectDuration = 5f; // 효과 지속시간
         
         [Header("Magnetic Effect Settings")]
-        [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위 (기본값)
-        [SerializeField] private float magnetForce = 10f; // 자석 효과 힘 (기본값)
+        [SerializeField] private float magnetRadius = 5f; // 자석 효과 범위
+        [SerializeField] private float magnetForce = 10f; // 자석 효과 힘
         
         [Header("Physics Settings")]
-        [SerializeField] private float groundLevel = 0.5f;
-        [SerializeField] private float bounceForce = 2f;
-        [SerializeField] private float maxFallSpeed = 12f;
-        [SerializeField] private float rotationSpeed = 60f;
-        [SerializeField] private float bobSpeed = 1.5f;
-        [SerializeField] private float bobHeight = 0.3f;
+        [SerializeField] private float groundLevel = 0.5f; // 바닥 레벨
+        [SerializeField] private float bounceForce = 2f; // 바운스 힘
+        [SerializeField] private float maxFallSpeed = 12f; // 최대 낙하 속도
+        [SerializeField] private float rotationSpeed = 60f; // 회전 속도
+        [SerializeField] private float bobSpeed = 1.5f; // 바운스 애니메이션 속도
+        [SerializeField] private float bobHeight = 0.3f; // 바운스 애니메이션 높이
         
         [Header("Visual Components")]
         [SerializeField] private Transform visualContainer; // 시각적 요소들을 담을 컨테이너
         [SerializeField] private Renderer itemRenderer; // 기본 렌더러 (색상 변경용)
         
-        // Legacy color settings (fallback)
         [Header("Legacy Visual Effects")]
-        [SerializeField] private Color normalColor = Color.white;
-        [SerializeField] private Color bonusColor = Color.yellow;
-        [SerializeField] private Color speedColor = Color.blue;
-        [SerializeField] private Color slowColor = Color.red;
-        [SerializeField] private Color magnetColor = Color.green;
+        [SerializeField] private Color normalColor = Color.white; // 일반 아이템 색상
+        [SerializeField] private Color bonusColor = Color.yellow; // 보너스 아이템 색상
+        [SerializeField] private Color speedColor = Color.blue; // 속도 아이템 색상
+        [SerializeField] private Color slowColor = Color.red; // 슬로우 아이템 색상
+        [SerializeField] private Color magnetColor = Color.green; // 자석 아이템 색상
         
-        private Rigidbody rb;
-        private bool isCollected = false;
-        private bool hasHitGround = false;
+        // Private variables
+        private Rigidbody rb; // 리지드바디 컴포넌트
+        private bool isCollected = false; // 수집됨 여부
+        private bool hasHitGround = false; // 바닥에 착지했는지 여부
         private bool isDropAnimationComplete = false; // DropItemToGround 코루틴 완료 여부
-        private Vector3 startPosition;
-        private Coroutine bobCoroutine;
-        private GameObject currentVisualPrefab;
-        
+        private Vector3 startPosition; // 시작 위치
+        private Coroutine bobCoroutine; // 바운스 애니메이션 코루틴
+        private GameObject currentVisualPrefab; // 현재 시각적 프리팹
+
+        #region Unity Lifecycle
+
         private void Start()
         {
-            // 아이템 설정 로드
+            LoadItemConfiguration();
+            InitializeComponents();
+            SetupColliderForMobile();
+            
+            if (itemType == ItemType.Normal)
+            {
+                UpdateVisual();
+            }
+        }
+        
+        private void Update()
+        {
+            if (isCollected) return;
+            
+            UpdateRotation();
+            
+            if (isDropAnimationComplete && !hasHitGround)
+            {
+                CheckGroundCollision();
+            }
+        }
+        
+        private void OnDestroy()
+        {
+            StopAllCoroutines();
+        }
+
+        #endregion
+
+        #region Initialization
+
+        private void LoadItemConfiguration() // 아이템 설정 로드
+        {
             if (itemConfiguration == null)
             {
                 itemConfiguration = Resources.Load<ItemConfiguration>("ItemConfiguration");
-                if (itemConfiguration == null)
-                {
-                    //Debug.LogWarning("[EnhancedItemController] ItemConfiguration을 찾을 수 없습니다. 기본 설정을 사용합니다.");
-                }
             }
+        }
+        
+        private void InitializeComponents() // 컴포넌트 초기화
+        {
+            InitializeRenderer();
+            InitializeVisualContainer();
+            InitializeRigidbody();
             
-            // 컴포넌트 초기화
+            startPosition = transform.position;
+        }
+        
+        private void InitializeRenderer() // 렌더러 초기화
+        {
             if (itemRenderer == null)
             {
                 itemRenderer = GetComponent<Renderer>();
             }
-            
+        }
+        
+        private void InitializeVisualContainer() // 시각적 컨테이너 초기화
+        {
             if (visualContainer == null)
             {
-                // visualContainer가 없으면 자동으로 생성
                 GameObject container = new GameObject("VisualContainer");
                 container.transform.SetParent(transform);
                 container.transform.localPosition = Vector3.zero;
                 container.transform.localRotation = Quaternion.identity;
                 visualContainer = container.transform;
             }
-            
+        }
+        
+        private void InitializeRigidbody() // 리지드바디 초기화
+        {
             rb = GetComponent<Rigidbody>();
             if (rb == null)
             {
@@ -81,19 +127,9 @@ namespace KYS
             }
             
             SetupRigidbody();
-            startPosition = transform.position;
-            
-            // 모바일에서 콜라이더 크기 확대
-            SetupColliderForMobile();
-            
-            // 아이템 타입이 설정되지 않은 경우 기본값 사용
-            if (itemType == ItemType.Normal)
-            {
-                UpdateVisual();
-            }
         }
         
-        private void SetupRigidbody()
+        private void SetupRigidbody() // 리지드바디 설정
         {
             if (rb != null)
             {
@@ -104,66 +140,60 @@ namespace KYS
                 rb.isKinematic = false;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-                
-                // Y축 회전만 허용
                 rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
             }
         }
         
-        /// <summary>
-        /// 모바일에서 아이템 수집을 위해 콜라이더 크기를 확대합니다.
-        /// </summary>
-        private void SetupColliderForMobile()
+        private void SetupColliderForMobile() // 모바일용 콜라이더 설정
         {
             if (!Application.isMobilePlatform) return;
             
-            // SphereCollider 확대
+            SetupSphereCollider();
+            SetupBoxCollider();
+            SetupCapsuleCollider();
+        }
+        
+        private void SetupSphereCollider() // 구체 콜라이더 설정
+        {
             SphereCollider sphereCollider = GetComponent<SphereCollider>();
             if (sphereCollider != null)
             {
-                // 기존 크기의 1.5배로 확대
                 sphereCollider.radius *= 1.5f;
-                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {sphereCollider.radius}");
-            }
-            
-            // BoxCollider 확대
-            BoxCollider boxCollider = GetComponent<BoxCollider>();
-            if (boxCollider != null)
-            {
-                // 기존 크기의 1.5배로 확대
-                boxCollider.size *= 1.5f;
-                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 크기: {boxCollider.size}");
-            }
-            
-            // CapsuleCollider 확대
-            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
-            if (capsuleCollider != null)
-            {
-                // 기존 크기의 1.5배로 확대
-                capsuleCollider.radius *= 1.5f;
-                capsuleCollider.height *= 1.5f;
-                //Debug.Log($"[EnhancedItemController] 모바일 콜라이더 확대: {gameObject.name}, 새로운 반지름: {capsuleCollider.radius}, 높이: {capsuleCollider.height}");
             }
         }
         
-        private void Update()
+        private void SetupBoxCollider() // 박스 콜라이더 설정
         {
-            if (isCollected) return;
-            
-            // 회전 애니메이션
+            BoxCollider boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider != null)
+            {
+                boxCollider.size *= 1.5f;
+            }
+        }
+        
+        private void SetupCapsuleCollider() // 캡슐 콜라이더 설정
+        {
+            CapsuleCollider capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider != null)
+            {
+                capsuleCollider.radius *= 1.5f;
+                capsuleCollider.height *= 1.5f;
+            }
+        }
+
+        #endregion
+
+        #region Animation
+
+        private void UpdateRotation() // 회전 애니메이션 업데이트
+        {
             if (rb != null && !rb.isKinematic)
             {
                 rb.angularVelocity = new Vector3(0, rotationSpeed * Mathf.Deg2Rad, 0);
             }
-            
-            // DropItemToGround 코루틴이 완료된 후에만 바닥 충돌 체크
-            if (isDropAnimationComplete && !hasHitGround)
-            {
-                CheckGroundCollision();
-            }
         }
         
-        private void CheckGroundCollision()
+        private void CheckGroundCollision() // 바닥 충돌 체크
         {
             if (hasHitGround) return;
             
@@ -173,36 +203,40 @@ namespace KYS
             }
         }
         
-        private void OnHitGround()
+        private void OnHitGround() // 바닥 착지 처리
         {
             hasHitGround = true;
             
-            // 바운스 효과
+            ApplyBounceEffect();
+            StartBobAnimation();
+            LimitFallSpeed();
+        }
+        
+        private void ApplyBounceEffect() // 바운스 효과 적용
+        {
             if (rb != null)
             {
                 rb.velocity = new Vector3(rb.velocity.x, bounceForce, rb.velocity.z);
             }
-            
-            // 바운스 애니메이션 시작
-            StartBobAnimation();
-            
-            // 낙하 속도 제한
+        }
+        
+        private void LimitFallSpeed() // 낙하 속도 제한
+        {
             if (rb != null && rb.velocity.y < -maxFallSpeed)
             {
                 rb.velocity = new Vector3(rb.velocity.x, -maxFallSpeed, rb.velocity.z);
             }
         }
         
-        private void StartBobAnimation()
+        private void StartBobAnimation() // 바운스 애니메이션 시작
         {
             if (bobCoroutine == null)
             {
                 bobCoroutine = StartCoroutine(BobAnimation());
-                Debug.Log($"[EnhancedItemController.StartBobAnimation] 바운스 애니메이션 시작 - 아이템: {gameObject.name}, 현재위치: {transform.position}");
             }
         }
         
-        private IEnumerator BobAnimation()
+        private IEnumerator BobAnimation() // 바운스 애니메이션 코루틴
         {
             Vector3 originalPosition = transform.position;
             float time = 0f;
@@ -215,114 +249,102 @@ namespace KYS
                 yield return null;
             }
         }
-        
-        public void SetItemType(ItemType type)
+
+        #endregion
+
+        #region Visual Management
+
+        public void SetItemType(ItemType type) // 아이템 타입 설정
         {
             itemType = type;
-            //Debug.Log($"[EnhancedItemController] 아이템 타입 설정: {type} - {gameObject.name}");
             UpdateVisual();
         }
         
-        private void UpdateVisual()
+        private void UpdateVisual() // 시각적 요소 업데이트
         {
-            ////Debug.Log($"[EnhancedItemController] UpdateVisual 시작 - 타입: {itemType}, {gameObject.name}");
-            
-            // 기존 시각적 프리팹 제거
             ClearVisualPrefab();
             
-            // 설정에서 아이템 정보 가져오기
-            ItemConfig config = null;
-            if (itemConfiguration != null)
-            {
-                config = itemConfiguration.GetItemConfig(itemType);
-                ////Debug.Log($"[EnhancedItemController] ItemConfiguration에서 {itemType} 설정 찾음: {(config != null ? "성공" : "실패")}");
-            }
-            else
-            {
-                //Debug.LogWarning($"[EnhancedItemController] ItemConfiguration이 null입니다. 레거시 방식 사용");
-            }
+            ItemConfig config = GetItemConfig();
             
             if (config != null)
             {
-                // 설정된 값들 적용
-                pointValue = config.pointValue;
-                effectDuration = config.effectDuration;
-                bounceForce = config.bounceForce;
-                maxFallSpeed = config.maxFallSpeed;
-                rotationSpeed = config.rotationSpeed;
-                bobSpeed = config.bobSpeed;
-                bobHeight = config.bobHeight;
-                
-                // 마그네틱 효과 설정 적용
-                magnetRadius = config.magnetRadius;
-                magnetForce = config.magnetForce;
-                
-                ////Debug.Log($"[EnhancedItemController] {itemType} 설정 적용 - 점수: {pointValue}, 지속시간: {effectDuration}, 마그네틱 힘: {magnetForce}, 마그네틱 범위: {magnetRadius}");
-                
-                // 시각적 프리팹 적용
-                if (config.visualPrefab != null)
-                {
-                    CreateVisualPrefab(config.visualPrefab);
-                }
-                else
-                {
-                    // 프리팹이 없으면 색상만 변경
-                    ApplyColor(config.itemColor);
-                    //Debug.Log($"[EnhancedItemController] {itemType} 색상 적용: {config.itemColor}");
-                }
+                ApplyItemConfig(config);
             }
             else
             {
-                // 설정이 없으면 레거시 방식 사용
-                //Debug.Log($"[EnhancedItemController] {itemType} 레거시 시각적 설정 적용");
                 ApplyLegacyVisual();
             }
         }
         
-        private void CreateVisualPrefab(GameObject prefab)
+        private ItemConfig GetItemConfig() // 아이템 설정 가져오기
+        {
+            if (itemConfiguration != null)
+            {
+                return itemConfiguration.GetItemConfig(itemType);
+            }
+            return null;
+        }
+        
+        private void ApplyItemConfig(ItemConfig config) // 아이템 설정 적용
+        {
+            pointValue = config.pointValue;
+            effectDuration = config.effectDuration;
+            bounceForce = config.bounceForce;
+            maxFallSpeed = config.maxFallSpeed;
+            rotationSpeed = config.rotationSpeed;
+            bobSpeed = config.bobSpeed;
+            bobHeight = config.bobHeight;
+            magnetRadius = config.magnetRadius;
+            magnetForce = config.magnetForce;
+            
+            if (config.visualPrefab != null)
+            {
+                CreateVisualPrefab(config.visualPrefab);
+            }
+            else
+            {
+                ApplyColor(config.itemColor);
+            }
+        }
+        
+        private void CreateVisualPrefab(GameObject prefab) // 시각적 프리팹 생성
         {
             if (visualContainer == null) return;
             
-            // 기존 프리팹 제거
             ClearVisualPrefab();
             
-            // 새 프리팹 생성
             currentVisualPrefab = Instantiate(prefab, visualContainer);
             currentVisualPrefab.transform.localPosition = Vector3.zero;
             currentVisualPrefab.transform.localRotation = Quaternion.identity;
-            
-            // ScriptableObject에서 가져온 크기 설정 적용
-            Vector3 itemScale = GetItemTypeScale();
-            currentVisualPrefab.transform.localScale = itemScale;
-            
-            ////Debug.Log($"[EnhancedItemController] {itemType} 타입의 시각적 프리팹 생성: {prefab.name}, 크기: {itemScale}");
+            currentVisualPrefab.transform.localScale = GetItemTypeScale();
         }
         
-        private Vector3 GetItemTypeScale()
+        private Vector3 GetItemTypeScale() // 아이템 타입별 크기 가져오기
         {
-            // ScriptableObject에서 크기 설정 가져오기
             if (itemConfiguration != null)
             {
                 ItemConfig config = itemConfiguration.GetItemConfig(itemType);
                 if (config != null)
                 {
-                    ////Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 크기 적용: {config.scale}");
                     return config.scale;
                 }
             }
             
-            // ScriptableObject에서 가져올 수 없는 경우 기본값 사용
-            //Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 크기 설정을 찾을 수 없어 기본값 사용");
+            return GetDefaultScale();
+        }
+        
+        private Vector3 GetDefaultScale() // 기본 크기 가져오기
+        {
             switch (itemType)
             {
                 case ItemType.Normal:
                     return Vector3.one * 1.5f;
                 case ItemType.Bonus:
-                    return Vector3.one * 2.0f; // 보너스 아이템은 더 크게
+                    return Vector3.one * 2.0f;
                 case ItemType.Speed:
                     return Vector3.one * 1.5f;
                 case ItemType.Slow:
-                    return Vector3.one * 1.2f; // 느린 아이템은 약간 작게
+                    return Vector3.one * 1.2f;
                 case ItemType.Magnet:
                     return Vector3.one * 1.5f;
                 default:
@@ -330,7 +352,7 @@ namespace KYS
             }
         }
         
-        private void ClearVisualPrefab()
+        private void ClearVisualPrefab() // 시각적 프리팹 정리
         {
             if (currentVisualPrefab != null)
             {
@@ -338,7 +360,6 @@ namespace KYS
                 currentVisualPrefab = null;
             }
             
-            // visualContainer의 모든 자식 제거
             if (visualContainer != null)
             {
                 for (int i = visualContainer.childCount - 1; i >= 0; i--)
@@ -348,7 +369,7 @@ namespace KYS
             }
         }
         
-        private void ApplyColor(Color color)
+        private void ApplyColor(Color color) // 색상 적용
         {
             if (itemRenderer != null)
             {
@@ -356,7 +377,7 @@ namespace KYS
             }
         }
         
-        private void ApplyLegacyVisual()
+        private void ApplyLegacyVisual() // 레거시 시각적 설정 적용
         {
             Color targetColor = normalColor;
             switch (itemType)
@@ -383,70 +404,50 @@ namespace KYS
                     break;
             }
             
-            //Debug.Log($"[EnhancedItemController] 레거시 시각적 설정 - {itemType}: 색상={targetColor}, 점수={pointValue}");
             ApplyColor(targetColor);
         }
-        
-        private void OnTriggerEnter(Collider other)
+
+        #endregion
+
+        #region Collision Detection
+
+        private void OnTriggerEnter(Collider other) // 트리거 진입 감지
         {
-            // 모바일에서는 이미 수집된 아이템도 재시도 허용 (네트워크 지연 대응)
             if (isCollected && !Application.isMobilePlatform) return;
             
-            // 플레이어와 충돌했는지 확인
             if (other.CompareTag("Player"))
             {
-                // 모바일 디버깅을 위한 상세 정보
-                if (Application.isMobilePlatform)
-                {
-                    float distance = Vector3.Distance(transform.position, other.transform.position);
-                    //Debug.Log($"[EnhancedItemController] OnTriggerEnter 감지: {gameObject.name} <-> {other.name}, 거리: {distance:F2}, 아이템 타입: {itemType}");
-                }
-                
-                // 중복 수집 방지를 위해 즉시 수집 상태로 변경 (모바일에서는 더 관대하게)
-                isCollected = true;
-                
-                // 바운스 애니메이션 중지
-                if (bobCoroutine != null)
-                {
-                    StopCoroutine(bobCoroutine);
-                    bobCoroutine = null;
-                }
-                
-                // 플레이어의 ReceiveGamePlayer 컴포넌트 찾기
-                ReceiveGamePlayer player = other.GetComponent<ReceiveGamePlayer>();
-                if (player != null)
-                {
-                    // 아이템 효과 적용
-                    ApplyItemEffect(player);
-                    
-                    // 아이템 수집 효과음 재생
-                    PlayCollectSound();
-                    
-                    // 점수 추가 (ReceiveGamePlayer에서 처리하므로 여기서는 제거)
-                    // ReceiveGamePlayer.CollectItem에서 ReceiveGameManagerEnhanced.CollectItem을 호출함
-                }
-                else
-                {
-                    // 모바일 디버깅을 위한 경고
-                    if (Application.isMobilePlatform)
-                    {
-                        //Debug.LogWarning($"[EnhancedItemController] ReceiveGamePlayer 컴포넌트를 찾을 수 없음: {other.name}");
-                    }
-                }
-                
-                // 아이템 제거 (지연 시간 추가로 시각적 효과 보장)
-                StartCoroutine(DestroyAfterEffect());
-            }
-            else if (Application.isMobilePlatform)
-            {
-                // 플레이어가 아닌 다른 오브젝트와의 충돌 디버그
-                //Debug.Log($"[EnhancedItemController] 다른 오브젝트와 충돌: {gameObject.name} <-> {other.name} (태그: {other.tag})");
+                HandlePlayerCollision(other);
             }
         }
         
-        private IEnumerator DestroyAfterEffect()
+        private void HandlePlayerCollision(Collider playerCollider) // 플레이어 충돌 처리
         {
-            // 수집 효과가 완전히 재생될 때까지 대기
+            isCollected = true;
+            
+            StopBobAnimation();
+            
+            ReceiveGamePlayer player = playerCollider.GetComponent<ReceiveGamePlayer>();
+            if (player != null)
+            {
+                ApplyItemEffect(player);
+                PlayCollectSound();
+            }
+            
+            StartCoroutine(DestroyAfterEffect());
+        }
+        
+        private void StopBobAnimation() // 바운스 애니메이션 중지
+        {
+            if (bobCoroutine != null)
+            {
+                StopCoroutine(bobCoroutine);
+                bobCoroutine = null;
+            }
+        }
+        
+        private IEnumerator DestroyAfterEffect() // 효과 후 파괴
+        {
             yield return new WaitForSeconds(0.2f);
             
             if (gameObject != null)
@@ -454,14 +455,17 @@ namespace KYS
                 Destroy(gameObject);
             }
         }
-        
-        private void ApplyItemEffect(ReceiveGamePlayer player)
+
+        #endregion
+
+        #region Item Effects
+
+        private void ApplyItemEffect(ReceiveGamePlayer player) // 아이템 효과 적용
         {
             switch (itemType)
             {
                 case ItemType.Normal:
                 case ItemType.Bonus:
-                    // 점수만 추가 (CollectItem에서 처리)
                     break;
                     
                 case ItemType.Speed:
@@ -473,81 +477,12 @@ namespace KYS
                     break;
                     
                 case ItemType.Magnet:
-                    // 이미 설정된 마그네틱 힘 값 사용 (UpdateVisual에서 ItemConfiguration에서 가져온 값)
-                    //Debug.Log($"[EnhancedItemController] 마그네틱 효과 적용 - 힘: {magnetForce}, 범위: {magnetRadius}, 지속시간: {effectDuration}");
                     player.ApplyMagnetEffect(effectDuration, magnetRadius, magnetForce);
                     break;
             }
         }
         
-        public ItemType GetItemType()
-        {
-            return itemType;
-        }
-        
-        public int GetPointValue()
-        {
-            return pointValue;
-        }
-        
-        public float GetEffectDuration()
-        {
-            return effectDuration;
-        }
-        
-        public float GetMagnetRadius()
-        {
-            return magnetRadius;
-        }
-        
-        public float GetMagnetForce()
-        {
-            return magnetForce;
-        }
-        
-        /// <summary>
-        /// DropItemToGround 코루틴이 완료되었음을 알리는 메서드
-        /// </summary>
-        public void OnDropAnimationComplete()
-        {
-            isDropAnimationComplete = true;
-            hasHitGround = true; // 바닥에 착지한 것으로 간주
-            Debug.Log($"[EnhancedItemController.OnDropAnimationComplete] 드롭 애니메이션 완료 - 아이템: {gameObject.name}, 현재위치: {transform.position}, groundLevel: {groundLevel}");
-            StartBobAnimation(); // 바운스 애니메이션 시작
-        }
-        
-        /// <summary>
-        /// ReceiveGameManagerEnhanced에서 groundLevel을 설정하는 메서드
-        /// </summary>
-        public void SetGroundLevel(float level)
-        {
-            groundLevel = level;
-            Debug.Log($"[EnhancedItemController] Ground level 설정됨: {groundLevel}");
-        }
-        
-        /// <summary>
-        /// 모든 코루틴을 중지하고 정리
-        /// </summary>
-        public new void StopAllCoroutines()
-        {
-            if (bobCoroutine != null)
-            {
-                StopCoroutine(bobCoroutine);
-                bobCoroutine = null;
-            }
-            
-            // 다른 모든 코루틴도 중지
-            base.StopAllCoroutines();
-        }
-        
-        private void OnDestroy()
-        {
-            // 오브젝트가 파괴될 때 모든 코루틴 중지
-            StopAllCoroutines();
-        }
-        
-        // 아이템 수집 효과음 재생
-        private void PlayCollectSound()
+        private void PlayCollectSound() // 수집 사운드 재생
         {
             if (itemConfiguration != null)
             {
@@ -555,26 +490,70 @@ namespace KYS
                 if (config != null && !string.IsNullOrEmpty(config.collectSoundName) && Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay(config.collectSoundName, transform);
-                    Debug.Log($"[EnhancedItemController] {itemType} ScriptableObject 사운드 재생: {config.collectSoundName}");
                 }
-                else
-                {
-                    Debug.LogWarning($"[EnhancedItemController] {itemType} ScriptableObject 사운드 설정을 찾을 수 없거나 AudioManager가 null입니다. AudioManager: {Manager.Audio}");
-                }
-            }
-            else
-            {
-                // 기본 효과음 재생
-                if (Manager.Audio != null)
+                else if (Manager.Audio != null)
                 {
                     Manager.Audio.SfxPlay("SFX_NormalItem", transform);
-                    Debug.Log($"[EnhancedItemController] {itemType} 기본 사운드 재생: SFX_NormalItem");
-                }
-                else
-                {
-                    Debug.LogWarning($"[EnhancedItemController] AudioManager가 null입니다.");
                 }
             }
+            else if (Manager.Audio != null)
+            {
+                Manager.Audio.SfxPlay("SFX_NormalItem", transform);
+            }
         }
+
+        #endregion
+
+        #region Public Methods
+
+        public ItemType GetItemType() // 아이템 타입 반환
+        {
+            return itemType;
+        }
+        
+        public int GetPointValue() // 점수 값 반환
+        {
+            return pointValue;
+        }
+        
+        public float GetEffectDuration() // 효과 지속시간 반환
+        {
+            return effectDuration;
+        }
+        
+        public float GetMagnetRadius() // 자석 범위 반환
+        {
+            return magnetRadius;
+        }
+        
+        public float GetMagnetForce() // 자석 힘 반환
+        {
+            return magnetForce;
+        }
+        
+        public void OnDropAnimationComplete() // 드롭 애니메이션 완료 처리
+        {
+            isDropAnimationComplete = true;
+            hasHitGround = true;
+            StartBobAnimation();
+        }
+        
+        public void SetGroundLevel(float level) // 바닥 레벨 설정
+        {
+            groundLevel = level;
+        }
+        
+        public new void StopAllCoroutines() // 모든 코루틴 중지
+        {
+            if (bobCoroutine != null)
+            {
+                StopCoroutine(bobCoroutine);
+                bobCoroutine = null;
+            }
+            
+            base.StopAllCoroutines();
+        }
+
+        #endregion
     }
 } 
