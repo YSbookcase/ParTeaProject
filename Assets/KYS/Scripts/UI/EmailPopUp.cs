@@ -25,7 +25,7 @@ namespace KYS
             // SFX가 포함된 버튼 이벤트 등록
             GetEventWithSFX("ResendButton", "SFX_ButtonClick").Click += ResendEmail;
             GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
-            GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenu;
+            //GetEventWithSFX("MenuButton", "SFX_ButtonClick").Click += OnMenu;
 
         }
 
@@ -207,10 +207,10 @@ namespace KYS
             }
         }
 
-        private void OnMenu(PointerEventData eventData)
-        {
-            UIManager.Instance.ShowPopUp<MenuPopUp>();
-        }
+        // private void OnMenu(PointerEventData eventData)
+        // {
+        //     UIManager.Instance.ShowPopUp<MenuPopUp>();
+        // }
 
         private void UpdateStatusText(string message)
         {

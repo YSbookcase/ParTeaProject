@@ -1,12 +1,13 @@
 using Firebase.Auth;
 using Firebase.Extensions;
 using KYS;
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Photon.Pun;
 using UnityEngine.UI;
 
 namespace KYS
@@ -25,6 +26,13 @@ namespace KYS
             
             // Back 버튼 이벤트 등록 (SFX 포함)
             GetBackEvent("BackButton", "SFX_ButtonClickBack").Click += Back;
+
+            var menuButton = GetEventWithSFX("MenuButton", "SFX_ButtonClick");
+            if (menuButton != null)
+            {
+                menuButton.Click -= OnMenu;
+                menuButton.Click += OnMenu;
+            }
         }
 
         private void Confirm(PointerEventData eventData)
@@ -127,6 +135,12 @@ namespace KYS
                     loginPanelScript.ResetInputs();
                 }
             }
+        }
+
+
+        private void OnMenu(PointerEventData eventData)
+        {
+            UIManager.Instance.ShowPopUp<MenuPopUp>();
         }
 
         // 에러 메시지 표시
