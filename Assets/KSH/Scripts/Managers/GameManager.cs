@@ -59,6 +59,12 @@ namespace KSH
                 
                 photonView.RPC("StartCount", RpcTarget.All);
             }
+            
+            if (!isBgm)
+            {
+                Manager.Audio.BgmPlay("KSH_BackGround");
+                isBgm = true;
+            }
         }
 
         private void Update()
@@ -73,11 +79,6 @@ namespace KSH
                 if (timer > 0)
                 {
                     timer -= Time.deltaTime; //정해진 시간을 초마다 줄이기
-                    if (!isBgm)
-                    {
-                        Manager.Audio.BgmPlay("KSH_BackGround");
-                        isBgm = true;
-                    }
                     OnGameStart?.Invoke();
                 }
                 else
